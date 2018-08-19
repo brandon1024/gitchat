@@ -5,4 +5,7 @@
 #ifndef GITCHAT_CHANNEL_H
 #define GITCHAT_CHANNEL_H
 
+int cmd_channel(int argc, char *argv[]);
+void show_channel_usage(const char *msg);
+
 #endif //GITCHAT_CHANNEL_H

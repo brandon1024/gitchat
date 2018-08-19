@@ -3,3 +3,13 @@
 //
 
 #include "get.h"
+
+int cmd_get(int argc, char *argv[])
+{
+    return 0;
+}
+
+void show_get_usage(const char *msg)
+{
+
+}

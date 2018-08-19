@@ -3,3 +3,12 @@
 //
 
 #include "publish.h"
+
+int cmd_publish(int argc, char *argv[]) {
+    return 0;
+}
+
+void show_publish_usage(const char *msg)
+{
+
+}

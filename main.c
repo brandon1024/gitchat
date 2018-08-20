@@ -11,20 +11,25 @@
 #include "publish.h"
 #include "get.h"
 #include "read.h"
+#include "usage.h"
+
+static const struct usage_description main_cmd_usage[] = {
+        USAGE("git chat <command> [<options>]"),
+        USAGE_END()
+};
+
+static const struct option main_cmd_options[] = {
+        OPT_CMD("channel", "d"),
+        OPT_CMD("message", "d"),
+        OPT_CMD("publish", "d"),
+        OPT_CMD("get", "d"),
+        OPT_CMD("read", "d"),
+        OPT_END()
+};
 
 void show_main_usage(const char *msg)
 {
-    if(msg != NULL)
-        printf("%s\n", msg);
-
-    printf("usage: git chat <command> [<options>]\n\n");
-    printf("These are common chat commands used in various situations:\n\n");
-    printf("\t%s\t%s\n", "channel", "");
-    printf("\t%s\t%s\n", "message", "");
-    printf("\t%s\t%s\n", "get", "");
-    printf("\t%s\t%s\n", "publish", "");
-    printf("\t%s\t%s\n", "read", "");
-    printf("\n");
+    usage_with_options(main_cmd_usage, main_cmd_options, msg);
 }
 
 int main(int argc, char *argv[])

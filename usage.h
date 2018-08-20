@@ -9,6 +9,7 @@ enum opt_type {
     OPTION_BOOL_T,
     OPTION_INT_T,
     OPTION_STRING_T,
+    OPTION_COMMAND_T,
     OPTION_END
 };
 
@@ -35,6 +36,7 @@ struct usage_description {
 #define OPT_BOOL(S,L,D)         { (S), (L), NULL, (D), OPTION_BOOL_T }
 #define OPT_INT(S,L,D)          { (S), (L), NULL, (D), OPTION_INT_T }
 #define OPT_STRING(S,L,N,D)     { (S), (L), (N), (D), OPTION_STRING_T }
+#define OPT_CMD(N,D)            { NULL, NULL, (N), (D), OPTION_COMMAND_T }
 #define OPT_END()               { NULL, NULL, NULL, NULL, OPTION_END }
 
 #define USAGE(DESC)             { (DESC) }

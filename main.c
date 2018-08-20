@@ -19,17 +19,17 @@ static const struct usage_description main_cmd_usage[] = {
 };
 
 static const struct option main_cmd_options[] = {
-        OPT_CMD("channel", "d"),
-        OPT_CMD("message", "d"),
-        OPT_CMD("publish", "d"),
-        OPT_CMD("get", "d"),
-        OPT_CMD("read", "d"),
+        OPT_CMD("channel", "TODO DESCRIPTION"),
+        OPT_CMD("message", "TODO DESCRIPTION"),
+        OPT_CMD("publish", "TODO DESCRIPTION"),
+        OPT_CMD("get", "TODO DESCRIPTION"),
+        OPT_CMD("read", "TODO DESCRIPTION"),
         OPT_END()
 };
 
 void show_main_usage(const char *msg)
 {
-    usage_with_options(main_cmd_usage, main_cmd_options, msg);
+    show_usage_with_options(main_cmd_usage, main_cmd_options, msg);
 }
 
 int main(int argc, char *argv[])

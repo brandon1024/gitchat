@@ -4,8 +4,8 @@
 
 #include <stdio.h>
 
-#include "usage.h"
 #include "channel.h"
+#include "usage.h"
 
 static const struct usage_description channel_cmd_usage[] = {
         USAGE("git chat channel [-l | --list] [-r | --remotes] [-a | --all]"),
@@ -33,5 +33,5 @@ int cmd_channel(int argc, char *argv[])
 
 void show_channel_usage(const char *msg)
 {
-    usage_with_options(channel_cmd_usage, channel_cmd_options, msg);
+    show_usage_with_options(channel_cmd_usage, channel_cmd_options, msg);
 }

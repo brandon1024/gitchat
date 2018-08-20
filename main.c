@@ -14,9 +14,8 @@
 
 void show_main_usage(const char *msg)
 {
-    if(msg != NULL) {
+    if(msg != NULL)
         printf("%s\n", msg);
-    }
 
     printf("usage: git chat <command> [<options>]\n\n");
     printf("These are common chat commands used in various situations:\n\n");

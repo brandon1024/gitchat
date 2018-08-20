@@ -3,28 +3,72 @@
 //
 
 #include <stdio.h>
+#include <string.h>
 
-#include "options.h"
 #include "usage.h"
 
-void show_usage(const char * const cmd_usage[], const char *err_msg)
+void show_usage(const struct usage_description *cmd_usage, const char *optional_message)
 {
-    if(err_msg != NULL) {
-        printf("%s\n", err_msg);
-    }
+    if(optional_message != NULL)
+        printf("%s\n", optional_message);
 
     int index = 0;
+    while(cmd_usage[index].usage_desc != NULL) {
+        if(index == 0)
+            printf("%s %s\n", "usage:", cmd_usage[index].usage_desc);
+        else
+            printf("%s %s\n", "   or:", cmd_usage[index].usage_desc);
 
-    while(cmd_usage[index]) {
-        printf("%s\n", cmd_usage[index]);
         index++;
     }
 
     printf("\n");
 }
 
-void usage_with_options(const char * const cmd_usage[], const struct option *opts, const char *err_msg)
+
+/*
+ * Print options to stdout.
+ * */
+void show_options(const struct option *opts) {
+    int index = 0;
+    while(opts[index].type != OPTION_END) {
+        struct option opt = opts[index++];
+
+        printf("    ");
+        if(opt.type == OPTION_BOOL_T) {
+            if(opt.s_flag != NULL)
+                printf("-%s", opt.s_flag);
+
+            if(opt.s_flag != NULL && opt.l_flag != NULL)
+                printf(", --%s", opt.l_flag);
+            else if(opt.l_flag != NULL)
+                printf("--%s", opt.l_flag);
+        } else if(opt.type == OPTION_INT_T) {
+            if(opt.s_flag != NULL)
+                printf("-%s=<n>", opt.s_flag);
+
+            if(opt.s_flag != NULL && opt.l_flag != NULL)
+                printf(", --%s=<n>", opt.l_flag);
+            else if(opt.l_flag != NULL)
+                printf("--%s=<n>", opt.l_flag);
+        } else if(opt.type == OPTION_STRING_T) {
+            if(opt.s_flag != NULL)
+                printf("-%s", opt.s_flag);
+
+            if(opt.s_flag != NULL && opt.l_flag != NULL)
+                printf(", --%s", opt.l_flag);
+            else if(opt.l_flag != NULL)
+                printf("--%s", opt.l_flag);
+
+            printf(" <%s>", opt.str_name);
+        }
+
+        printf("    %s\n", opt.desc);
+    }
+}
+
+void usage_with_options(const struct usage_description *cmd_usage, const struct option *opts, const char *optional_message)
 {
-    show_usage(cmd_usage, err_msg);
+    show_usage(cmd_usage, optional_message);
     show_options(opts);
 }

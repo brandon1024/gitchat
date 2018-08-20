@@ -4,16 +4,15 @@
 
 #include <stdio.h>
 
-#include "options.h"
 #include "usage.h"
 #include "channel.h"
 
-static const char * const channel_cmd_usage[] = {
-        "usage: gitchat channel [-l | --list] [-r | --remotes] [-a | --all]",
-        "   or: gitchat channel [(-c | --create)] <name>",
-        "   or: gitchat channel (-s | --switch) <name>",
-        "   or: gitchat channel (-d | --delete) <name>",
-        NULL
+static const struct usage_description channel_cmd_usage[] = {
+        USAGE("git chat channel [-l | --list] [-r | --remotes] [-a | --all]"),
+        USAGE("git chat channel [(-c | --create)] <name>"),
+        USAGE("git chat channel (-s | --switch) <name>"),
+        USAGE("git chat channel (-d | --delete) <name>"),
+        USAGE_END()
 };
 
 static const struct option channel_cmd_options[] = {

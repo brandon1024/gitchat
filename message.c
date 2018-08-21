@@ -14,7 +14,7 @@ static const struct usage_description message_cmd_usage[] = {
         USAGE_END()
 };
 
-static const struct option message_cmd_options[] = {
+static const struct option_description message_cmd_options[] = {
         OPT_BOOL("p", "public", "TODO DESCRIPTION"),
         OPT_LONG_STRING("recipient", "email", "TODO DESCRIPTION"),
         OPT_STRING("c", "comment", "comment", "TODO DESCRIPTION"),

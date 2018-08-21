@@ -32,11 +32,11 @@ void show_usage(const struct usage_description *cmd_usage, const char *optional_
 /*
  * Print options to stdout.
  * */
-void show_options(const struct option *opts)
+void show_options(const struct option_description *opts)
 {
     int index = 0;
     while(opts[index].type != OPTION_END) {
-        struct option opt = opts[index++];
+        struct option_description opt = opts[index++];
         int printed_chars = 0;
 
         printed_chars += printf("    ");
@@ -78,7 +78,7 @@ void show_options(const struct option *opts)
     printf("\n");
 }
 
-void show_usage_with_options(const struct usage_description *cmd_usage, const struct option *opts, const char *optional_message)
+void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts, const char *optional_message)
 {
     show_usage(cmd_usage, optional_message);
     show_options(opts);

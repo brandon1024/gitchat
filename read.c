@@ -20,7 +20,7 @@ static const struct usage_description read_cmd_usage[] = {
         USAGE_END()
 };
 
-static const struct option read_cmd_options[] = {
+static const struct option_description read_cmd_options[] = {
         OPT_INT("n", "max-count", "TODO DESCRIPTION"),
         OPT_LONG_STRING("dir", "direction", "TODO DESCRIPTION"),
         OPT_LONG_BOOL("oneline", "TODO DESCRIPTION"),

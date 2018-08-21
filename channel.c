@@ -15,7 +15,7 @@ static const struct usage_description channel_cmd_usage[] = {
         USAGE_END()
 };
 
-static const struct option channel_cmd_options[] = {
+static const struct option_description channel_cmd_options[] = {
         OPT_BOOL("l", "list", "list channel names"),
         OPT_BOOL("r", "remotes", "list remote-tracking channels"),
         OPT_BOOL("a", "all", "list all local and remote-tracking channels"),

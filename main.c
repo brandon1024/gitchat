@@ -18,7 +18,7 @@ static const struct usage_description main_cmd_usage[] = {
         USAGE_END()
 };
 
-static const struct option main_cmd_options[] = {
+static const struct option_description main_cmd_options[] = {
         OPT_CMD("channel", "TODO DESCRIPTION"),
         OPT_CMD("message", "TODO DESCRIPTION"),
         OPT_CMD("publish", "TODO DESCRIPTION"),

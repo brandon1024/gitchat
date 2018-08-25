@@ -3,8 +3,14 @@ cmake_minimum_required(VERSION 2.6)
 set(PROJECT_NAME git-chat)
 project(${PROJECT_NAME})
 
+# version
 set(CMAKE_PROJECT_VERSION_MAJOR 0)
 set(CMAKE_PROJECT_VERSION_MINOR 1)
+
+configure_file (
+    "${PROJECT_SOURCE_DIR}/version.h.in"
+    "${PROJECT_BINARY_DIR}/version.h"
+)
 
 set(CMAKE_C_STANDARD 99)
 

@@ -7,11 +7,6 @@
 #include "read.h"
 #include "usage.h"
 
-/*gitchat read [<options>] (<commit-hash> | <filename>)
-gitchat read [(-n | --max-count) <number>] [--dir (ASC | DSC)] [--oneline] [--short]
-gitchat read [--from <email>] [--to <email>]
-gitchat read [--pull-new]*/
-
 static const struct usage_description read_cmd_usage[] = {
         USAGE("git chat read [<options>] (<commit-hash> | <filename>)"),
         USAGE("git chat read [(-n | --max-count) <number>] [--dir (ASC | DSC)] [--oneline] [--short]"),

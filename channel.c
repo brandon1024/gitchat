@@ -12,6 +12,7 @@ static const struct usage_description channel_cmd_usage[] = {
         USAGE("git chat channel [(-c | --create)] <name>"),
         USAGE("git chat channel (-s | --switch) <name>"),
         USAGE("git chat channel (-d | --delete) <name>"),
+        USAGE("git chat channel --gpg-import-key"),
         USAGE_END()
 };
 
@@ -22,6 +23,7 @@ static const struct option_description channel_cmd_options[] = {
         OPT_STRING("c", "create", "name", "create a new channel with the specified name"),
         OPT_STRING("s", "switch", "name", "switch to an existing channel"),
         OPT_STRING("d", "delete", "name", "delete a channel locally"),
+        OPT_LONG_BOOL("gpg-import-key", "import public gpg key into channel"),
         OPT_END()
 };
 

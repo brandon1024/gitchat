@@ -32,6 +32,10 @@ void show_main_usage(const char *msg)
     show_usage_with_options(main_cmd_usage, main_cmd_options, msg);
 }
 
+void show_version() {
+
+}
+
 int main(int argc, char *argv[])
 {
     if(argc < 2) {
@@ -58,4 +62,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-

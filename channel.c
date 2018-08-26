@@ -3,6 +3,7 @@
 //
 
 #include <stdio.h>
+#include <string.h>
 
 #include "channel.h"
 #include "usage.h"
@@ -29,6 +30,19 @@ static const struct option_description channel_cmd_options[] = {
 
 int cmd_channel(int argc, char *argv[])
 {
+    int list_mode = 0;
+    int action_mode = 0;
+
+    for(int arg_index = 0; arg_index < argc; arg_index++) {
+        if(argument_matches_option(argv[arg_index], channel_cmd_options[0])) {
+            //handle list local channels
+        } else if(argument_matches_option(argv[arg_index], channel_cmd_options[1])) {
+            //handle list remote channels
+        } else if(argument_matches_option(argv[arg_index], channel_cmd_options[2])) {
+            //handle list all channels
+        }
+    }
+
     show_channel_usage(NULL);
     return 0;
 }

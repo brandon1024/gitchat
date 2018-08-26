@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "usage.h"
 
@@ -78,8 +79,38 @@ void show_options(const struct option_description *opts)
     printf("\n");
 }
 
-void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts, const char *optional_message)
+void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
+        const char *optional_message)
 {
     show_usage(cmd_usage, optional_message);
     show_options(opts);
+}
+
+int argument_matches_option(const char *arg, struct option_description description)
+{
+    //If option is of type command
+    if(description.type == OPTION_COMMAND_T) {
+        return !strcmp(arg, description.str_name);
+    }
+
+    /*
+     * If argument is less than two characters in length, or is not prefixed by a dash, return false
+     * as it is not a valid command line flag
+     */
+    if(strlen(arg) <= 1 || arg[0] != '-') {
+        return false;
+    }
+
+    //If argument is in long format
+    if(arg[0] == '-' && arg[1] == '-') {
+        return !strcmp(arg + 2, description.l_flag);
+    }
+
+    //If argument is in short combined boolean format
+    if(strlen(arg) > 2) {
+        return strchr(arg + 1, description.s_flag[0]) != NULL && description.type == OPTION_BOOL_T;
+    }
+
+    //If argument is in short format
+    return !strcmp(arg + 1, description.s_flag);
 }

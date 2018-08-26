@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "version.h"
 #include "channel.h"
 #include "message.h"
 #include "publish.h"
@@ -15,15 +16,19 @@
 
 static const struct usage_description main_cmd_usage[] = {
         USAGE("git chat <command> [<options>]"),
+        USAGE("git chat [-h | --help]"),
+        USAGE("git chat (-v | --version)"),
         USAGE_END()
 };
 
 static const struct option_description main_cmd_options[] = {
-        OPT_CMD("channel", "TODO DESCRIPTION"),
-        OPT_CMD("message", "TODO DESCRIPTION"),
-        OPT_CMD("publish", "TODO DESCRIPTION"),
-        OPT_CMD("get", "TODO DESCRIPTION"),
-        OPT_CMD("read", "TODO DESCRIPTION"),
+        OPT_CMD("channel", "Create and manage communication channels"),
+        OPT_CMD("message", "Create messages"),
+        OPT_CMD("publish", "Publish messages to the remote server"),
+        OPT_CMD("get", "Download messages"),
+        OPT_CMD("read", "Display, format and read messages"),
+        OPT_BOOL("h", "help", "Show usage and exit"),
+        OPT_BOOL("v", "version", "Output version information and exit"),
         OPT_END()
 };
 
@@ -33,31 +38,46 @@ void show_main_usage(const char *msg)
 }
 
 void show_version() {
-
+    printf("git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR, GITCHAT_VERSION_MINOR);
 }
 
 int main(int argc, char *argv[])
 {
+    //Show usage and return if no arguments provided
     if(argc < 2) {
         show_main_usage(NULL);
         return 1;
     }
 
-    if(!strcmp(argv[1], "channel")) {
+    //Show usage and return if -h argument
+    if(argument_matches_option(argv[1], main_cmd_options[5])) {
+        show_main_usage(NULL);
+        return 0;
+    }
+
+    //Show version and return if -v argument
+    if(argument_matches_option(argv[1], main_cmd_options[6])) {
+        show_version();
+        return 0;
+    }
+
+    //delegate commands
+    if(argument_matches_option(argv[1], main_cmd_options[0])) {
         cmd_channel(argc - 2, argv + 2);
-    } else if(!strcmp(argv[1], "message")) {
+    } else if(argument_matches_option(argv[1], main_cmd_options[1])) {
         cmd_message(argc - 2, argv + 2);
-    } else if(!strcmp(argv[1], "publish")) {
+    } else if(argument_matches_option(argv[1], main_cmd_options[2])) {
         cmd_publish(argc - 2, argv + 2);
-    } else if(!strcmp(argv[1], "get")) {
+    } else if(argument_matches_option(argv[1], main_cmd_options[3])) {
         cmd_get(argc - 2, argv + 2);
-    } else if(!strcmp(argv[1], "read")) {
+    } else if(argument_matches_option(argv[1], main_cmd_options[4])) {
         cmd_read(argc - 2, argv + 2);
     } else {
         char *msg = (char *)malloc((strlen(argv[1]) + 26) * sizeof(char));
         sprintf(msg, "error: unknown command '%s'", argv[1]);
         show_main_usage(msg);
         free(msg);
+        return 1;
     }
 
     return 0;

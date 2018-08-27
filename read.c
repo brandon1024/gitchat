@@ -3,6 +3,7 @@
 //
 
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "read.h"
 #include "usage.h"
@@ -31,7 +32,12 @@ int cmd_read(int argc, char *argv[]) {
     return 0;
 }
 
-void show_read_usage(const char *msg)
+void show_read_usage(const char *optional_message_format, ...)
 {
-    show_usage_with_options(read_cmd_usage, read_cmd_options, msg);
+    va_list varargs;
+    va_start(varargs, optional_message_format);
+
+    show_usage_with_options(read_cmd_usage, read_cmd_options, optional_message_format);
+
+    va_end(varargs);
 }

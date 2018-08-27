@@ -5,6 +5,10 @@
 #ifndef GITCHAT_USAGE_H
 #define GITCHAT_USAGE_H
 
+#ifndef __STDARG_H
+#include <stdarg.h>
+#endif /* __STDARG_H */
+
 enum opt_type {
     OPTION_BOOL_T,
     OPTION_INT_T,
@@ -42,10 +46,14 @@ struct usage_description {
 #define USAGE(DESC)                     { (DESC) }
 #define USAGE_END()                     { NULL }
 
+void show_usage(const struct usage_description *cmd_usage, const char *optional_message_format, ...);
+void variadic_show_usage(const struct usage_description *cmd_usage, const char *optional_message_format,
+        va_list varargs);
 void show_options(const struct option_description *opts);
-void show_usage(const struct usage_description *cmd_usage, const char *optional_message);
 void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
-        const char *optional_message);
+        const char *optional_message_format, ...);
+void variadic_show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
+        const char *optional_message_format, va_list varargs);
 
 /*
  * Determine whether a command line argument matches an option description.

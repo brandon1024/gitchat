@@ -11,10 +11,21 @@
 #define USAGE_OPTIONS_WIDTH     24
 #define USAGE_OPTIONS_GAP        2
 
-void show_usage(const struct usage_description *cmd_usage, const char *optional_message)
+void show_usage(const struct usage_description *cmd_usage, const char *optional_message_format, ...)
 {
-    if(optional_message != NULL)
-        printf("%s\n", optional_message);
+    va_list varargs;
+    va_start(varargs, optional_message_format);
+    variadic_show_usage(cmd_usage, optional_message_format, varargs);
+    va_end(varargs);
+}
+
+void variadic_show_usage(const struct usage_description *cmd_usage, const char *optional_message_format,
+        va_list varargs)
+{
+    if(optional_message_format != NULL) {
+        vprintf(optional_message_format, varargs);
+        printf("\n");
+    }
 
     int index = 0;
     while(cmd_usage[index].usage_desc != NULL) {
@@ -80,9 +91,20 @@ void show_options(const struct option_description *opts)
 }
 
 void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
-        const char *optional_message)
+        const char *optional_message_format, ...)
 {
-    show_usage(cmd_usage, optional_message);
+    va_list varargs;
+    va_start(varargs, optional_message_format);
+
+    variadic_show_usage_with_options(cmd_usage, opts, optional_message_format, varargs);
+
+    va_end(varargs);
+}
+
+void variadic_show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
+                             const char *optional_message_format, va_list varargs)
+{
+    show_usage(cmd_usage, optional_message_format, varargs);
     show_options(opts);
 }
 

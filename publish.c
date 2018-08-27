@@ -3,6 +3,7 @@
 //
 
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "publish.h"
 #include "usage.h"
@@ -17,7 +18,12 @@ int cmd_publish(int argc, char *argv[]) {
     return 0;
 }
 
-void show_publish_usage(const char *msg)
+void show_publish_usage(const char *optional_message_format, ...)
 {
-    show_usage(publish_cmd_usage, msg);
+    va_list varargs;
+    va_start(varargs, optional_message_format);
+
+    show_usage(publish_cmd_usage, optional_message_format);
+
+    va_end(varargs);
 }

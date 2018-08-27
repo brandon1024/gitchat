@@ -6,6 +6,6 @@
 #define GITCHAT_MESSAGE_H
 
 int cmd_message(int argc, char *argv[]);
-void show_message_usage(const char *msg);
+void show_message_usage(const char *optional_message_format, ...);
 
 #endif //GITCHAT_MESSAGE_H

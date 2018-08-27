@@ -6,6 +6,6 @@
 #define GITCHAT_READ_H
 
 int cmd_read(int argc, char *argv[]);
-void show_read_usage(const char *msg);
+void show_read_usage(const char *optional_message_format, ...);
 
 #endif //GITCHAT_READ_H

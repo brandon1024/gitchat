@@ -3,6 +3,7 @@
 //
 
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "message.h"
 #include "usage.h"
@@ -30,7 +31,12 @@ int cmd_message(int argc, char *argv[]) {
     return 0;
 }
 
-void show_message_usage(const char *msg)
+void show_message_usage(const char *optional_message_format, ...)
 {
-    show_usage_with_options(message_cmd_usage, message_cmd_options, msg);
+    va_list varargs;
+    va_start(varargs, optional_message_format);
+
+    show_usage_with_options(message_cmd_usage, message_cmd_options, optional_message_format);
+
+    va_end(varargs);
 }

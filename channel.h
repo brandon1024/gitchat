@@ -6,6 +6,6 @@
 #define GITCHAT_CHANNEL_H
 
 int cmd_channel(int argc, char *argv[]);
-void show_channel_usage(const char *msg);
+void show_channel_usage(const char *optional_message_format, ...);
 
 #endif //GITCHAT_CHANNEL_H

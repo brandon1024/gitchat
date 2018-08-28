@@ -27,8 +27,8 @@ static const struct option_description main_cmd_options[] = {
         OPT_CMD("publish", "Publish messages to the remote server"),
         OPT_CMD("get", "Download messages"),
         OPT_CMD("read", "Display, format and read messages"),
-        OPT_BOOL("h", "help", "Show usage and exit"),
-        OPT_BOOL("v", "version", "Output version information and exit"),
+        OPT_BOOL('h', "help", "Show usage and exit"),
+        OPT_BOOL('v', "version", "Output version information and exit"),
         OPT_END()
 };
 
@@ -58,22 +58,23 @@ int main(int argc, char *argv[])
     }
 
     //delegate commands
-    if(argument_matches_option(argv[1], main_cmd_options[0])) {
-        cmd_channel(argc - 2, argv + 2);
-    } else if(argument_matches_option(argv[1], main_cmd_options[1])) {
-        cmd_message(argc - 2, argv + 2);
-    } else if(argument_matches_option(argv[1], main_cmd_options[2])) {
-        cmd_publish(argc - 2, argv + 2);
-    } else if(argument_matches_option(argv[1], main_cmd_options[3])) {
-        cmd_get(argc - 2, argv + 2);
-    } else if(argument_matches_option(argv[1], main_cmd_options[4])) {
-        cmd_read(argc - 2, argv + 2);
-    } else {
-        show_main_usage("error: unknown command '%s'", argv[1]);
-        return 1;
-    }
+    if(argument_matches_option(argv[1], main_cmd_options[0]))
+        return cmd_channel(argc - 2, argv + 2);
 
-    return 0;
+    if(argument_matches_option(argv[1], main_cmd_options[1]))
+        return cmd_message(argc - 2, argv + 2);
+
+    if(argument_matches_option(argv[1], main_cmd_options[2]))
+        return cmd_publish(argc - 2, argv + 2);
+
+    if(argument_matches_option(argv[1], main_cmd_options[3]))
+        return cmd_get(argc - 2, argv + 2);
+
+    if(argument_matches_option(argv[1], main_cmd_options[4]))
+        return cmd_read(argc - 2, argv + 2);
+
+    show_main_usage("error: unknown command '%s'", argv[1]);
+    return 1;
 }
 
 void show_main_usage(const char *optional_message_format, ...)
@@ -81,11 +82,11 @@ void show_main_usage(const char *optional_message_format, ...)
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    show_usage_with_options(main_cmd_usage, main_cmd_options, optional_message_format, varargs);
+    variadic_show_usage_with_options(main_cmd_usage, main_cmd_options, optional_message_format, varargs);
 
     va_end(varargs);
 }
 
-void show_version() {
+void show_version(void) {
     printf("git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR, GITCHAT_VERSION_MINOR);
 }

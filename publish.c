@@ -23,7 +23,7 @@ void show_publish_usage(const char *optional_message_format, ...)
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    show_usage(publish_cmd_usage, optional_message_format);
+    variadic_show_usage(publish_cmd_usage, optional_message_format, varargs);
 
     va_end(varargs);
 }

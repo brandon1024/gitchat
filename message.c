@@ -16,13 +16,13 @@ static const struct usage_description message_cmd_usage[] = {
 };
 
 static const struct option_description message_cmd_options[] = {
-        OPT_BOOL("p", "public", "TODO DESCRIPTION"),
+        OPT_BOOL('p', "public", "TODO DESCRIPTION"),
         OPT_LONG_STRING("recipient", "email", "TODO DESCRIPTION"),
-        OPT_STRING("c", "comment", "comment", "TODO DESCRIPTION"),
-        OPT_STRING("m", "message", "message", "TODO DESCRIPTION"),
-        OPT_BOOL("s", "symmetric", "TODO DESCRIPTION"),
+        OPT_STRING('c', "comment", "comment", "TODO DESCRIPTION"),
+        OPT_STRING('m', "message", "message", "TODO DESCRIPTION"),
+        OPT_BOOL('s', "symmetric", "TODO DESCRIPTION"),
         OPT_LONG_STRING("password", "password", "TODO DESCRIPTION"),
-        OPT_STRING("f", "file", "filename", "TODO DESCRIPTION"),
+        OPT_STRING('f', "file", "filename", "TODO DESCRIPTION"),
         OPT_END()
 };
 
@@ -36,7 +36,7 @@ void show_message_usage(const char *optional_message_format, ...)
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    show_usage_with_options(message_cmd_usage, message_cmd_options, optional_message_format);
+    variadic_show_usage_with_options(message_cmd_usage, message_cmd_options, optional_message_format, varargs);
 
     va_end(varargs);
 }

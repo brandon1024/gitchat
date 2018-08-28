@@ -53,26 +53,26 @@ void show_options(const struct option_description *opts)
 
         printed_chars += printf("    ");
         if(opt.type == OPTION_BOOL_T) {
-            if(opt.s_flag != NULL)
-                printed_chars += printf("-%s", opt.s_flag);
+            if(opt.s_flag != 0)
+                printed_chars += printf("-%c", opt.s_flag);
 
-            if(opt.s_flag != NULL && opt.l_flag != NULL)
+            if(opt.s_flag != 0 && opt.l_flag != NULL)
                 printed_chars += printf(", --%s", opt.l_flag);
             else if(opt.l_flag != NULL)
                 printed_chars += printf("--%s", opt.l_flag);
         } else if(opt.type == OPTION_INT_T) {
-            if(opt.s_flag != NULL)
-                printed_chars += printf("-%s=<n>", opt.s_flag);
+            if(opt.s_flag != 0)
+                printed_chars += printf("-%c=<n>", opt.s_flag);
 
-            if(opt.s_flag != NULL && opt.l_flag != NULL)
+            if(opt.s_flag != 0 && opt.l_flag != NULL)
                 printed_chars += printf(", --%s=<n>", opt.l_flag);
             else if(opt.l_flag != NULL)
                 printed_chars += printf("--%s=<n>", opt.l_flag);
         } else if(opt.type == OPTION_STRING_T) {
-            if(opt.s_flag != NULL)
-                printed_chars += printf("-%s", opt.s_flag);
+            if(opt.s_flag != 0)
+                printed_chars += printf("-%c", opt.s_flag);
 
-            if(opt.s_flag != NULL && opt.l_flag != NULL)
+            if(opt.s_flag != 0 && opt.l_flag != NULL)
                 printed_chars += printf(", --%s", opt.l_flag);
             else if(opt.l_flag != NULL)
                 printed_chars += printf("--%s", opt.l_flag);
@@ -104,7 +104,7 @@ void show_usage_with_options(const struct usage_description *cmd_usage, const st
 void variadic_show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
                              const char *optional_message_format, va_list varargs)
 {
-    show_usage(cmd_usage, optional_message_format, varargs);
+    variadic_show_usage(cmd_usage, optional_message_format, varargs);
     show_options(opts);
 }
 
@@ -130,9 +130,9 @@ int argument_matches_option(const char *arg, struct option_description descripti
 
     //If argument is in short combined boolean format
     if(strlen(arg) > 2) {
-        return strchr(arg + 1, description.s_flag[0]) != NULL && description.type == OPTION_BOOL_T;
+        return strchr(arg + 1, description.s_flag) != NULL && description.type == OPTION_BOOL_T;
     }
 
     //If argument is in short format
-    return !strcmp(arg + 1, description.s_flag);
+    return arg[1] == description.s_flag;
 }

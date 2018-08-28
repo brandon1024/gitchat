@@ -19,7 +19,7 @@ enum opt_type {
 
 struct option_description;
 struct option_description {
-    const char *s_flag;
+    const char s_flag;
     const char *l_flag;
     const char *str_name;
     const char *desc;
@@ -34,14 +34,14 @@ struct usage_description {
 #define OPT_SHORT_BOOL(S,D)             { (S), NULL,  NULL, (D), OPTION_BOOL_T }
 #define OPT_SHORT_INT(S,D)              { (S), NULL,  NULL, (D), OPTION_INT_T }
 #define OPT_SHORT_STRING(S,N,D)         { (S), NULL,  (N), (D), OPTION_STRING_T }
-#define OPT_LONG_BOOL(L,D)              { NULL, (L),  NULL, (D), OPTION_BOOL_T }
-#define OPT_LONG_INT(L,D)               { NULL, (L),  NULL, (D), OPTION_INT_T }
-#define OPT_LONG_STRING(L,N,D)          { NULL, (L),  (N), (D), OPTION_STRING_T }
+#define OPT_LONG_BOOL(L,D)              { 0, (L),  NULL, (D), OPTION_BOOL_T }
+#define OPT_LONG_INT(L,D)               { 0, (L),  NULL, (D), OPTION_INT_T }
+#define OPT_LONG_STRING(L,N,D)          { 0, (L),  (N), (D), OPTION_STRING_T }
 #define OPT_BOOL(S,L,D)                 { (S), (L), NULL, (D), OPTION_BOOL_T }
 #define OPT_INT(S,L,D)                  { (S), (L), NULL, (D), OPTION_INT_T }
 #define OPT_STRING(S,L,N,D)             { (S), (L), (N), (D), OPTION_STRING_T }
-#define OPT_CMD(N,D)                    { NULL, NULL, (N), (D), OPTION_COMMAND_T }
-#define OPT_END()                       { NULL, NULL, NULL, NULL, OPTION_END }
+#define OPT_CMD(N,D)                    { 0, NULL, (N), (D), OPTION_COMMAND_T }
+#define OPT_END()                       { 0, NULL, NULL, NULL, OPTION_END }
 
 #define USAGE(DESC)                     { (DESC) }
 #define USAGE_END()                     { NULL }

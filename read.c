@@ -17,7 +17,7 @@ static const struct usage_description read_cmd_usage[] = {
 };
 
 static const struct option_description read_cmd_options[] = {
-        OPT_INT("n", "max-count", "TODO DESCRIPTION"),
+        OPT_INT('n', "max-count", "TODO DESCRIPTION"),
         OPT_LONG_STRING("dir", "direction", "TODO DESCRIPTION"),
         OPT_LONG_BOOL("oneline", "TODO DESCRIPTION"),
         OPT_LONG_BOOL("short", "TODO DESCRIPTION"),
@@ -37,7 +37,7 @@ void show_read_usage(const char *optional_message_format, ...)
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    show_usage_with_options(read_cmd_usage, read_cmd_options, optional_message_format);
+    variadic_show_usage_with_options(read_cmd_usage, read_cmd_options, optional_message_format, varargs);
 
     va_end(varargs);
 }

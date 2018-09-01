@@ -46,16 +46,38 @@ struct usage_description {
 #define USAGE(DESC)                     { (DESC) }
 #define USAGE_END()                     { NULL }
 
+/**
+ * Print usage of a command to stdout by supplying a list of usage_descriptions. Provide an optional
+ * format string to display in the case of an error, along with the associated arguments.
+ *
+ * See stdio printf() for format string specification
+ * */
 void show_usage(const struct usage_description *cmd_usage, const char *optional_message_format, ...);
+
+/**
+ * Variadic form of show_usage, allowing the use of va_list rather than arbitrary arguments.
+ * */
 void variadic_show_usage(const struct usage_description *cmd_usage, const char *optional_message_format,
         va_list varargs);
+
+/**
+ * Print usage of a command to stdout by supplying a list of usage_descriptions.
+ * */
 void show_options(const struct option_description *opts);
+
+/**
+ * Combination of show_usage() and show_options().
+ * */
 void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
         const char *optional_message_format, ...);
+
+/**
+ * Variadic form of show_usage_with_options, allowing the use of va_list rather than arbitrary arguments.
+ * */
 void variadic_show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
         const char *optional_message_format, va_list varargs);
 
-/*
+/**
  * Determine whether a command line argument matches an option description.
  *
  * This function will:

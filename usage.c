@@ -40,7 +40,6 @@ void variadic_show_usage(const struct usage_description *cmd_usage, const char *
     printf("\n");
 }
 
-
 /*
  * Print options to stdout.
  * */

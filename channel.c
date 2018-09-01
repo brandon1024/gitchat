@@ -51,25 +51,29 @@ int cmd_channel(int argc, char *argv[])
     unsigned char action_mode = 0;
     const char *target = NULL;
 
+    if(argc == 0) {
+        show_channel_usage(NULL);
+        return 0;
+    }
+
     //parse arguments
     for(int arg_index = 0; arg_index < argc; arg_index++) {
         size_t arg_char_len = strlen(argv[arg_index]);
         char *arg = argv[arg_index];
 
         //perform argument validation for short boolean combined flags to verify no unknown flags
-        if(arg_char_len >= 2 && arg[0] == '-' && arg[1] != '-') {
-            for(int char_index = 0; char_index < arg_char_len; char_index++) {
+        if(arg_char_len > 2 && arg[0] == '-' && arg[1] != '-') {
+            for(int char_index = 1; char_index < arg_char_len; char_index++) {
                 char flag = arg[char_index];
-                int opt_index = 0;
                 bool found = false;
 
-                while(channel_cmd_options[opt_index].type == OPTION_BOOL_T) {
-                    if(channel_cmd_options[opt_index].s_flag == flag) {
-                        found = true;
-                        break;
+                for(int opt_index = 0; channel_cmd_options[opt_index].type != OPTION_END; opt_index++) {
+                    if(channel_cmd_options[opt_index].type == OPTION_BOOL_T) {
+                        if(channel_cmd_options[opt_index].s_flag == flag) {
+                            found = true;
+                            break;
+                        }
                     }
-
-                    opt_index++;
                 }
 
                 if(found == false) {
@@ -81,48 +85,90 @@ int cmd_channel(int argc, char *argv[])
 
         //handle implicit channel create
         if(arg_char_len > 1 && arg[0] != '-') {
+            //if already implicitly defined
+            if(action_mode & ACTION_MODE_CREATE) {
+                show_channel_usage("error: unknown flag '%s'", arg);
+                return 1;
+            }
+
             action_mode |= ACTION_MODE_CREATE;
             target = arg;
+            continue;
         }
 
-        //parse arguments
+        //flag used to mark an argument as invalid if doesn't match any valid flags
+        bool action_taken = false;
+
+        //list local channels
         if(argument_matches_option(arg, channel_cmd_options[0])) {
+            action_taken = true;
             list_mode |= LIST_MODE_LOCAL;
-        } else if(argument_matches_option(arg, channel_cmd_options[1])) {
+        }
+
+        //list remote channels
+        if(argument_matches_option(arg, channel_cmd_options[1])) {
+            action_taken = true;
             list_mode |= LIST_MODE_REMOTE;
-        } else if(argument_matches_option(arg, channel_cmd_options[2])) {
+        }
+
+        //list remote channels
+        if(argument_matches_option(arg, channel_cmd_options[2])) {
+            action_taken = true;
             list_mode |= LIST_MODE_LOCAL | LIST_MODE_REMOTE;
-        } else if(argument_matches_option(arg, channel_cmd_options[3])) {
-            if((argc-1) <= arg_index+1) {
+        }
+
+        //explicit create branch
+        if(argument_matches_option(arg, channel_cmd_options[3])) {
+            arg_index++;
+            if((argc-1) < arg_index) {
                 show_channel_usage("error: invalid usage of %s. no channel name specified.", arg);
                 return 1;
             }
 
-            arg_index++;
-            if(0) {
-                //todo if arg begins with dash
+            //if next argument is a flag and not string
+            char *channel_name = argv[arg_index];
+            if(channel_name[0] == '-') {
+                show_channel_usage("error: invalid usage of %s. '%s' is not a valid channel name.", arg, channel_name);
+                return 1;
             }
 
+            action_taken = true;
             action_mode |= ACTION_MODE_CREATE;
-            target = argv[++arg_index];
-        } else if(argument_matches_option(arg, channel_cmd_options[4])) {
+            target = channel_name;
+        }
+
+        //switch to another channel
+        if(argument_matches_option(arg, channel_cmd_options[4])) {
+            action_taken = true;
             action_mode |= ACTION_MODE_SWITCH;
             target = argv[++arg_index];
-        } else if(argument_matches_option(arg, channel_cmd_options[5])) {
+        }
+
+        //delete a channel
+        if(argument_matches_option(arg, channel_cmd_options[5])) {
+            action_taken = true;
             action_mode |= ACTION_MODE_DELETE;
             target = argv[++arg_index];
-        } else if(argument_matches_option(arg, channel_cmd_options[6])) {
+        }
+
+        //import gpg key to channel
+        if(argument_matches_option(arg, channel_cmd_options[6])) {
+            action_taken = true;
             action_mode |= ACTION_MODE_GPGIMPORT;
-        } else {
+        }
+
+        //if no action was taken, show error and exit
+        if(!action_taken) {
             show_channel_usage("error: unknown flag '%s'", arg);
             return 1;
         }
     }
 
-    if(!list_mode) {
-        show_channel_usage(NULL);
-        return 0;
-    }
+    //is create mode
+
+    //is switch mode
+
+    //is delete mode
 
     return list_channels(list_mode);
 }

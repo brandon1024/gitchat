@@ -81,8 +81,9 @@ void show_options(const struct option_description *opts, int err)
                 printed_chars += fprintf(fp, "--%s", opt.l_flag);
 
             printed_chars += fprintf(fp, " <%s>", opt.str_name);
-        } else if(opt.type == OPTION_COMMAND_T)
+        } else if(opt.type == OPTION_COMMAND_T) {
             printed_chars += fprintf(fp, "%s", opt.str_name);
+        }
 
         if(printed_chars >= (USAGE_OPTIONS_WIDTH - USAGE_OPTIONS_GAP))
             fprintf(fp, "\n%*s%s\n", USAGE_OPTIONS_WIDTH, "", opt.desc);
@@ -114,27 +115,23 @@ void variadic_show_usage_with_options(const struct usage_description *cmd_usage,
 int argument_matches_option(const char *arg, struct option_description description)
 {
     //If option is of type command
-    if(description.type == OPTION_COMMAND_T) {
+    if(description.type == OPTION_COMMAND_T)
         return !strcmp(arg, description.str_name);
-    }
 
     /*
      * If argument is less than two characters in length, or is not prefixed by a dash, return false
      * as it is not a valid command line flag
      */
-    if(strlen(arg) <= 1 || arg[0] != '-') {
+    if(strlen(arg) <= 1 || arg[0] != '-')
         return false;
-    }
 
     //If argument is in long format
-    if(arg[0] == '-' && arg[1] == '-') {
+    if(arg[0] == '-' && arg[1] == '-')
         return !strcmp(arg + 2, description.l_flag);
-    }
 
     //If argument is in short combined boolean format
-    if(strlen(arg) > 2) {
+    if(strlen(arg) > 2)
         return strchr(arg + 1, description.s_flag) != NULL && description.type == OPTION_BOOL_T;
-    }
 
     //If argument is in short format
     return arg[1] == description.s_flag;
@@ -160,11 +157,10 @@ int is_valid_argument(const char *arg, const struct option_description arg_usage
             bool found = false;
 
             for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
-                if(arg_usage_descriptions[opt_index].type == OPTION_BOOL_T) {
-                    if(arg_usage_descriptions[opt_index].s_flag == flag) {
-                        found = true;
-                        break;
-                    }
+                if(arg_usage_descriptions[opt_index].type == OPTION_BOOL_T
+                && arg_usage_descriptions[opt_index].s_flag == flag) {\
+                    found = true;
+                    break;
                 }
             }
 
@@ -182,11 +178,10 @@ int is_valid_argument(const char *arg, const struct option_description arg_usage
         bool found = false;
 
         for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
-            if(arg_usage_descriptions[opt_index].l_flag != NULL) {
-                if(!strcmp(arg_usage_descriptions[opt_index].l_flag, flag)) {
-                    found = true;
-                    break;
-                }
+            if(arg_usage_descriptions[opt_index].l_flag != NULL
+            && !strcmp(arg_usage_descriptions[opt_index].l_flag, flag)) {
+                found = true;
+                break;
             }
         }
 

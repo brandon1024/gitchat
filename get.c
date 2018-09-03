@@ -14,11 +14,16 @@ static const struct usage_description get_cmd_usage[] = {
 
 int cmd_get(int argc, char *argv[])
 {
-    show_get_usage(NULL);
+    show_get_usage(0, NULL);
     return 0;
 }
 
-void show_get_usage(const char *msg)
+void show_get_usage(int err, const char *optional_message_format, ...)
 {
-    show_usage(get_cmd_usage, msg);
+    va_list varargs;
+    va_start(varargs, optional_message_format);
+
+    variadic_show_usage(get_cmd_usage, optional_message_format, varargs, err);
+
+    va_end(varargs);
 }

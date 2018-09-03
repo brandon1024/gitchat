@@ -15,6 +15,6 @@ int cmd_read(int argc, char *argv[]);
  *
  * See usage.h for more details.
  * */
-void show_read_usage(const char *optional_message_format, ...);
+void show_read_usage(int err, const char *optional_message_format, ...);
 
 #endif //GITCHAT_READ_H

@@ -14,16 +14,16 @@ static const struct usage_description publish_cmd_usage[] = {
 };
 
 int cmd_publish(int argc, char *argv[]) {
-    show_publish_usage(NULL);
+    show_publish_usage(0, NULL);
     return 0;
 }
 
-void show_publish_usage(const char *optional_message_format, ...)
+void show_publish_usage(int err, const char *optional_message_format, ...)
 {
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    variadic_show_usage(publish_cmd_usage, optional_message_format, varargs);
+    variadic_show_usage(publish_cmd_usage, optional_message_format, varargs, err);
 
     va_end(varargs);
 }

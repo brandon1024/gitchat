@@ -15,6 +15,6 @@ int cmd_get(int argc, char *argv[]);
  *
  * See usage.h for more details.
  * */
-void show_get_usage(const char *msg);
+void show_get_usage(int err, const char *optional_message_format, ...);
 
 #endif //GITCHAT_GET_H

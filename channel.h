@@ -15,6 +15,6 @@ int cmd_channel(int argc, char *argv[]);
  *
  * See usage.h for more details.
  * */
-void show_channel_usage(const char *optional_message_format, ...);
+void show_channel_usage(int err, const char *optional_message_format, ...);
 
 #endif //GITCHAT_CHANNEL_H

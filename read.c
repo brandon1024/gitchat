@@ -28,16 +28,16 @@ static const struct option_description read_cmd_options[] = {
 };
 
 int cmd_read(int argc, char *argv[]) {
-    show_read_usage(NULL);
+    show_read_usage(0, NULL);
     return 0;
 }
 
-void show_read_usage(const char *optional_message_format, ...)
+void show_read_usage(int err, const char *optional_message_format, ...)
 {
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    variadic_show_usage_with_options(read_cmd_usage, read_cmd_options, optional_message_format, varargs);
+    variadic_show_usage_with_options(read_cmd_usage, read_cmd_options, optional_message_format, varargs, err);
 
     va_end(varargs);
 }

@@ -33,7 +33,7 @@ static const struct option_description main_cmd_options[] = {
 };
 
 /* Function Prototypes */
-void show_main_usage(const char *optional_message_format, ...);
+void show_main_usage(int err, const char *optional_message_format, ...);
 void show_version();
 
 /* Public Functions */
@@ -41,13 +41,13 @@ int main(int argc, char *argv[])
 {
     //Show usage and return if no arguments provided
     if(argc < 2) {
-        show_main_usage(NULL);
-        return 1;
+        show_main_usage(0, NULL);
+        return 0;
     }
 
     //Show usage and return if -h argument
     if(argument_matches_option(argv[1], main_cmd_options[5])) {
-        show_main_usage(NULL);
+        show_main_usage(0, NULL);
         return 0;
     }
 
@@ -73,20 +73,20 @@ int main(int argc, char *argv[])
     if(argument_matches_option(argv[1], main_cmd_options[4]))
         return cmd_read(argc - 2, argv + 2);
 
-    show_main_usage("error: unknown command '%s'", argv[1]);
+    show_main_usage(1, "error: unknown command '%s'", argv[1]);
     return 1;
 }
 
-void show_main_usage(const char *optional_message_format, ...)
+void show_main_usage(int err, const char *optional_message_format, ...)
 {
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    variadic_show_usage_with_options(main_cmd_usage, main_cmd_options, optional_message_format, varargs);
+    variadic_show_usage_with_options(main_cmd_usage, main_cmd_options, optional_message_format, varargs, err);
 
     va_end(varargs);
 }
 
 void show_version(void) {
-    printf("git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR, GITCHAT_VERSION_MINOR);
+    fprintf(stdout, "git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR, GITCHAT_VERSION_MINOR);
 }

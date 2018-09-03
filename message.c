@@ -27,16 +27,16 @@ static const struct option_description message_cmd_options[] = {
 };
 
 int cmd_message(int argc, char *argv[]) {
-    show_message_usage(NULL);
+    show_message_usage(0, NULL);
     return 0;
 }
 
-void show_message_usage(const char *optional_message_format, ...)
+void show_message_usage(int err, const char *optional_message_format, ...)
 {
     va_list varargs;
     va_start(varargs, optional_message_format);
 
-    variadic_show_usage_with_options(message_cmd_usage, message_cmd_options, optional_message_format, varargs);
+    variadic_show_usage_with_options(message_cmd_usage, message_cmd_options, optional_message_format, varargs, err);
 
     va_end(varargs);
 }

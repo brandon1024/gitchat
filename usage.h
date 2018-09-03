@@ -52,30 +52,30 @@ struct usage_description {
  *
  * See stdio printf() for format string specification
  * */
-void show_usage(const struct usage_description *cmd_usage, const char *optional_message_format, ...);
+void show_usage(const struct usage_description *cmd_usage, int err, const char *optional_message_format, ...);
 
 /**
  * Variadic form of show_usage, allowing the use of va_list rather than arbitrary arguments.
  * */
 void variadic_show_usage(const struct usage_description *cmd_usage, const char *optional_message_format,
-        va_list varargs);
+        va_list varargs, int err);
 
 /**
  * Print usage of a command to stdout by supplying a list of usage_descriptions.
  * */
-void show_options(const struct option_description *opts);
+void show_options(const struct option_description *opts, int err);
 
 /**
  * Combination of show_usage() and show_options().
  * */
-void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
+void show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts, int err,
         const char *optional_message_format, ...);
 
 /**
  * Variadic form of show_usage_with_options, allowing the use of va_list rather than arbitrary arguments.
  * */
 void variadic_show_usage_with_options(const struct usage_description *cmd_usage, const struct option_description *opts,
-        const char *optional_message_format, va_list varargs);
+        const char *optional_message_format, va_list varargs, int err);
 
 /**
  * Determine whether a command line argument matches an option description.
@@ -93,5 +93,17 @@ void variadic_show_usage_with_options(const struct usage_description *cmd_usage,
  * - return 0 if the length of arg is less than 2, or arg is not prefixed by a dash (not a valid command line flag)
  * */
 int argument_matches_option(const char *arg, struct option_description description);
+
+/**
+ * Performs argument validation to verify that the argument:
+ * - matches a valid option description, e.g. -a --abc
+ * - matches a valid boolean flag if is a short combined boolean flag, e.g. -abc
+ *
+ * This function returns true if the argument is valid, false otherwise. If the argument is not prefixed by a dash, this
+ * function will return true (still a valid argument). If the provided argument has a length of zero, this function
+ * will return false. If the argument does not have an associated entry in arg_usage_descriptions, this functiom
+ * will return false.
+ * */
+int is_valid_argument(const char *arg, const struct option_description arg_usage_descriptions[]);
 
 #endif //GITCHAT_USAGE_H

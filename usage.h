@@ -47,8 +47,10 @@ struct usage_description {
 #define USAGE_END()                     { NULL }
 
 /**
- * Print usage of a command to stdout by supplying a list of usage_descriptions. Provide an optional
+ * Print usage of a command by supplying a list of usage_descriptions. Provide an optional
  * format string to display in the case of an error, along with the associated arguments.
+ *
+ * If err is non-zero, outputs to stderr. Otherwise, outputs to stdout.
  *
  * See stdio printf() for format string specification
  * */
@@ -62,6 +64,8 @@ void variadic_show_usage(const struct usage_description *cmd_usage, const char *
 
 /**
  * Print usage of a command to stdout by supplying a list of usage_descriptions.
+ *
+ * If err is non-zero, outputs to stderr. Otherwise, outputs to stdout.
  * */
 void show_options(const struct option_description *opts, int err);
 

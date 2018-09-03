@@ -11,7 +11,7 @@
 int cmd_read(int argc, char *argv[]);
 
 /**
- * Print usage and options of the read command to stdout, along with an optional message from a format string.
+ * Print usage and options of the read command, along with an optional message from a format string.
  *
  * See usage.h for more details.
  * */

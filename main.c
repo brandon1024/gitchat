@@ -34,7 +34,7 @@ static const struct option_description main_cmd_options[] = {
 
 /* Function Prototypes */
 void show_main_usage(int err, const char *optional_message_format, ...);
-void show_version();
+void show_version(void);
 
 /* Public Functions */
 int main(int argc, char *argv[])

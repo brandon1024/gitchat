@@ -137,59 +137,54 @@ int argument_matches_option(const char *arg, struct option_description descripti
     return arg[1] == description.s_flag;
 }
 
-int is_valid_argument(const char *arg, const struct option_description arg_usage_descriptions[]) {
+int is_valid_argument(const char *arg, const struct option_description arg_usage_descriptions[])
+{
     size_t arg_char_len = strlen(arg);
 
-    if(arg_char_len == 0) {
+    if(arg_char_len == 0)
         return false;
-    }
 
     //argument is a string
-    if(arg[0] != '-') {
+    if(arg[0] != '-')
         return true;
-    }
 
-    //perform argument validation for short flags
-    //verify short boolean combined flags do not contain unknown flags
-    if(arg_char_len >= 2 && arg[1] != '-') {
+    //perform argument validation for short boolean combined flags, ensuring they do not contain unknown flags
+    if(arg_char_len > 2 && arg[1] != '-') {
         for(int char_index = 1; char_index < arg_char_len; char_index++) {
             char flag = arg[char_index];
-            bool found = false;
 
             for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
                 if(arg_usage_descriptions[opt_index].type == OPTION_BOOL_T
-                && arg_usage_descriptions[opt_index].s_flag == flag) {\
-                    found = true;
-                    break;
-                }
-            }
-
-            if(!found) {
-                return false;
+                && arg_usage_descriptions[opt_index].s_flag == flag)
+                    return true;
             }
         }
 
-        return true;
+        return false;
+    }
+
+    //perform argument validation for short flags
+    if(arg_char_len == 2 && arg[1] != '-') {
+        char flag = arg[1];
+        for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
+            if(arg_usage_descriptions[opt_index].s_flag == flag)
+                return true;
+        }
+
+        return false;
     }
 
     //perform argument validation for long flags
     if(arg_char_len > 2 && arg[1] == '-') {
         const char *flag = arg + 2;
-        bool found = false;
 
         for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
             if(arg_usage_descriptions[opt_index].l_flag != NULL
-            && !strcmp(arg_usage_descriptions[opt_index].l_flag, flag)) {
-                found = true;
-                break;
-            }
+            && !strcmp(arg_usage_descriptions[opt_index].l_flag, flag))
+                return true;
         }
 
-        if(!found) {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     return false;

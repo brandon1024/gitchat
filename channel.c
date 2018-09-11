@@ -47,6 +47,7 @@ static int import_gpg_key_to_channel(void);
 static int create_channel(const char *channel_name);
 static int switch_to_channel(const char *channel_name);
 static int delete_channel(const char *channel_name);
+static int execute_shell_process(char *cmd);
 
 /* Public Functions */
 int cmd_channel(int argc, char *argv[])
@@ -220,8 +221,6 @@ static int import_gpg_key_to_channel(void)
 
 static int create_channel(const char *channel_name)
 {
-    FILE *fp;
-    char buff[BRANCH_BUFF_MAX];
     int status;
 
     const char *git_checkout_cmd = "git checkout -b ";
@@ -229,29 +228,14 @@ static int create_channel(const char *channel_name)
     strcpy(cmd, git_checkout_cmd);
     strcat(cmd, channel_name);
 
-    fp = popen(cmd, "r");
+    status = execute_shell_process(cmd);
     free(cmd);
-    if(fp == NULL) {
-        fprintf(stderr, "fatal: unable to create pipe to shell process. %x: %s\n", errno, strerror(errno));
-        return 1;
-    }
 
-    while(fgets(buff, BRANCH_BUFF_MAX, fp) != NULL)
-        fprintf(stdout, "%s", buff);
-
-    status = pclose(fp);
-    if(status == -1) {
-        fprintf(stderr, "fatal: unable to close pipe to shell process. %x: %s\n", errno, strerror(errno));
-        return 1;
-    }
-
-    return 0;
+    return status;
 }
 
 static int switch_to_channel(const char *channel_name)
 {
-    FILE *fp;
-    char buff[BRANCH_BUFF_MAX];
     int status;
 
     const char *git_checkout_cmd = "git checkout ";
@@ -259,38 +243,34 @@ static int switch_to_channel(const char *channel_name)
     strcpy(cmd, git_checkout_cmd);
     strcat(cmd, channel_name);
 
-    fp = popen(cmd, "r");
+    status = execute_shell_process(cmd);
     free(cmd);
-    if(fp == NULL) {
-        fprintf(stderr, "fatal: unable to create pipe to shell process. %x: %s\n", errno, strerror(errno));
-        return 1;
-    }
 
-    while(fgets(buff, BRANCH_BUFF_MAX, fp) != NULL)
-        fprintf(stdout, "%s", buff);
-
-    status = pclose(fp);
-    if(status == -1) {
-        fprintf(stderr, "fatal: unable to close pipe to shell process. %x: %s\n", errno, strerror(errno));
-        return 1;
-    }
-
-    return 0;
+    return status;
 }
 
 static int delete_channel(const char *channel_name)
+{
+    int status;
+
+    const char *git_branch_cmd = "git branch -D ";
+    char *cmd = malloc(sizeof(char) * (strlen(channel_name) + strlen(git_branch_cmd) + 1));
+    strcpy(cmd, git_branch_cmd);
+    strcat(cmd, channel_name);
+
+    status = execute_shell_process(cmd);
+    free(cmd);
+
+    return status;
+}
+
+static int execute_shell_process(char *cmd)
 {
     FILE *fp;
     char buff[BRANCH_BUFF_MAX];
     int status;
 
-    const char *git_checkout_cmd = "git branch -D ";
-    char *cmd = malloc(sizeof(char) * (strlen(channel_name) + strlen(git_checkout_cmd) + 1));
-    strcpy(cmd, git_checkout_cmd);
-    strcat(cmd, channel_name);
-
     fp = popen(cmd, "r");
-    free(cmd);
     if(fp == NULL) {
         fprintf(stderr, "fatal: unable to create pipe to shell process. %x: %s\n", errno, strerror(errno));
         return 1;

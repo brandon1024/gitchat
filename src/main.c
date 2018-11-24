@@ -1,7 +1,3 @@
-//
-// Created by Brandon Richardson on 2018-08-19.
-//
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -87,6 +83,7 @@ void show_main_usage(int err, const char *optional_message_format, ...)
     va_end(varargs);
 }
 
-void show_version(void) {
+void show_version(void)
+{
     fprintf(stdout, "git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR, GITCHAT_VERSION_MINOR);
 }

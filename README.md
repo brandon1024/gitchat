@@ -23,7 +23,15 @@ brew install openssl
 brew install libssh2
 ```
 
-If cmake still cannot find openssl, add the `CMAKE_PREFIX_PATH="/usr/local/opt/"` system environments variable. If using cmake through JetBrains CLion, [refer to this Stack Overflow answer for adding cmake environment variables](https://stackoverflow.com/a/38874446).
+libgit2 will automatically look for openssl and libssh2 at build time. If neither are installed in a standard location or cmake has trouble finding it, you can set these environment variables before running cmake. If using cmake through JetBrains CLion, [refer to this Stack Overflow answer for adding cmake environment variables](https://stackoverflow.com/a/38874446):
+
+```
+CMAKE_PREFIX_PATH="/usr/local/"
+OPENSSL_ROOT_DIR="/usr/local/opt/openssl/"
+OPENSSL_INCLUDE_DIR="/usr/local/opt/openssl/include/"
+LIBSSH2_INCLUDE_DIRS="/usr/local/opt/libssh2/include/"
+LIBSSH2_LIBRARIES="/usr/local/opt/libssh2/lib/"
+```
 
 ### Build Project
 Once complete, the project should build using the following:

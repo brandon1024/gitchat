@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <git2.h>
 
 #include "version.h"
 #include "channel.h"
@@ -70,6 +71,8 @@ int main(int argc, char *argv[])
         return cmd_read(argc - 2, argv + 2);
 
     show_main_usage(1, "error: unknown command '%s'", argv[1]);
+
+
     return 1;
 }
 

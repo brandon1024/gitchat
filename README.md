@@ -29,8 +29,7 @@ libgit2 will automatically look for openssl and libssh2 at build time using `pkg
 CMAKE_PREFIX_PATH=/usr/local/
 OPENSSL_ROOT_DIR=/usr/local/opt/openssl/
 OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include/
-LIBSSH2_INCLUDE_DIRS=/usr/local/opt/libssh2/include/
-LIBSSH2_LIBRARIES=/usr/local/opt/libssh2/lib/libssh2.a
+PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
 ```
 
 ### Build Project

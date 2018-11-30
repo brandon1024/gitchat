@@ -15,12 +15,15 @@ IF(CMAKE_COMPILER_IS_GNUCC)
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 # Configure Dependencies
+## Build libgit2
 SET(BUILD_SHARED_LIBS OFF)
 SET(BUILD_CLAR OFF)
 SET(THREADSAFE ON)
 SET(USE_NSEC 0)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/extern/libgit2)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/libgit2)
+## Build GPGME
+SET(GPGME_LIBRARY_ROOT ${PROJECT_SOURCE_DIR}/extern/gpgme-1.12.0)
 
 # Configure Project
 CONFIGURE_FILE(
@@ -32,9 +35,9 @@ FILE(GLOB_RECURSE SRC_LIST FOLLOW_SYMLINKS src/*.c)
 FILE(GLOB_RECURSE HEAD_FILES FOLLOW_SYMLINKS include/*.h ${PROJECT_BINARY_DIR}/include/*.h)
 
 INCLUDE_DIRECTORIES(
-    "${PROJECT_SOURCE_DIR}/extern/libgit2/include"
-    "${PROJECT_SOURCE_DIR}/include"
-    "${PROJECT_BINARY_DIR}/include"
+    "${PROJECT_SOURCE_DIR}/extern/libgit2/include/"
+    "${PROJECT_SOURCE_DIR}/include/"
+    "${PROJECT_BINARY_DIR}/include/"
 )
 
 ADD_EXECUTABLE(${PROJECT_NAME} src/main.c ${SRC_LIST})

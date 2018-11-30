@@ -9,6 +9,7 @@ If you're using git-chat for messaging with your savvy friends, you're an awesom
 This project was designed to be built using cmake. We recommend version 2.8.11.
 
 ### Installing Dependencies
+#### libgit2
 This project depends on libgit2. To install it, just clone the libgit2 project from GitHub into the `extern/` directory at the root of the project, like so:
 
 ```
@@ -23,14 +24,19 @@ brew install openssl
 brew install libssh2
 ```
 
-libgit2 will automatically look for openssl and libssh2 at build time using `pkg-config`. If neither are installed in a standard location or cmake has trouble finding it, you can set these environment variables before running cmake. If using cmake through JetBrains CLion, [refer to this Stack Overflow answer for adding cmake environment variables](https://stackoverflow.com/a/38874446):
+libgit2 will automatically look for openssl and libssh2 at build time using `pkg-config`. If neither are installed in a standard location or cmake has trouble finding it, you can set these environment variables before running cmake. If using cmake through JetBrains CLion, refer to [this Stack Overflow answer](https://stackoverflow.com/a/38874446) for adding cmake environment variables:
 
 ```
 CMAKE_PREFIX_PATH=/usr/local/
+PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
 OPENSSL_ROOT_DIR=/usr/local/opt/openssl/
 OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include/
-PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
 ```
+
+#### GPGME
+This project also depends on GnuPG Made Easy (GPGME). You can install the latest version [here](ftp://ftp.gnupg.org/gcrypt/gpgme/). Extract the sources into the project `extern/` directory at the root of the project.
+
+To build GPGME, you also need to install [libgpg-error](ftp://ftp.gnupg.org/gcrypt/libgpg-error/) (>= 1.24) and [Libassuan](ftp://ftp.gnupg.org/gcrypt/libassuan/) (>= 2.4.2).
 
 ### Build Project
 Once complete, the project should build using the following:

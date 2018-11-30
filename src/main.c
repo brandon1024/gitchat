@@ -37,6 +37,7 @@ void show_version(void);
 int main(int argc, char *argv[])
 {
     git_libgit2_init();
+
     //Show usage and return if no arguments provided
     if(argc < 2) {
         show_main_usage(0, NULL);

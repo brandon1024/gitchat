@@ -34,11 +34,12 @@ OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include/
 ```
 
 #### GPGME
-This project also depends on GnuPG Made Easy (GPGME). You can install the latest version [here](ftp://ftp.gnupg.org/gcrypt/gpgme/). Extract the sources into the project `extern/` directory at the root of the project.
+This project also depends on GnuPG Made Easy (GPGME). You can install the latest version [here](ftp://ftp.gnupg.org/gcrypt/gpgme/). The easiest way to install GPGME is by using homebrew:
+```
+brew install gpgme
+```
 
-To build GPGME, you also need to install [libgpg-error](ftp://ftp.gnupg.org/gcrypt/libgpg-error/) (>= 1.24) and [Libassuan](ftp://ftp.gnupg.org/gcrypt/libassuan/) (>= 2.4.2).
-
-### Build Project
+### Build and Run Project
 Once complete, the project should build using the following:
 
 ```
@@ -46,4 +47,6 @@ mkdir build
 cd build
 cmake ..
 cmake --build .
+
+./git-chat
 ```

@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <git2.h>
+#include <gpgme.h>
 
 #include "version.h"
 #include "channel.h"

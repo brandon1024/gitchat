@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include <git2.h>
-#include <gpgme.h>
 
 #include "version.h"
 #include "channel.h"
@@ -37,8 +35,6 @@ void show_version(void);
 /* Public Functions */
 int main(int argc, char *argv[])
 {
-    git_libgit2_init();
-
     //Show usage and return if no arguments provided
     if(argc < 2) {
         show_main_usage(0, NULL);
@@ -74,7 +70,7 @@ int main(int argc, char *argv[])
         return cmd_read(argc - 2, argv + 2);
 
     show_main_usage(1, "error: unknown command '%s'", argv[1]);
-    git_libgit2_shutdown();
+
     return 1;
 }
 

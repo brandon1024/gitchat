@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <errno.h>
-#include <git2.h>
 
 #include "channel.h"
 #include "usage.h"

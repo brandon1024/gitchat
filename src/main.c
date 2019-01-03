@@ -87,4 +87,6 @@ void show_main_usage(int err, const char *optional_message_format, ...)
 void show_version(void)
 {
     fprintf(stdout, "git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR, GITCHAT_VERSION_MINOR);
+    //todo show git version too
+    //todo show gpg version
 }

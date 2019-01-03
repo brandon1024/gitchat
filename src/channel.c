@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "run-command.h"
 #include "channel.h"
 #include "usage.h"
 
@@ -14,8 +15,6 @@
 #define ACTION_MODE_SWITCH 0x2
 #define ACTION_MODE_DELETE 0x4
 #define ACTION_MODE_GPGIMPORT 0x8
-
-#define BRANCH_BUFF_MAX 1024
 
 static const struct usage_description channel_cmd_usage[] = {
         USAGE("git chat channel [-l | --list] [-r | --remotes] [-a | --all]"),
@@ -43,7 +42,6 @@ static int import_gpg_key_to_channel(void);
 static int create_channel(const char *channel_name);
 static int switch_to_channel(const char *channel_name);
 static int delete_channel(const char *channel_name);
-static int execute_shell_process(char *cmd);
 
 /* Public Functions */
 int cmd_channel(int argc, char *argv[])
@@ -58,7 +56,7 @@ int cmd_channel(int argc, char *argv[])
     }
 
     //parse arguments
-    for(int arg_index = 0; arg_index < argc; arg_index++) {
+    for(size_t arg_index = 0; arg_index < argc; arg_index++) {
         size_t arg_char_len = strlen(argv[arg_index]);
         char *arg = argv[arg_index];
 
@@ -205,22 +203,20 @@ static int list_channels(unsigned char scope)
 
 static int import_gpg_key_to_channel(void)
 {
-//    char gc_top = 0;
-//    tgc_start(&gc, &gc_top);
-//
-//    struct gpg_key_info **key_info = NULL;
-//    int count = get_gpg_public_keys_info(&key_info, &gc);
-//
-//    tgc_stop(&gc);
     return 0;
 }
 
 static int create_channel(const char *channel_name)
 {
-    int status;
+    int status = 0;
 
     const char *git_checkout_cmd = "git checkout -b ";
     char *cmd = malloc(sizeof(char) * (strlen(channel_name) + strlen(git_checkout_cmd) + 1));
+    if(cmd == NULL) {
+        perror("Fatal Error: Unable to allocate memory.\n");
+        exit(EXIT_FAILURE);
+    }
+
     strcpy(cmd, git_checkout_cmd);
     strcat(cmd, channel_name);
 
@@ -232,10 +228,15 @@ static int create_channel(const char *channel_name)
 
 static int switch_to_channel(const char *channel_name)
 {
-    int status;
+    int status = 0;
 
     const char *git_checkout_cmd = "git checkout ";
     char *cmd = malloc(sizeof(char) * (strlen(channel_name) + strlen(git_checkout_cmd) + 1));
+    if(cmd == NULL) {
+        perror("Fatal Error: Unable to allocate memory.\n");
+        exit(EXIT_FAILURE);
+    }
+
     strcpy(cmd, git_checkout_cmd);
     strcat(cmd, channel_name);
 
@@ -247,10 +248,15 @@ static int switch_to_channel(const char *channel_name)
 
 static int delete_channel(const char *channel_name)
 {
-    int status;
+    int status = 0;
 
     const char *git_branch_cmd = "git branch -D ";
     char *cmd = malloc(sizeof(char) * (strlen(channel_name) + strlen(git_branch_cmd) + 1));
+    if(cmd == NULL) {
+        perror("Fatal Error: Unable to allocate memory.\n");
+        exit(EXIT_FAILURE);
+    }
+
     strcpy(cmd, git_branch_cmd);
     strcat(cmd, channel_name);
 
@@ -258,28 +264,4 @@ static int delete_channel(const char *channel_name)
     free(cmd);
 
     return status;
-}
-
-static int execute_shell_process(char *cmd)
-{
-    FILE *fp;
-    char buff[BRANCH_BUFF_MAX];
-    int status;
-
-    fp = popen(cmd, "r");
-    if(fp == NULL) {
-        fprintf(stderr, "fatal: unable to create pipe to shell process. %x: %s\n", errno, strerror(errno));
-        return 1;
-    }
-
-    while(fgets(buff, BRANCH_BUFF_MAX, fp) != NULL)
-        fprintf(stdout, "%s", buff);
-
-    status = pclose(fp);
-    if(status == -1) {
-        fprintf(stderr, "fatal: unable to close pipe to shell process. %x: %s\n", errno, strerror(errno));
-        return 1;
-    }
-
-    return 0;
 }

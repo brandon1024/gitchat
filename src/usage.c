@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #include "usage.h"
 
@@ -11,7 +12,9 @@ void show_usage(const struct usage_description *cmd_usage, int err, const char *
 {
     va_list varargs;
     va_start(varargs, optional_message_format);
+
     variadic_show_usage(cmd_usage, optional_message_format, varargs, err);
+
     va_end(varargs);
 }
 
@@ -25,7 +28,7 @@ void variadic_show_usage(const struct usage_description *cmd_usage, const char *
         fprintf(fp, "\n");
     }
 
-    int index = 0;
+    size_t index = 0;
     while(cmd_usage[index].usage_desc != NULL) {
         if(index == 0)
             fprintf(fp, "%s %s\n", "usage:", cmd_usage[index].usage_desc);
@@ -45,7 +48,7 @@ void show_options(const struct option_description *opts, int err)
 {
     FILE *fp = err ? stderr : stdout;
 
-    int index = 0;
+    size_t index = 0;
     while(opts[index].type != OPTION_END) {
         struct option_description opt = opts[index++];
         int printed_chars = 0;
@@ -146,10 +149,10 @@ int is_valid_argument(const char *arg, const struct option_description arg_usage
 
     //perform argument validation for short boolean combined flags, ensuring they do not contain unknown flags
     if(arg_char_len > 2 && arg[1] != '-') {
-        for(int char_index = 1; char_index < arg_char_len; char_index++) {
+        for(size_t char_index = 1; char_index < arg_char_len; char_index++) {
             char flag = arg[char_index];
 
-            for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
+            for(size_t opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
                 if(arg_usage_descriptions[opt_index].type == OPTION_BOOL_T
                 && arg_usage_descriptions[opt_index].s_flag == flag)
                     return true;
@@ -162,7 +165,7 @@ int is_valid_argument(const char *arg, const struct option_description arg_usage
     //perform argument validation for short flags
     if(arg_char_len == 2 && arg[1] != '-') {
         char flag = arg[1];
-        for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
+        for(size_t opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
             if(arg_usage_descriptions[opt_index].s_flag == flag)
                 return true;
         }
@@ -174,7 +177,7 @@ int is_valid_argument(const char *arg, const struct option_description arg_usage
     if(arg_char_len > 2 && arg[1] == '-') {
         const char *flag = arg + 2;
 
-        for(int opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
+        for(size_t opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
             if(arg_usage_descriptions[opt_index].l_flag != NULL
             && !strcmp(arg_usage_descriptions[opt_index].l_flag, flag))
                 return true;

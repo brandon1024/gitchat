@@ -23,7 +23,8 @@ static const struct option_description read_cmd_options[] = {
         OPT_END()
 };
 
-int cmd_read(int argc, char *argv[]) {
+int cmd_read(int argc, char *argv[])
+{
     show_read_usage(0, NULL);
     return 0;
 }

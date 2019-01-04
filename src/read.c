@@ -13,13 +13,13 @@ static const struct usage_description read_cmd_usage[] = {
 };
 
 static const struct option_description read_cmd_options[] = {
-        OPT_INT('n', "max-count", "TODO DESCRIPTION"),
-        OPT_LONG_STRING("dir", "direction", "TODO DESCRIPTION"),
-        OPT_LONG_BOOL("oneline", "TODO DESCRIPTION"),
-        OPT_LONG_BOOL("short", "TODO DESCRIPTION"),
-        OPT_LONG_STRING("from", "email", "TODO DESCRIPTION"),
-        OPT_LONG_STRING("to", "email", "TODO DESCRIPTION"),
-        OPT_LONG_BOOL("pull-new", "TODO DESCRIPTION"),
+        OPT_INT('n', "max-count", "limit number of messages displayed"),
+        OPT_LONG_STRING("dir", "direction", "show ascending or descending by date"),
+        OPT_LONG_BOOL("oneline", "show each message on single line"),
+        OPT_LONG_BOOL("short", "show message in a short format"),
+        OPT_LONG_STRING("from", "email", "show messages received from specific user"),
+        OPT_LONG_STRING("to", "email", "show messages to a specific user"),
+        OPT_LONG_BOOL("pull-new", "pull new messages before displaying"),
         OPT_END()
 };
 

@@ -6,8 +6,6 @@
 
 #define BUFF_SLOP 64
 
-//todo this needs to be tested
-
 void strbuf_init(struct strbuf *buff)
 {
     buff->alloc = BUFF_SLOP;
@@ -41,7 +39,8 @@ void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
         }
     }
 
-    strncpy(buff->buff, str, str_len);
+    strncpy(buff->buff + buff->len, str, str_len);
+    buff->buff[buff->len + str_len] = 0;
 
     buff->len += str_len;
 }

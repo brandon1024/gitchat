@@ -3,8 +3,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "strbuf.h"
-#include "argv-array.h"
 #include "run-command.h"
 
 static int execute(struct child_process_def *cmd, int capture, struct strbuf *buffer);

@@ -96,8 +96,4 @@ void show_version(void)
     argv_array_push(&cmd.args, "--version", NULL);
     run_command(&cmd);
     child_process_def_release(&cmd);
-
-    argv_array_push(&cmd.args, "gpg", "--version", NULL);
-    run_command(&cmd);
-    child_process_def_release(&cmd);
 }

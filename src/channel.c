@@ -5,10 +5,9 @@
 #include <string.h>
 #include <errno.h>
 
-#include "run-command.h"
 #include "channel.h"
 #include "usage.h"
-#include "argv-array.h"
+#include "run-command.h"
 
 #define LIST_MODE_LOCAL 0x1
 #define LIST_MODE_REMOTE 0x2

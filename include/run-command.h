@@ -1,6 +1,14 @@
 #ifndef GIT_CHAT_RUN_COMMAND_H
 #define GIT_CHAT_RUN_COMMAND_H
 
+#ifndef GIT_CHAT_ARGV_ARRAY_H
+#include "argv-array.h"
+#endif /* GIT_CHAT_ARGV_ARRAY_H */
+
+#ifndef GIT_CHAT_STRBUF_H
+#include "strbuf.h"
+#endif /* GIT_CHAT_STRBUF_H */
+
 struct child_process_def {
     struct argv_array args;
     unsigned int discard_out: 1;

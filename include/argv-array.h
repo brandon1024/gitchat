@@ -22,6 +22,8 @@ void argv_array_release(struct argv_array *argv_a);
  *
  * Each string is duplicated, and a pointer to it is stored under argv_a->argv at the next available
  * index in the buffer. If no space remains, the buffer is reallocated by a constant factor.
+ *
+ * The last argument MUST be NULL, to indicate the end of arguments.
  * */
 void argv_array_push(struct argv_array *argv_a, ...);
 
@@ -43,6 +45,15 @@ char **argv_array_detach(struct argv_array *argv_a, size_t *len);
  * remains untouched, and still needs to be freed using argv_array_release().
  *
  * The new string will need to be free()d manually.
+ *
+ * Example:
+ * argv_array_push(&argv_a, "grep", "-i", query, filename, NULL);
+ * char *result = argv_array_collapse(&argv_a);
+ * printf("%s", result);
+ * argv_array_release(&argv_a);
+ * free(result);
+ *
+ * > "grep -i yourquery filename"
  * */
 char *argv_array_collapse(struct argv_array *argv_a);
 

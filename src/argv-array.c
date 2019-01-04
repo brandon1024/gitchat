@@ -27,7 +27,7 @@ void argv_array_push(struct argv_array *argv_a, ...)
     va_start(ap, argv_a);
 
     const char *arg;
-    while((arg = va_arg(ap, const char *))) {
+    while((arg = va_arg(ap, char *))) {
         if(argv_a->argc + 2 >= argv_a->alloc) {
             argv_a->alloc += 8;
             argv_a->argv = (char **)realloc(argv_a->argv, argv_a->alloc);
@@ -66,7 +66,7 @@ char **argv_array_detach(struct argv_array *argv_a, size_t *len)
 
 char *argv_array_collapse(struct argv_array *argv_a)
 {
-    size_t len = 0;
+    size_t len = (argv_a->argc > 1) ? argv_a->argc - 1 : 0;
 
     for(size_t index = 0; index < argv_a->argc; index++)
         len += strlen(argv_a->argv[index]);
@@ -77,10 +77,13 @@ char *argv_array_collapse(struct argv_array *argv_a)
         exit(EXIT_FAILURE);
     }
 
-    for(size_t index = 0; index < argv_a->argc; index++)
-        strcat(str, argv_a->argv[index]);
+    if(argv_a->argc >= 1)
+        strcat(str, argv_a->argv[0]);
 
-    str[len] = 0;
+    for(size_t index = 1; index < argv_a->argc; index++) {
+        strcat(str, " ");
+        strcat(str, argv_a->argv[index]);
+    }
 
     return str;
 }

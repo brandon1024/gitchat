@@ -9,6 +9,7 @@
 #include "get.h"
 #include "read.h"
 #include "usage.h"
+#include "run-command.h"
 
 static const struct usage_description main_cmd_usage[] = {
         USAGE("git chat <command> [<options>]"),
@@ -87,6 +88,16 @@ void show_main_usage(int err, const char *optional_message_format, ...)
 void show_version(void)
 {
     fprintf(stdout, "git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR, GITCHAT_VERSION_MINOR);
-    //todo show git version too
-    //todo show gpg version
+
+    struct child_process_def cmd;
+    child_process_def_init(&cmd);
+
+    cmd.git_cmd = 1;
+    argv_array_push(&cmd.args, "--version", NULL);
+    run_command(&cmd);
+    child_process_def_release(&cmd);
+
+    argv_array_push(&cmd.args, "gpg", "--version", NULL);
+    run_command(&cmd);
+    child_process_def_release(&cmd);
 }

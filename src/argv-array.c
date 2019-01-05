@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -21,7 +20,7 @@ void argv_array_release(struct argv_array *argv_a)
     argv_array_init(argv_a);
 }
 
-void argv_array_push(struct argv_array *argv_a, ...)
+int argv_array_push(struct argv_array *argv_a, ...)
 {
     va_list ap;
     va_start(ap, argv_a);
@@ -32,8 +31,7 @@ void argv_array_push(struct argv_array *argv_a, ...)
             argv_a->alloc += 8;
             argv_a->argv = (char **)realloc(argv_a->argv, argv_a->alloc);
             if(argv_a->argv == NULL) {
-                perror("Fatal Error: Unable to allocate memory.\n");
-                exit(EXIT_FAILURE);
+                return 1;
             }
         }
 
@@ -42,16 +40,20 @@ void argv_array_push(struct argv_array *argv_a, ...)
      }
 
     va_end(ap);
+
+    return 0;
 }
 
-void argv_array_pop(struct argv_array *argv_a)
+char *argv_array_pop(struct argv_array *argv_a)
 {
     if(argv_a->argc == 0)
-        return;
+        return NULL;
 
-    free(argv_a->argv[argv_a->argc - 1]);
+    char *top = argv_a->argv[argv_a->argc - 1];
     argv_a->argv[argv_a->argc - 1] = NULL;
     argv_a->argc--;
+
+    return top;
 }
 
 char **argv_array_detach(struct argv_array *argv_a, size_t *len)
@@ -73,8 +75,7 @@ char *argv_array_collapse(struct argv_array *argv_a)
 
     char *str = (char *)calloc(len + 1, sizeof(char));
     if(str == NULL) {
-        perror("Fatal Error: Unable to allocate memory.\n");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     if(argv_a->argc >= 1)

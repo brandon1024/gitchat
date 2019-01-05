@@ -24,14 +24,16 @@ void argv_array_release(struct argv_array *argv_a);
  * index in the buffer. If no space remains, the buffer is reallocated by a constant factor.
  *
  * The last argument MUST be NULL, to indicate the end of arguments.
+ *
+ * This function returns 1 on error, and zero otherwise.
  * */
-void argv_array_push(struct argv_array *argv_a, ...);
+int argv_array_push(struct argv_array *argv_a, ...);
 
 /**
  * Pop the last value from the argv_array. The string memory is released, and argv_a->argc is updated
  * accordingly. argv_a->argv is not reallocated.
  * */
-void argv_array_pop(struct argv_array *argv_a);
+char *argv_array_pop(struct argv_array *argv_a);
 
 /**
  * Detach from the argv_array the array of strings. The argv_array is reset to its initial state.

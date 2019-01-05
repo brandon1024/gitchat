@@ -170,27 +170,31 @@ void show_channel_usage(int err, const char *optional_message_format, ...)
 static int list_channels(unsigned char scope)
 {
     struct child_process_def cmd;
-    child_process_def_init(&cmd);
+    int ret = 0;
 
+    child_process_def_init(&cmd);
     cmd.git_cmd = 1;
-    argv_array_push(&cmd.args, "branch", NULL);
 
     if(scope == LIST_MODE_LOCAL)
-        argv_array_push(&cmd.args, "-l", NULL);
+        ret = argv_array_push(&cmd.args, "branch", "-l", NULL);
     else if(scope == LIST_MODE_REMOTE)
-        argv_array_push(&cmd.args, "-r", NULL);
+        ret = argv_array_push(&cmd.args, "branch", "-r", NULL);
     else if(scope == (LIST_MODE_LOCAL | LIST_MODE_REMOTE))
-        argv_array_push(&cmd.args, "-a", NULL);
+        ret = argv_array_push(&cmd.args, "branch", "-a", NULL);
     else {
         fprintf(stderr, "fatal: invalid scope. %x\n", scope);
         return 1;
     }
 
-    run_command(&cmd);
+    if(ret == 1) {
+        fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
+        return 1;
+    }
 
+    ret = run_command(&cmd);
     child_process_def_release(&cmd);
 
-    return 0;
+    return ret;
 }
 
 static int import_gpg_key_to_channel(void)
@@ -201,44 +205,59 @@ static int import_gpg_key_to_channel(void)
 static int create_channel(const char *channel_name)
 {
     struct child_process_def cmd;
+    int ret = 0;
+
     child_process_def_init(&cmd);
-
     cmd.git_cmd = 1;
-    argv_array_push(&cmd.args, "checkout", "-b", channel_name, NULL);
 
-    run_command(&cmd);
+    ret = argv_array_push(&cmd.args, "checkout", "-b", channel_name, NULL);
+    if(ret == 1) {
+        fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
+        return 1;
+    }
 
+    ret = run_command(&cmd);
     child_process_def_release(&cmd);
 
-    return 0;
+    return ret;
 }
 
 static int switch_to_channel(const char *channel_name)
 {
     struct child_process_def cmd;
+    int ret = 0;
+
     child_process_def_init(&cmd);
-
     cmd.git_cmd = 1;
-    argv_array_push(&cmd.args, "checkout", channel_name, NULL);
 
-    run_command(&cmd);
+    ret = argv_array_push(&cmd.args, "checkout", channel_name, NULL);
+    if(ret == 1) {
+        fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
+        return 1;
+    }
 
+    ret = run_command(&cmd);
     child_process_def_release(&cmd);
 
-    return 0;
+    return ret;
 }
 
 static int delete_channel(const char *channel_name)
 {
     struct child_process_def cmd;
+    int ret = 0;
+
     child_process_def_init(&cmd);
-
     cmd.git_cmd = 1;
-    argv_array_push(&cmd.args, "checkout", "-d", channel_name, NULL);
 
-    run_command(&cmd);
+    ret = argv_array_push(&cmd.args, "checkout", "-d", channel_name, NULL);
+    if(ret == 1) {
+        fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
+        return 1;
+    }
 
+    ret = run_command(&cmd);
     child_process_def_release(&cmd);
 
-    return 0;
+    return ret;
 }

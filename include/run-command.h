@@ -1,18 +1,13 @@
 #ifndef GIT_CHAT_RUN_COMMAND_H
 #define GIT_CHAT_RUN_COMMAND_H
 
-#ifndef GIT_CHAT_ARGV_ARRAY_H
 #include "argv-array.h"
-#endif /* GIT_CHAT_ARGV_ARRAY_H */
-
-#ifndef GIT_CHAT_STRBUF_H
 #include "strbuf.h"
-#endif /* GIT_CHAT_STRBUF_H */
 
 struct child_process_def {
-    struct argv_array args;
-    unsigned int discard_out: 1;
-    unsigned int git_cmd: 1;
+	struct argv_array args;
+	unsigned int discard_out: 1;
+	unsigned int git_cmd: 1;
 };
 
 /**
@@ -29,17 +24,17 @@ void child_process_def_release(struct child_process_def *cmd);
 /**
  * Run a command, as described by the child_process_def.
  *
- * If git_cmd is 1, cmd->args are treated as arguments to the git command. Otherwise,
- * the args is collapsed into a string and executed as-is.
+ * If git_cmd is 1, cmd->args are treated as arguments to the git command.
+ * Otherwise, the args is collapsed into a string and executed as-is.
  *
- * If discard_out is 1, the command is executed but the output from the command is not
- * printed to stdout.
+ * If discard_out is 1, the command is executed but the output from the command
+ * is not printed to stdout.
  * */
 int run_command(struct child_process_def *cmd);
 
 /**
- * Run a command, as described by the child_process_def, but capture the command output
- * to the given strbuf.
+ * Run a command, as described by the child_process_def, but capture the command
+ * output to the given strbuf.
  *
  * See run_command() for child_process_def usage details.
  * */

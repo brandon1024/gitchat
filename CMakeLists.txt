@@ -11,21 +11,21 @@ SET(CMAKE_C_STANDARD 99)
 
 # compiler options
 IF(CMAKE_COMPILER_IS_GNUCC)
-    add_definitions(-Wall -Werror -pedantic -std=c99)
+	add_definitions(-Wall -Werror -pedantic -std=c99)
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 # Configure Project
 CONFIGURE_FILE(
-    "${PROJECT_SOURCE_DIR}/templates/version.h.in"
-    "${PROJECT_BINARY_DIR}/include/version.h"
+	"${PROJECT_SOURCE_DIR}/templates/version.h.in"
+	"${PROJECT_BINARY_DIR}/include/version.h"
 )
 
 FILE(GLOB_RECURSE SRC_LIST FOLLOW_SYMLINKS src/*.c)
 FILE(GLOB_RECURSE HEAD_FILES FOLLOW_SYMLINKS include/*.h ${PROJECT_BINARY_DIR}/include/*.h)
 
 INCLUDE_DIRECTORIES(
-    "${PROJECT_SOURCE_DIR}/include/"
-    "${PROJECT_BINARY_DIR}/include/"
+	"${PROJECT_SOURCE_DIR}/include/"
+	"${PROJECT_BINARY_DIR}/include/"
 )
 
 ADD_EXECUTABLE(${PROJECT_NAME} src/main.c ${SRC_LIST})

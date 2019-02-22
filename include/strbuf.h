@@ -2,9 +2,9 @@
 #define GIT_CHAT_STRBUF_H
 
 struct strbuf {
-    char *buff;
-    size_t len;
-    size_t alloc;
+	char *buff;
+	size_t len;
+	size_t alloc;
 };
 
 /**
@@ -14,7 +14,8 @@ struct strbuf {
 void strbuf_init(struct strbuf *buff);
 
 /**
- * Release any resources under the strbuf. The strbuf MUST be reinitialized for reuse.
+ * Release any resources under the strbuf. The strbuf MUST be reinitialized for
+ * reuse.
  * */
 void strbuf_release(struct strbuf *buff);
 

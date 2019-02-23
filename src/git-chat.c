@@ -28,6 +28,7 @@ static const struct option_description main_cmd_options[] = {
 
 static struct cmd_builtin builtins[] = {
 		{ "channel", cmd_channel },
+		{ "init", cmd_init },
 		{ "message", cmd_message },
 		{ "publish", cmd_publish },
 		{ "get", cmd_get },

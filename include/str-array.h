@@ -38,6 +38,11 @@ void str_array_grow(struct str_array *str_a, size_t size);
 /**
  * Release resources from an str_array. The str_array will return to its initial
  * state.
+ *
+ * Note: Care must be taken with strings that were inserted into the str_array
+ * using the *_nodup() family of functions. If a string was inserted using one
+ * of the nodup() functions, and str_array_release() is invoked, then some strings
+ * managed by the caller may be free()d, which can result in undesired behavior.
  * */
 void str_array_release(struct str_array *str_a);
 
@@ -55,16 +60,19 @@ char *str_array_get(struct str_array *str_a, size_t pos);
  *
  * Returns zero if successful, and non-zero if no element with index pos exists.
  * */
-int str_array_set(struct str_array *str_a, size_t pos, char *str);
+int str_array_set(struct str_array *str_a, char *str, size_t pos);
 
 /**
  * Replace a string in the str_array with a new string.
  *
  * The string is not duplicated, and str will be inserted directly into the array.
  *
+ * WARNING: calling str_array_release() on this str_array will free the string
+ * being inserted. This might cause undesired behavior.
+ *
  * Returns zero if successful, and non-zero if no element with index pos exists.
  * */
-int str_array_set_nodup(struct str_array *str_a, size_t pos, char *str);
+int str_array_set_nodup(struct str_array *str_a, char *str, size_t pos);
 
 /**
  * Push one or more strings to the end of the str_array.
@@ -111,6 +119,9 @@ size_t str_array_insert(struct str_array *str_a, size_t pos, char *str);
  *
  * If pos is greater than the size of the array, the new string will be inserted
  * at the end of the array.
+ *
+ * WARNING: calling str_array_release() on this str_array will free the string
+ * being inserted. This might cause undesired behavior.
  *
  * This function returns the index of the location in which the string was
  * inserted.

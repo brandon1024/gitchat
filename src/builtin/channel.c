@@ -32,6 +32,7 @@ static const struct option_description channel_cmd_options[] = {
 		OPT_STRING('s', "switch", "name", "switch to an existing channel"),
 		OPT_STRING('d', "delete", "name", "delete a channel locally"),
 		OPT_LONG_BOOL("gpg-import-key", "import public gpg key into channel"),
+		OPT_BOOL('h', "help", "Show usage and exit"),
 		OPT_END()
 };
 
@@ -132,6 +133,12 @@ int cmd_channel(int argc, char *argv[])
 		//import gpg key to channel
 		if(argument_matches_option(arg, channel_cmd_options[6]))
 			action_mode |= ACTION_MODE_GPGIMPORT;
+
+		//show help
+		if(argument_matches_option(arg, channel_cmd_options[7])) {
+			show_channel_usage(0, NULL);
+			return 0;
+		}
 	}
 
 	//is list mode

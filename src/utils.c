@@ -9,7 +9,7 @@
 static void print_message(FILE *output_stream, const char *prefix,
 		const char *fmt, va_list varargs);
 static NORETURN void default_exit_routine(int status);
-static NORETURN void (*exit_routine)(int status) = default_exit_routine;
+static NORETURN void (*exit_routine)(int) = default_exit_routine;
 
 NORETURN void BUG(const char *fmt, ...)
 {
@@ -59,7 +59,7 @@ static void print_message(FILE *output_stream, const char *prefix,
 		fprintf(stderr, "%s\n", strerror(errno));
 }
 
-void set_exit_routine(void (*new_exit_routine)(int status))
+void set_exit_routine(void (*new_exit_routine)(int))
 {
 	exit_routine = new_exit_routine;
 }

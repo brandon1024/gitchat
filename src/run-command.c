@@ -236,8 +236,6 @@ static inline void set_cloexec(int fd)
 static void env_variable_key(char *env_var, struct strbuf *buff)
 {
 	char *eq = strchr(env_var, '=');
-	struct strbuf c_key;
-	strbuf_init(&c_key);
 
 	strbuf_attach(buff, env_var, eq ? eq - env_var : strlen(env_var));
 }

@@ -104,7 +104,8 @@ TEST_DEFINE(run_command_child_exit_status_test)
 		int ret = run_command(&cmd);
 		assert_eq(0, ret);
 
-		argv_array_pop(&cmd.args);
+		char *arg = argv_array_pop(&cmd.args);
+		free(arg);
 		ret = run_command(&cmd);
 		assert_eq(1, ret);
 	}

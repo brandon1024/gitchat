@@ -106,13 +106,13 @@ int str_array_set_test()
 		char *str = str_array_get(&str_a, 2);
 		assert_string_eq("str3", str);
 
-		int ret = str_array_set(&str_a, 2, "my string");
+		int ret = str_array_set(&str_a, "my string", 2);
 		assert_zero(ret);
 
 		str = str_array_get(&str_a, 2);
 		assert_string_eq("my string", str);
 
-		ret = str_array_set(&str_a, 7, "my string");
+		ret = str_array_set(&str_a, "my string", 7);
 		assert_nonzero(ret);
 	}
 
@@ -132,7 +132,7 @@ TEST_DEFINE(str_array_set_nodup_test)
 		char *new_str = strdup("my string");
 		assert_nonnull(new_str);
 
-		int ret = str_array_set_nodup(&str_a, 2, new_str);
+		int ret = str_array_set_nodup(&str_a, new_str, 2);
 		assert_zero(ret);
 
 		char *str = str_array_get(&str_a, 2);
@@ -314,6 +314,7 @@ TEST_DEFINE(str_array_detach_test)
 		int ret = str_array_push(&str_a, "str1", "str2", "str3", "str4", "str5", NULL);
 
 		strings = str_array_detach(&str_a, &len);
+		assert_eq(5, len);
 		assert_eq(len, ret);
 		assert_nonnull(strings);
 
@@ -325,12 +326,13 @@ TEST_DEFINE(str_array_detach_test)
 		assert_string_eq("str5", strings[4]);
 	}
 
-	if(strings) {
+	if (strings) {
 		for (size_t i = 0; i < len; i++)
 			free(strings[i]);
+
+		free(strings);
 	}
 
-	str_array_release(&str_a);
 	TEST_END();
 }
 

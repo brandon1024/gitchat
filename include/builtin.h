@@ -22,6 +22,7 @@ struct cmd_builtin {
 };
 
 extern int cmd_channel(int argc, char *argv[]);
+extern int cmd_init(int argc, char *argv[]);
 extern int cmd_message(int argc, char *argv[]);
 extern int cmd_publish(int argc, char *argv[]);
 extern int cmd_get(int argc, char *argv[]);

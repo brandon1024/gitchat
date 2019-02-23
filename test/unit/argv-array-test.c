@@ -130,6 +130,8 @@ TEST_DEFINE(argv_array_detach_test)
 	if(strings) {
 		for (size_t i = 0; i < len; i++)
 			free(strings[i]);
+
+		free(strings);
 	}
 
 	argv_array_release(&argv_a);

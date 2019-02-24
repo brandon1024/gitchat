@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "usage.h"
+#include "utils.h"
 
 #define USAGE_OPTIONS_WIDTH		24
 #define USAGE_OPTIONS_GAP		2
@@ -50,6 +51,14 @@ void show_options(const struct option_description *opts, int err)
 	while(opts[index].type != OPTION_END) {
 		struct option_description opt = opts[index++];
 		int printed_chars = 0;
+
+		if(opt.type == OPTION_GROUP_T) {
+			if(index > 1)
+				fprintf(stdout, "\n");
+
+			fprintf(stdout, "%s\n", opt.desc);
+			continue;
+		}
 
 		printed_chars += fprintf(fp, "	");
 		if(opt.type == OPTION_BOOL_T) {
@@ -115,6 +124,12 @@ void variadic_show_usage_with_options(const struct usage_description *cmd_usage,
 
 int argument_matches_option(const char *arg, struct option_description description)
 {
+	if(description.type == OPTION_GROUP_T)
+		BUG("Cannot match argument against type %s", "OPTION_GROUP_T");
+
+	if(description.type == OPTION_END)
+		BUG("Cannot match argument against type %s", "OPTION_END");
+
 	//If option is of type command
 	if(description.type == OPTION_COMMAND_T)
 		return !strcmp(arg, description.str_name);
@@ -147,11 +162,11 @@ int is_valid_argument(const char *arg,
 	if(arg_char_len == 0)
 		return false;
 
-	//argument is a string
+	// argument is a string
 	if(arg[0] != '-')
 		return true;
 
-	//perform argument validation for short boolean combined flags,
+	// perform argument validation for short boolean combined flags,
 	// ensuring they do not contain unknown flags
 	if(arg_char_len > 2 && arg[1] != '-') {
 		for(size_t char_index = 1; char_index < arg_char_len; char_index++) {
@@ -167,18 +182,19 @@ int is_valid_argument(const char *arg,
 		return false;
 	}
 
-	//perform argument validation for short flags
+	// perform argument validation for short flags
 	if(arg_char_len == 2 && arg[1] != '-') {
 		char flag = arg[1];
 		for(size_t opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
-			if(arg_usage_descriptions[opt_index].s_flag == flag)
+			if(arg_usage_descriptions[opt_index].s_flag != 0
+			&& arg_usage_descriptions[opt_index].s_flag == flag)
 				return true;
 		}
 
 		return false;
 	}
 
-	//perform argument validation for long flags
+	// perform argument validation for long flags
 	if(arg_char_len > 2 && arg[1] == '-') {
 		const char *flag = arg + 2;
 

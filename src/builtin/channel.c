@@ -169,18 +169,13 @@ static int list_channels(unsigned char scope)
 	cmd.git_cmd = 1;
 
 	if(scope == LIST_MODE_LOCAL)
-		ret = argv_array_push(&cmd.args, "branch", "-l", NULL);
+		argv_array_push(&cmd.args, "branch", "-l", NULL);
 	else if(scope == LIST_MODE_REMOTE)
-		ret = argv_array_push(&cmd.args, "branch", "-r", NULL);
+		argv_array_push(&cmd.args, "branch", "-r", NULL);
 	else if(scope == (LIST_MODE_LOCAL | LIST_MODE_REMOTE))
-		ret = argv_array_push(&cmd.args, "branch", "-a", NULL);
+		argv_array_push(&cmd.args, "branch", "-a", NULL);
 	else {
 		fprintf(stderr, "fatal: invalid scope. %x\n", scope);
-		return 1;
-	}
-
-	if(ret == 1) {
-		fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
 		return 1;
 	}
 
@@ -203,12 +198,7 @@ static int create_channel(const char *channel_name)
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
 
-	ret = argv_array_push(&cmd.args, "checkout", "-b", channel_name, NULL);
-	if(ret == 1) {
-		fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
-		return 1;
-	}
-
+	argv_array_push(&cmd.args, "checkout", "-b", channel_name, NULL);
 	ret = run_command(&cmd);
 	child_process_def_release(&cmd);
 
@@ -223,12 +213,7 @@ static int switch_to_channel(const char *channel_name)
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
 
-	ret = argv_array_push(&cmd.args, "checkout", channel_name, NULL);
-	if(ret == 1) {
-		fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
-		return 1;
-	}
-
+	argv_array_push(&cmd.args, "checkout", channel_name, NULL);
 	ret = run_command(&cmd);
 	child_process_def_release(&cmd);
 
@@ -243,12 +228,7 @@ static int delete_channel(const char *channel_name)
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
 
-	ret = argv_array_push(&cmd.args, "checkout", "-d", channel_name, NULL);
-	if(ret == 1) {
-		fprintf(stderr, "Fatal Error: Unable to allocate memory.\n");
-		return 1;
-	}
-
+	argv_array_push(&cmd.args, "checkout", "-d", channel_name, NULL);
 	ret = run_command(&cmd);
 	child_process_def_release(&cmd);
 

@@ -1,6 +1,21 @@
 #ifndef GIT_CHAT_ARGV_ARRAY_H
 #define GIT_CHAT_ARGV_ARRAY_H
 
+/**
+ * argv-array API
+ *
+ * The argv-array allows one to dynamically build lists of strings. It is mainly
+ * used as a way to build a list of arguments which can be used to build command
+ * arguments passed to a subprocess, or used to manipulate arguments passed to
+ * builtins.
+ *
+ * Data Structure:
+ * struct argv_array
+ * - char **argv: array of pointers to strings.
+ * - size_t argc: number of strings stored under `argv`.
+ * - size_t alloc: allocated size of the `argv` array.
+ * */
+
 struct argv_array {
 	char **argv;
 	size_t argc;
@@ -27,16 +42,28 @@ void argv_array_release(struct argv_array *argv_a);
  *
  * The last argument MUST be NULL, to indicate the end of arguments.
  *
- * This function returns 1 on error, and zero otherwise.
+ * This function returns the number of items pushed to the argv_array.
  * */
 int argv_array_push(struct argv_array *argv_a, ...);
 
 /**
  * Pop the last value from the argv_array. The string memory is released, and
- * argv_a->argc is updated
- * accordingly. argv_a->argv is not reallocated.
+ * argv_a->argc is updated accordingly. argv_a->argv is not reallocated.
  * */
 char *argv_array_pop(struct argv_array *argv_a);
+
+/**
+ * Prepend one or more strings (const char *) to the beginning of the argv_array.
+ *
+ * Similarly to argv_array_push, each string is duplicated and a pointer to it
+ * is stored under argv_a->argv. Internally, the new strings to prepend are
+ * pushed to a new argv_array, and then the arg_a values are then pushed on top.
+ *
+ * The last argument must be NULL, to indicate the end of arguments.
+ *
+ * This function returns the number of items prepended to the argv_array.
+ * */
+int argv_array_prepend(struct argv_array *argv_a, ...);
 
 /**
  * Detach from the argv_array the array of strings. The argv_array is reset to

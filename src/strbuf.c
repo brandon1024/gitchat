@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "strbuf.h"
+#include "utils.h"
 
 #define BUFF_SLOP 64
 
@@ -11,10 +12,8 @@ void strbuf_init(struct strbuf *buff)
 	buff->alloc = BUFF_SLOP;
 	buff->len = 0;
 	buff->buff = (char *)calloc(buff->alloc, sizeof(char));
-	if(buff->buff == NULL) {
-		perror("Fatal Error: Unable to allocate memory.\n");
-		exit(EXIT_FAILURE);
-	}
+	if(buff->buff == NULL)
+		FATAL("Unable to allocate memory.");
 }
 
 void strbuf_release(struct strbuf *buff)
@@ -33,10 +32,8 @@ void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
 	if((buff->len + str_len + 1) >= buff->alloc) {
 		buff->alloc += buffer_len + BUFF_SLOP;
 		buff->buff = (char *)realloc(buff->buff, buff->alloc * sizeof(char));
-		if(buff->buff == NULL) {
-			perror("Fatal Error: Unable to allocate memory.\n");
-			exit(EXIT_FAILURE);
-		}
+		if(buff->buff == NULL)
+			FATAL("Unable to allocate memory.");
 	}
 
 	strncpy(buff->buff + buff->len, str, str_len);

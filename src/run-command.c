@@ -39,24 +39,10 @@ static int execute(struct child_process_def *cmd, int capture,
 	char buff[BUFF_LEN];
 
 	char *command;
-	if(cmd->git_cmd) {
-		const char *git_cmd = "git ";
-		char *cmd_args = argv_array_collapse(&cmd->args);
+	if(cmd->git_cmd)
+		argv_array_prepend(&cmd->args, "git", NULL);
 
-		command = (char *)calloc(strlen(git_cmd) + strlen(cmd_args) + 1,
-				sizeof(char));
-		if(command == NULL) {
-			perror("Fatal Error: Unable to allocate memory.\n");
-			exit(EXIT_FAILURE);
-		}
-
-		strcpy(command, git_cmd);
-		strcat(command, cmd_args);
-
-		free(cmd_args);
-	} else {
-		command = argv_array_collapse(&cmd->args);
-	}
+	command = argv_array_collapse(&cmd->args);
 
 	if(cmd->discard_out) {
 		int ret = system(command);

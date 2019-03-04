@@ -74,9 +74,9 @@ int argv_array_prepend(struct argv_array *argv_a, ...);
 char **argv_array_detach(struct argv_array *argv_a, size_t *len);
 
 /**
- * Combine the arguments into a single newly allocated string. Unlike
- * argv_array_detach, the argv_array remains untouched, and still needs to be
- * freed using argv_array_release().
+ * Combine the arguments into a single newly allocated string, where each string
+ * is delimited by a single space. Unlike argv_array_detach, the argv_array
+ * remains untouched, and still needs to be freed using argv_array_release().
  *
  * The new string will need to be free()d manually.
  *
@@ -90,5 +90,16 @@ char **argv_array_detach(struct argv_array *argv_a, size_t *len);
  * > "grep -i yourquery filename"
  * */
 char *argv_array_collapse(struct argv_array *argv_a);
+
+/**
+ * Similar to argv_array_collapse(), but delimit each string in the argv_array
+ * with the specified delimiter.
+ *
+ * Unlike argv_array_detach, the argv_array remains untouched, and still needs
+ * to be freed using argv_array_release().
+ *
+ * The new string will need to be free()d manually.
+ * */
+char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim);
 
 #endif //GIT_CHAT_ARGV_ARRAY_H

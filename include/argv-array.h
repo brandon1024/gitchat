@@ -47,8 +47,10 @@ void argv_array_release(struct argv_array *argv_a);
 int argv_array_push(struct argv_array *argv_a, ...);
 
 /**
- * Pop the last value from the argv_array. The string memory is released, and
- * argv_a->argc is updated accordingly. argv_a->argv is not reallocated.
+ * Pop the last value from the argv_array. The popped string is returned, and
+ * must be freed by the caller. argv_a->argv is not reallocated.
+ *
+ * If argv_a->argc is 0 (argv_array is empty), NULL is returned.
  * */
 char *argv_array_pop(struct argv_array *argv_a);
 

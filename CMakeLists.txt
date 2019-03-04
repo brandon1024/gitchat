@@ -11,7 +11,7 @@ SET(CMAKE_C_STANDARD 99)
 
 # compiler options
 IF(CMAKE_COMPILER_IS_GNUCC)
-	add_definitions(-Wall -Werror -pedantic -std=c99)
+	add_definitions(-Wall -Wextra -Werror -pedantic -std=c99)
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 # Configure Project

@@ -54,9 +54,8 @@ char *argv_array_pop(struct argv_array *argv_a)
 	if(argv_a->argc == 0)
 		return NULL;
 
-	char *top = argv_a->argv[argv_a->argc - 1];
-	argv_a->argv[argv_a->argc - 1] = NULL;
-	argv_a->argc--;
+	char *top = argv_a->argv[--argv_a->argc];
+	argv_a->argv[argv_a->argc] = NULL;
 
 	return top;
 }

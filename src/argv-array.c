@@ -109,21 +109,30 @@ char **argv_array_detach(struct argv_array *argv_a, size_t *len)
 
 char *argv_array_collapse(struct argv_array *argv_a)
 {
-	size_t len = (argv_a->argc > 1) ? argv_a->argc - 1 : 0;
+	return argv_array_collapse_delim(argv_a, " ");
+}
 
-	for(size_t index = 0; index < argv_a->argc; index++)
-		len += strlen(argv_a->argv[index]);
+char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim)
+{
+	size_t len = 1;
 
-	char *str = (char *)calloc(len + 1, sizeof(char));
+	if(!argv_a->argc)
+		return NULL;
+
+	if(argv_a->argc > 1)
+		len += (argv_a->argc - 1) * strlen(delim);
+
+	for(size_t i = 0; i < argv_a->argc; i++)
+		len += strlen(argv_a->argv[i]);
+
+	char *str = (char *)calloc(len, sizeof(char));
 	if(str == NULL)
 		FATAL("Unable to allocate memory.");
 
-	if(argv_a->argc >= 1)
-		strcat(str, argv_a->argv[0]);
-
-	for(size_t index = 1; index < argv_a->argc; index++) {
-		strcat(str, " ");
-		strcat(str, argv_a->argv[index]);
+	strcat(str, argv_a->argv[0]);
+	for(size_t i = 1; i < argv_a->argc; i++) {
+		strcat(str, delim);
+		strcat(str, argv_a->argv[i]);
 	}
 
 	return str;

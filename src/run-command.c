@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "run-command.h"
+#include "utils.h"
 
 static int execute(struct child_process_def *cmd, int capture,
 		struct strbuf *buffer);
@@ -44,26 +45,23 @@ static int execute(struct child_process_def *cmd, int capture,
 
 	command = argv_array_collapse(&cmd->args);
 
+	if(command == NULL)
+		BUG("Unexpected child_process_def with no arguments.");
+
 	if(cmd->discard_out) {
 		int ret = system(command);
+		if(ret == -1)
+			FATAL("Unable to run command '%s", command);
+
 		free(command);
-
-		if(ret == -1) {
-			fprintf(stderr, "fatal error: unable to run command.\n");
-			return 1;
-		}
-
 		return 0;
 	}
 
 	FILE *fp = popen(command, "r");
 	free(command);
 
-	if(fp == NULL) {
-		fprintf(stderr, "fatal error: unable to create pipe to shell process. "
-				"%x: %s\n", errno, strerror(errno));
-		return 1;
-	}
+	if(fp == NULL)
+		FATAL("Unable to create pipe to shell process.");
 
 	while(fgets(buff, BUFF_LEN, fp) != NULL) {
 		if(capture)
@@ -73,11 +71,8 @@ static int execute(struct child_process_def *cmd, int capture,
 	}
 
 	int status = pclose(fp);
-	if(status == -1) {
-		fprintf(stderr, "fatal error: unable to close pipe to shell process. "
-				"%x: %s\n", errno, strerror(errno));
-		return 1;
-	}
+	if(status == -1)
+		FATAL("Unable to close pipe to shell process.");
 
 	return 0;
 }

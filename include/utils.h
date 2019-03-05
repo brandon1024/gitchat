@@ -1,6 +1,8 @@
 #ifndef GIT_CHAT_UTILS_H
 #define GIT_CHAT_UTILS_H
 
+#include "logging.h"
+
 #define NORETURN
 
 /**
@@ -33,12 +35,5 @@ NORETURN void FATAL(const char *fmt, ...);
  * EXIT_FAILURE.
  * */
 NORETURN void DIE(const char *fmt, ...);
-
-/**
- * Function used to warn the user of some information that might be concerning.
- *
- * The message is printed to stderr.
- * */
-void WARN(const char *fmt, ...);
 
 #endif //GIT_CHAT_UTILS_H

@@ -6,6 +6,7 @@
 #include "run-command.h"
 #include "usage.h"
 #include "version.h"
+#include "utils.h"
 
 static const struct usage_description main_cmd_usage[] = {
 		USAGE("git chat <command> [<options>]"),
@@ -84,6 +85,7 @@ static struct cmd_builtin *get_builtin(const char *s)
 
 static int run_builtin(struct cmd_builtin *builtin, int argc, char *argv[])
 {
+	LOG_TRACE("builtin: executing %s builtin", builtin->cmd);
 	return builtin->fn(argc, argv);
 }
 

@@ -57,6 +57,8 @@ static int execute(struct child_process_def *cmd, int capture,
 		return 0;
 	}
 
+	LOG_TRACE("executing shell process '%s'", command);
+
 	FILE *fp = popen(command, "r");
 	free(command);
 

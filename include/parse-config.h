@@ -1,6 +1,8 @@
 #ifndef GIT_CHAT_PARSE_CONFIG_H
 #define GIT_CHAT_PARSE_CONFIG_H
 
+#include "str-array.h"
+
 /**
  * Parse-Config API
  *
@@ -18,7 +20,36 @@
  *     key_a = 321
  * ```
  *
- * Key-value pairs can be defined outside of a section:
+ * Whitespace Rules:
+ * Leading and trailing whitespace is ignored. So,
+  ```
+ * [ section_a ]
+ *     key_1 = value
+ *     key_2 = valueb
+ * ```
+ *
+ * is equivalent to
+ * ```
+ * [ section_b ]
+ * key_1 = 123
+ * key_a = 321
+ * ```
+ *
+ * Furthermore, whitespace between the key name and `=`, and between `=` and the
+ * value is ignored. So, these statements are equivalent:
+ * ```
+ * key_1 = 123
+ * key_1=	123
+ * key_1=123
+ * ```
+ *
+ * Trailing whitespace are values are also ignored. However, values can be quoted
+ * with double quotes to preserve whitespace.
+ *
+ *
+ * Sections:
+ * Key-value pairs can be defined outside of a section, but must appear before
+ * any section declaration:
  * ```
  * key_3 = valuec
  *
@@ -27,23 +58,34 @@
  *     key_2 = valueb
  * ```
  *
- * Section names, key names, and values can take one of two forms; quoted and
- * unquoted.
- *
- * In the unquoted form, sections, keys and values can only contain the
- * characters [a-zA-Z0-9_].
- *
- * The quoted form can be used to name the section, key, or value with
- * a special character (any printable ascii character, other than double quote
- * '"'). For instance:
+ * Although sections cannot be nested, section names can have a period `.`,
+ * which can be used to help indicate that the section is be represented as a
+ * subsection:
  * ```
- * [ "section-a" ]
- *     "key.1" = value
- *     key_2 = "this is a value with spaces"
+ * [ section ]
+ *     key_1 = value
+ * [ section.subsection ]
+ *     key_2 = value
  * ```
  *
+ * Section and key names may only contain alphanumeric characters, underscores
+ * `_`, and periods `.`. Use of disallowed characters may result in undesired or
+ * undefined behavior.
  *
- * Configuration File Value Addressing:
+ * Duplicate section names are allowed, but duplicate addresses will result in
+ * undefined behavior. For instance, the following is disallowed because the
+ * address `section_a.key_1` is defined twice:
+ * ```
+ * [ section_a ]
+ *     key_1 = value
+ *     key_2 = valueb
+ *
+ * [ section_a ]
+ *     key_1 = 123
+ *     key_a = 321
+ * ```
+ *
+ * Addressing Key-Value Pairs:
  * Values in the config file are addressed using the dot ".", as shown below:
  * ```
  * [ section_a ]
@@ -57,27 +99,19 @@
  *
  * section_a.key_1
  * section_b.key_a
- *
- * When sections or keys are quoted, they can be addressed in the following
- * manner:
- * "section with symbol"."key.with.symbol"
- *
- * Although sections cannot be nested, section names can have a dot ".", to
- * indicate that the section is represented as a subsection:
- * ```
- * [ section ]
- *     key_1 = value
- * [ section.subsection ]
- *     key_2 = value
- * ```
  * */
 
-#define CONF_DATA_INIT() {NULL, NULL, 0}
+struct conf_data_entry {
+	char *section;
+	char *key;
+	char *value;
+};
 
 struct conf_data {
-	char **keys;
-	char **values;
-	size_t len;
+	struct str_array sections;
+	struct conf_data_entry **entries;
+	size_t entries_len;
+	size_t entries_alloc;
 };
 
 /**
@@ -86,35 +120,22 @@ struct conf_data {
  * and rather than sequentially parse the file for every key, like
  * parse_config_callback() does, simply parse the file once.
  *
- * Returns non-zero if the file could not be parsed, and 0 if successful.
+ * Returns:
+ * - 0 if the file was parsed successfully
+ * - <0 if the file could not be read (file not found, insufficient permissions)
+ * - >0 if the file could not be parsed due to a syntax error
  * */
-int parse_config(const char *conf_path, struct conf_data *conf);
+int parse_config(struct conf_data *conf, const char *conf_path);
 
 /**
  * Query a struct conf_data for a key, returning the value if found, or NULL if
  * does not exist.
  * */
-char *find_value(struct conf_data *conf, const char *key);
+char *find_value(struct conf_data *conf, char *key);
 
 /**
  * Release any resources under a struct conf_data.
  * */
 void release_config_resources(struct conf_data *conf);
-
-/**
- * Search the config file sequentially until the specified key is found, and
- * invoke the callback function with the value.
- *
- * The callback function must have the following signature:
- * void callback(const char *key, const char *value, void *data);
- *
- * If the key cannot be found, the callback function is invoked with NULL
- * `value`.
- *
- * This function returns non-zero if the key was not found, and 0 if the key
- * exists.
- * */
-int parse_config_callback(const char *conf_path, const char *key, void *data,
-		void (*callback)(const char *key, const char *value, void *data));
 
 #endif //GIT_CHAT_PARSE_CONFIG_H

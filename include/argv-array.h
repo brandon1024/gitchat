@@ -1,25 +1,18 @@
 #ifndef GIT_CHAT_ARGV_ARRAY_H
 #define GIT_CHAT_ARGV_ARRAY_H
 
+#include "str-array.h"
+
 /**
- * argv-array API
+ * argv-array api
  *
- * The argv-array allows one to dynamically build lists of strings. It is mainly
- * used as a way to build a list of arguments which can be used to build command
- * arguments passed to a subprocess, or used to manipulate arguments passed to
- * builtins.
- *
- * Data Structure:
- * struct argv_array
- * - char **argv: array of pointers to strings.
- * - size_t argc: number of strings stored under `argv`.
- * - size_t alloc: allocated size of the `argv` array.
+ * The argv-array is mainly used to build a list of arguments which can be used
+ * to assemble command arguments passed to a subprocess, or to manipulate
+ * arguments passed to builtins.
  * */
 
 struct argv_array {
-	char **argv;
-	size_t argc;
-	size_t alloc;
+	struct str_array arr;
 };
 
 /**

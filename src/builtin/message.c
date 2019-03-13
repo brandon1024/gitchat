@@ -26,7 +26,7 @@ static void show_message_usage(int err, const char *optional_message_format, ...
 
 /* Public Functions */
 int cmd_message(int argc, char *argv[]) {
-	show_message_usage(0, NULL);
+	show_message_usage(argc, argv[0]);
 	return 0;
 }
 

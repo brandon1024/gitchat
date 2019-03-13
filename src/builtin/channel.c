@@ -56,7 +56,7 @@ int cmd_channel(int argc, char *argv[])
 	}
 
 	//parse arguments
-	for(size_t arg_index = 0; arg_index < argc; arg_index++) {
+	for(int arg_index = 0; arg_index < argc; arg_index++) {
 		size_t arg_char_len = strlen(argv[arg_index]);
 		char *arg = argv[arg_index];
 

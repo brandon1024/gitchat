@@ -14,7 +14,7 @@ static void show_get_usage(int err, const char *optional_message_format, ...);
 /* Public Functions */
 int cmd_get(int argc, char *argv[])
 {
-	show_get_usage(0, NULL);
+	show_get_usage(argc, argv[0]);
 	return 0;
 }
 

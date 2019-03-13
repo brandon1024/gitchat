@@ -28,7 +28,7 @@ static void show_read_usage(int err, const char *optional_message_format, ...);
 /* Public Functions */
 int cmd_read(int argc, char *argv[])
 {
-	show_read_usage(0, NULL);
+	show_read_usage(argc, argv[0]);
 	return 0;
 }
 

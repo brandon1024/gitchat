@@ -13,7 +13,7 @@ static void show_publish_usage(int err, const char *optional_message_format, ...
 
 /* Public Functions */
 int cmd_publish(int argc, char *argv[]) {
-	show_publish_usage(0, NULL);
+	show_publish_usage(argc, argv[0]);
 	return 0;
 }
 

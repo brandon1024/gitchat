@@ -27,7 +27,7 @@ void strbuf_release(struct strbuf *buff)
 void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
 {
 	char *eos = memchr(str, 0, buffer_len);
-	size_t str_len = (eos == NULL) ? buffer_len : eos - str;
+	size_t str_len = (eos == NULL) ? buffer_len : (size_t)(eos - str);
 
 	if((buff->len + str_len + 1) >= buff->alloc) {
 		buff->alloc += buffer_len + BUFF_SLOP;

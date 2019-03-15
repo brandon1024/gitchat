@@ -1,6 +1,7 @@
 #ifndef GIT_CHAT_PARSE_CONFIG_H
 #define GIT_CHAT_PARSE_CONFIG_H
 
+#include <stdlib.h>
 #include "str-array.h"
 
 /**

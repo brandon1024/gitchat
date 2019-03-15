@@ -1,6 +1,8 @@
 #ifndef GIT_CHAT_STRBUF_H
 #define GIT_CHAT_STRBUF_H
 
+#include <stdlib.h>
+
 struct strbuf {
 	char *buff;
 	size_t len;

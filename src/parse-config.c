@@ -155,6 +155,7 @@ void release_config_resources(struct conf_data *conf)
 
 	str_array_release(&conf->sections);
 	free(conf->entries);
+	*conf = (struct conf_data){ .entries = NULL, .entries_len = 0, .entries_alloc = 0 };
 }
 
 /**
@@ -167,17 +168,22 @@ void release_config_resources(struct conf_data *conf)
 static char *read_line(FILE *fd)
 {
 	char buffer[BUFF_LEN];
+	size_t len = 0;
 	struct strbuf buf;
 
 	strbuf_init(&buf);
 
 	char *eos;
 	do {
-		if(!fgets(buffer, BUFF_LEN, fd))
+		if(!fgets(buffer, BUFF_LEN, fd)) {
+			strbuf_release(&buf);
 			return NULL;
+		}
 
-		eos = memchr(buffer, 0, BUFF_LEN);
-		if(eos) {
+		len = strlen(buffer);
+		eos = buffer + len - 1;
+
+		if(*eos == '\n') {
 			strbuf_attach(&buf, buffer, (buffer - eos));
 
 			char *ptr = buf.buff;
@@ -191,6 +197,7 @@ static char *read_line(FILE *fd)
 			}
 		} else {
 			strbuf_attach(&buf, buffer, BUFF_LEN);
+			eos = NULL;
 		}
 	} while(!eos);
 
@@ -209,7 +216,7 @@ static char *read_line(FILE *fd)
 	if(!resized_str)
 		FATAL("Unable to allocate memory.");
 
-	size_t len = line_end - line_start;
+	len = line_end - line_start;
 	strncpy(resized_str, line_start, len);
 
 	free(new_str);
@@ -293,7 +300,7 @@ static int validate_section_name(char *section_name)
 static int extract_key_value_pair(char *line_str, char **key, char **value)
 {
 	char *key_start, *key_end, *val_start, *val_end;
-	int occurrences = 0;
+	int occurrences = 0, quoted = 0;
 
 	*key = NULL;
 	*value = NULL;
@@ -301,7 +308,9 @@ static int extract_key_value_pair(char *line_str, char **key, char **value)
 	// Verify that only one occurrence of '=' exists in line
 	key_start = line_str;
 	while(*key_start) {
-		if(*key_start == '=')
+		if(*key_start == '"')
+			quoted = !quoted;
+		if(*key_start == '=' && !quoted)
 			occurrences++;
 		key_start++;
 	}

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "run-command.h"
 #include "utils.h"
@@ -40,22 +40,15 @@ static int execute(struct child_process_def *cmd, int capture,
 	char buff[BUFF_LEN];
 
 	char *command;
+	if(cmd->discard_out)
+		argv_array_push(&cmd->args, "&> /dev/null", NULL);
+
 	if(cmd->git_cmd)
 		argv_array_prepend(&cmd->args, "git", NULL);
 
 	command = argv_array_collapse(&cmd->args);
-
 	if(command == NULL)
 		BUG("Unexpected child_process_def with no arguments.");
-
-	if(cmd->discard_out) {
-		int ret = system(command);
-		if(ret == -1)
-			FATAL("Unable to run command '%s", command);
-
-		free(command);
-		return 0;
-	}
 
 	LOG_TRACE("executing shell process '%s'", command);
 
@@ -76,5 +69,5 @@ static int execute(struct child_process_def *cmd, int capture,
 	if(status == -1)
 		FATAL("Unable to close pipe to shell process.");
 
-	return 0;
+	return status;
 }

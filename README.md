@@ -19,3 +19,19 @@ cmake --build .
 
 ./git-chat
 ```
+
+### Executing Tests
+To execute the tests:
+
+```
+mkdir build
+cd buikd
+cmake ..
+cmake --build .
+
+# (Optional)
+export GIT_CHAT_TEST_VERBOSE=1
+export GIT_CHAT_TEST_IMMEDIATE=1
+
+./git-chat-test
+```

@@ -140,17 +140,35 @@ int argument_matches_option(const char *arg, struct option_description descripti
 	if(strlen(arg) <= 1 || arg[0] != '-')
 		return false;
 
+	const char *arg_name = arg + 1;
+	bool is_long_format = false;
+	if(arg[1] == '-') {
+		arg_name++;
+		is_long_format = true;
+	}
+
 	//If argument is in long format
-	if(arg[0] == '-' && arg[1] == '-')
-		return !strcmp(arg + 2, description.l_flag);
+	size_t arg_name_len = strlen(arg_name);
+	if(is_long_format) {
+		if(description.l_flag == NULL)
+			return false;
+
+		return !strcmp(arg_name, description.l_flag);
+	}
 
 	//If argument is in short combined boolean format
-	if(strlen(arg) > 2)
-		return strchr(arg + 1, description.s_flag) != NULL
-				&& description.type == OPTION_BOOL_T;
+	if(arg_name_len > 1) {
+		if(description.type == OPTION_BOOL_T) {
+			return strchr(arg_name, description.s_flag) != NULL;
+		}
 
-	//If argument is in short format
-	return arg[1] == description.s_flag;
+		return arg_name[arg_name_len - 1] == description.s_flag;
+	}
+
+	if(arg_name_len == 1)
+		return *arg_name == description.s_flag;
+
+	return false;
 }
 
 int is_valid_argument(const char *arg,
@@ -161,46 +179,74 @@ int is_valid_argument(const char *arg,
 	if(arg_char_len == 0)
 		return false;
 
-	// argument is a string
+	/* argument is a string */
 	if(arg[0] != '-')
 		return true;
 
-	// perform argument validation for short boolean combined flags,
-	// ensuring they do not contain unknown flags
+	/*
+	 * Perform argument validation for short boolean combined flags to ensure
+	 * they do not contain unknown flags.
+	 */
 	if(arg_char_len > 2 && arg[1] != '-') {
-		for(size_t char_index = 1; char_index < arg_char_len; char_index++) {
-			char flag = arg[char_index];
+		const char *flag = arg + 1;
+		while(*flag) {
+			bool flag_found = false;
+			const struct option_description *desc = arg_usage_descriptions;
 
-			for(size_t opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
-				if(arg_usage_descriptions[opt_index].type == OPTION_BOOL_T
-				&& arg_usage_descriptions[opt_index].s_flag == flag)
-					return true;
+			while(desc->type != OPTION_END) {
+				if(desc->type == OPTION_COMMAND_T || desc->type == OPTION_GROUP_T) {
+					desc++;
+					continue;
+				}
+
+				//last flag in arg may be of any type
+				if((flag - arg + 1) == arg_char_len && *flag == desc->s_flag) {
+					flag_found = true;
+					break;
+				}
+
+				if(desc->type == OPTION_BOOL_T && *flag == desc->s_flag) {
+					flag_found = true;
+					break;
+				}
+
+				desc++;
 			}
+
+			if(!flag_found)
+				return false;
+
+			flag++;
 		}
 
-		return false;
+		return true;
 	}
 
-	// perform argument validation for short flags
+	/* perform argument validation for short flags */
 	if(arg_char_len == 2 && arg[1] != '-') {
 		char flag = arg[1];
-		for(size_t opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
-			if(arg_usage_descriptions[opt_index].s_flag != 0
-			&& arg_usage_descriptions[opt_index].s_flag == flag)
+		const struct option_description *desc = arg_usage_descriptions;
+
+		while(desc->type != OPTION_END) {
+			if(desc->s_flag == flag)
 				return true;
+
+			desc++;
 		}
 
 		return false;
 	}
 
-	// perform argument validation for long flags
+	/* perform argument validation for long flags */
 	if(arg_char_len > 2 && arg[1] == '-') {
 		const char *flag = arg + 2;
+		const struct option_description *desc = arg_usage_descriptions;
 
-		for(size_t opt_index = 0; arg_usage_descriptions[opt_index].type != OPTION_END; opt_index++) {
-			if(arg_usage_descriptions[opt_index].l_flag != NULL
-			&& !strcmp(arg_usage_descriptions[opt_index].l_flag, flag))
+		while(desc->type != OPTION_END) {
+			if(desc->l_flag != NULL && !strcmp(desc->l_flag, flag))
 				return true;
+
+			desc++;
 		}
 
 		return false;

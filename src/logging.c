@@ -74,8 +74,10 @@ static void vflog(const unsigned int level, const char *file_path,
 			timeinfo->tm_min,
 			timeinfo->tm_sec);
 
-	const char *filename = strrchr(file_path, '/') + 1;
-	if(filename == NULL)
+	const char *filename = strrchr(file_path, '/');
+	if(filename && *(filename + 1))
+		filename++;
+	else if(filename == NULL)
 		filename = file_path;
 
 	fprintf(fd, " %s %s:%d - ", level_str, filename, line_number);

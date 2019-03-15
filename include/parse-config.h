@@ -1,9 +1,6 @@
 #ifndef GIT_CHAT_PARSE_CONFIG_H
 #define GIT_CHAT_PARSE_CONFIG_H
 
-#include <stdlib.h>
-#include "str-array.h"
-
 /**
  * Parse-Config API
  *
@@ -44,9 +41,7 @@
  * key_1=123
  * ```
  *
- * Trailing whitespace are values are also ignored. However, values can be quoted
- * with double quotes to preserve whitespace.
- *
+ * Trailing whitespace are values are also ignored.
  *
  * Sections:
  * Key-value pairs can be defined outside of a section, but must appear before
@@ -86,6 +81,12 @@
  *     key_a = 321
  * ```
  *
+ * Key-Value Pairs:
+ * Key-value pairs take the form `<key> = <value>`. Any characters between the
+ * first `=` and end of line are parsed as the value, with the exception that
+ * leading and trailing whitespace is trimmed. Values may not spread over
+ * multiple lines.
+ *
  * Addressing Key-Value Pairs:
  * Values in the config file are addressed using the dot ".", as shown below:
  * ```
@@ -101,6 +102,9 @@
  * section_a.key_1
  * section_b.key_a
  * */
+
+#include <stdlib.h>
+#include "str-array.h"
 
 struct conf_data_entry {
 	char *section;

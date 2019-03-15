@@ -78,6 +78,8 @@ static struct cmd_builtin *get_builtin(const char *s)
 	while(builtin->cmd != NULL) {
 		if(!strcmp(s, builtin->cmd))
 			return builtin;
+
+		builtin++;
 	}
 
 	return NULL;

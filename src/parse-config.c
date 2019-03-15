@@ -23,6 +23,9 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 	FILE *fd;
 	char *current_section = NULL, *line;
 
+	*conf = (struct conf_data){ .entries = NULL, .entries_len = 0, .entries_alloc = 0 };
+	str_array_init(&conf->sections);
+
 	if(stat(conf_path, &sb) == -1) {
 		LOG_ERROR("Unable to stat file '%s'; %s", conf_path, strerror(errno));
 		return -1;
@@ -33,9 +36,6 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 		LOG_ERROR("Cannot open file '%s'; %s", conf_path, strerror(errno));
 		return -1;
 	}
-
-	*conf = (struct conf_data){ .entries = NULL, .entries_len = 0, .entries_alloc = 0 };
-	str_array_init(&conf->sections);
 
 	while((line = read_line(fd)) != NULL) {
 		char *section = extract_section_name(line);
@@ -183,7 +183,7 @@ static char *read_line(FILE *fd)
 		len = strlen(buffer);
 		eos = buffer + len - 1;
 
-		if(*eos == '\n') {
+		if(*eos == '\n' || feof(fd)) {
 			strbuf_attach(&buf, buffer, (buffer - eos));
 
 			char *ptr = buf.buff;
@@ -202,8 +202,6 @@ static char *read_line(FILE *fd)
 	} while(!eos);
 
 	char *new_str = strbuf_detach(&buf);
-	strbuf_release(&buf);
-
 	char *line_start = new_str;
 	while(*line_start && isspace(*line_start))
 		line_start++;
@@ -244,6 +242,22 @@ static char *extract_section_name(char *line_str)
 	end = memchr(start, ']', (end - start));
 	if (!end)
 		return NULL;
+
+	/* start and end must only be preceded/succeeded by whitespace */
+	char *curr = start - 1;
+	while(curr >= line_str) {
+		if(isspace(*curr))
+			return NULL;
+
+		curr--;
+	}
+	curr = end + 1;
+	while(curr < (line_str + len + 1)) {
+		if(isspace(*curr))
+			return NULL;
+
+		curr++;
+	}
 
 	do
 		start++;
@@ -300,25 +314,14 @@ static int validate_section_name(char *section_name)
 static int extract_key_value_pair(char *line_str, char **key, char **value)
 {
 	char *key_start, *key_end, *val_start, *val_end;
-	int occurrences = 0, quoted = 0;
 
 	*key = NULL;
 	*value = NULL;
 
-	// Verify that only one occurrence of '=' exists in line
-	key_start = line_str;
-	while(*key_start) {
-		if(*key_start == '"')
-			quoted = !quoted;
-		if(*key_start == '=' && !quoted)
-			occurrences++;
-		key_start++;
-	}
-
-	if(occurrences != 1) {
-		LOG_TRACE("Multiple occurrences of character '=' found; '%s'", line_str);
+	// Verify existence of `=`
+	key_start = strchr(line_str, '=');
+	if(!key_start)
 		return -1;
-	}
 
 	// Extract key from line
 	key_start = line_str;
@@ -334,17 +337,16 @@ static int extract_key_value_pair(char *line_str, char **key, char **value)
 	if(!key_end)
 		BUG("unexpected NULL from strchr()");
 
-	do
+	while((key_end-1) > key_start && isspace(*(key_end-1)))
 		key_end--;
-	while(key_end > key_start && isspace(*key_end));
 
 	if(key_start == key_end) {
-		LOG_TRACE("Config ine missing key; '%s'", line_str);
+		LOG_TRACE("Config line missing key; '%s'", line_str);
 		return -1;
 	}
 
-	for(char *s = key_start; s <= key_end; s++) {
-		if(!isalnum(*key_start) && *key_start != '.' && *key_start != '_') {
+	for(char *s = key_start; s < key_end; s++) {
+		if(!isalnum(*s) && *s != '.' && *s != '_') {
 			LOG_TRACE("Disallowed character found in key; '%s'", line_str);
 			return -1;
 		}
@@ -363,21 +365,8 @@ static int extract_key_value_pair(char *line_str, char **key, char **value)
 	while((val_end - 1) > val_start && isspace(*val_end - 1))
 		val_end--;
 
-	if(val_start != val_end && *val_start == '"') {
-		val_start++;
-
-		if(!*val_end)
-			val_end--;
-
-		if(val_end < val_start || *val_end != '"')
-			return -1;
-
-		if(*val_end == '"')
-			val_end--;
-	}
-
-	*key = strndup(key_start, (key_end - key_start + 1));
-	*value = strndup(val_start, (val_end - val_start + 1));
+	*key = strndup(key_start, (key_end - key_start));
+	*value = strndup(val_start, (val_end - val_start));
 
 	return 0;
 }

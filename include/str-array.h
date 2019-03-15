@@ -2,6 +2,7 @@
 #define GIT_CHAT_STR_ARRAY_H
 
 #include <stdlib.h>
+#include <stdarg.h>
 
 /**
  * str-array api

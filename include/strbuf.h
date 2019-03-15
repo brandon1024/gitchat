@@ -28,8 +28,8 @@ void strbuf_release(struct strbuf *buff);
 void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len);
 
 /**
- * Detach the string from the strbuf. The strbuf is reinitialized, and must
- * be strbuf_release()d.
+ * Detach the string from the strbuf. The strbuf is released and must be
+ * reinitialized for reuse.
  * */
 char *strbuf_detach(struct strbuf *buff);
 

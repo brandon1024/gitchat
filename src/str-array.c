@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 
 #include "str-array.h"
@@ -15,7 +12,7 @@ void str_array_init(struct str_array *str_a)
 
 void str_array_grow(struct str_array *str_a, size_t size)
 {
-	if((size + 2) <= str_a->alloc)
+	if((size - 1) < str_a->len)
 		return;
 
 	str_a->alloc = size;

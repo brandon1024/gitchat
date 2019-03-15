@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,7 +44,8 @@ void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
 char *strbuf_detach(struct strbuf *buff)
 {
 	char *detached_buffer = buff->buff;
-	strbuf_init(buff);
+	buff->buff = NULL;
+	strbuf_release(buff);
 
 	return detached_buffer;
 }

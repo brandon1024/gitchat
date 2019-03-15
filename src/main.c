@@ -32,7 +32,7 @@ static struct cmd_builtin builtins[] = {
 		{ "publish", cmd_publish },
 		{ "get", cmd_get },
 		{ "read", cmd_read },
-		{ NULL }
+		{ NULL, NULL }
 };
 
 /* Function Prototypes */

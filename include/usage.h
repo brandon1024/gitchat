@@ -1,6 +1,8 @@
 #ifndef GITCHAT_USAGE_H
 #define GITCHAT_USAGE_H
 
+#include <stdarg.h>
+
 enum opt_type {
 	OPTION_BOOL_T,
 	OPTION_INT_T,

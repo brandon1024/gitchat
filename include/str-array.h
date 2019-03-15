@@ -1,6 +1,8 @@
 #ifndef GIT_CHAT_STR_ARRAY_H
 #define GIT_CHAT_STR_ARRAY_H
 
+#include <stdlib.h>
+
 /**
  * str-array api
  *

@@ -256,6 +256,27 @@ TEST_DEFINE(str_array_insert_nodup_test)
 	TEST_END();
 }
 
+TEST_DEFINE(str_array_sort_test)
+{
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		str_array_sort(&str_a);
+
+		str_array_push(&str_a, "astr1", "dstr3", "nstr4", "bstr2", "fstr5", NULL);
+		str_array_sort(&str_a);
+		assert_string_eq("astr1", str_a.strings[0]);
+		assert_string_eq("bstr2", str_a.strings[1]);
+		assert_string_eq("dstr3", str_a.strings[2]);
+		assert_string_eq("fstr5", str_a.strings[3]);
+		assert_string_eq("nstr4", str_a.strings[4]);
+	}
+
+	str_array_release(&str_a);
+	TEST_END();
+}
+
 TEST_DEFINE(str_array_remove_test)
 {
 	struct str_array str_a;

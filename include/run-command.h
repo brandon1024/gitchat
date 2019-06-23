@@ -4,8 +4,17 @@
 #include "argv-array.h"
 #include "strbuf.h"
 
+/**
+ * run-command api
+ *
+ * The run-command api provides an interface for executing shell commands,
+ * manipulating their input and capturing their output.
+ * */
+
 struct child_process_def {
+	const char *executable;
 	struct argv_array args;
+	struct str_array env;
 	unsigned int discard_out: 1;
 	unsigned int git_cmd: 1;
 };
@@ -29,12 +38,19 @@ void child_process_def_release(struct child_process_def *cmd);
  *
  * If discard_out is 1, the command is executed but the output from the command
  * is not printed to stdout.
+ *
+ * Returns -1 if starting the command fails or reading fails, and otherwise
+ * returns the exit status of the command.
  * */
 int run_command(struct child_process_def *cmd);
 
 /**
  * Run a command, as described by the child_process_def, but capture the command
  * output to the given strbuf.
+ *
+ * Returns -1 if starting the command fails or reading fails, and otherwise
+ * returns the exit status of the command. Any output collected in the
+ * buffers is kept even if the command returns a non-zero exit.
  *
  * See run_command() for child_process_def usage details.
  * */

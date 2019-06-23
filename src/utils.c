@@ -28,9 +28,6 @@ NORETURN void FATAL(const char *fmt, ...)
 	print_message(stderr, "Fatal Error: ", fmt, varargs);
 	va_end(varargs);
 
-	if(errno > 0)
-		fprintf(stderr, "%s\n", strerror(errno));
-
 	exit(EXIT_FAILURE);
 }
 
@@ -43,6 +40,9 @@ NORETURN void DIE(const char *fmt, ...)
 	fprintf(stderr, "\n");
 	va_end(varargs);
 
+	if (errno > 0)
+		fprintf(stderr, "%s\n", strerror(errno));
+
 	exit(EXIT_FAILURE);
 }
 
@@ -52,4 +52,7 @@ static void print_message(FILE *output_stream, const char *prefix,
 	fprintf(output_stream, "%s", prefix);
 	vfprintf(output_stream, fmt, varargs);
 	fprintf(output_stream, "\n");
+
+	if (errno > 0)
+		fprintf(stderr, "%s\n", strerror(errno));
 }

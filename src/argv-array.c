@@ -62,7 +62,7 @@ char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim)
 	struct str_array str_a = argv_a->arr;
 	size_t len = 1;
 
-	if(!str_a.strings)
+	if(!str_a.strings || !str_a.len)
 		return NULL;
 
 	if(str_a.len > 1)

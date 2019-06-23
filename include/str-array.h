@@ -118,6 +118,11 @@ size_t str_array_insert(struct str_array *str_a, size_t pos, char *str);
 size_t str_array_insert_nodup(struct str_array *str_a, size_t pos, char *str);
 
 /**
+ * Sort all entries in the str_array in 'strcmp()' order.
+ * */
+void str_array_sort(struct str_array *str_a);
+
+/**
  * Remove a string from a given position in the str_array.
  *
  * All subsequent strings in the array are shifted to the left to fill the gap.

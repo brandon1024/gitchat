@@ -116,6 +116,16 @@ size_t str_array_insert_nodup(struct str_array *str_a, size_t pos, char *str)
 	return pos;
 }
 
+static int str_comparator(const void *a, const void *b)
+{
+	return strcmp(*(const char **)a, *(const char **)b);
+}
+
+void str_array_sort(struct str_array *str_a)
+{
+	qsort(str_a->strings, str_a->len, sizeof(const char*), str_comparator);
+}
+
 char *str_array_remove(struct str_array *str_a, size_t pos)
 {
 	if(pos >= str_a->len)

@@ -147,6 +147,12 @@ TEST_DEFINE(argv_array_collapse_test)
 		assert_null_msg(string, "Collapsing empty argv_array should return null.");
 
 		argv_array_push(&argv_a, "str0", NULL);
+		string = argv_array_pop(&argv_a);
+		free(string);
+		string = argv_array_collapse(&argv_a);
+		assert_null_msg(string, "Collapsing empty argv_array should return null.");
+
+		argv_array_push(&argv_a, "str0", NULL);
 		string = argv_array_collapse(&argv_a);
 		assert_nonnull(string);
 		assert_eq_msg(1, argv_a.arr.len, "Expected argv_array length to remain 1, but was %zu.", argv_a.arr.len);

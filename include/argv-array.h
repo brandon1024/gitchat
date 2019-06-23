@@ -84,6 +84,8 @@ char **argv_array_detach(struct argv_array *argv_a, size_t *len);
  * free(result);
  *
  * > "grep -i yourquery filename"
+ *
+ * If the argv_array is empty, returns NULL.
  * */
 char *argv_array_collapse(struct argv_array *argv_a);
 
@@ -95,6 +97,8 @@ char *argv_array_collapse(struct argv_array *argv_a);
  * to be freed using argv_array_release().
  *
  * The new string will need to be free()d manually.
+ *
+ * If the argv_array is empty, returns NULL.
  * */
 char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim);
 

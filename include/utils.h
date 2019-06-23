@@ -11,6 +11,8 @@
  *
  * This function is primarily used to catch fail fast when an undefined state
  * is encountered.
+ *
+ * If errno is set, an appropriate message is also printed to stderr.
  * */
 NORETURN void BUG(const char *fmt, ...);
 
@@ -33,6 +35,8 @@ NORETURN void FATAL(const char *fmt, ...);
  *
  * The message is printed to stderr, and the application exits with status
  * EXIT_FAILURE.
+ *
+ * If errno is set, an appropriate message is also printed to stderr.
  * */
 NORETURN void DIE(const char *fmt, ...);
 

@@ -40,4 +40,13 @@ NORETURN void FATAL(const char *fmt, ...);
  * */
 NORETURN void DIE(const char *fmt, ...);
 
+/**
+ * Configure which routine should be invoked to exit the current process.
+ *
+ * By default, exit(int) is used as the exit routine. However, this cannot be
+ * used in certain situations, such as within a fork()'ed process. This
+ * provides an interface to modify this behavior.
+ * */
+void set_exit_routine(void (*new_exit_routine)(int status));
+
 #endif //GIT_CHAT_UTILS_H

@@ -12,6 +12,8 @@
  * */
 
 struct child_process_def {
+	pid_t pid;
+	const char *dir;
 	const char *executable;
 	struct argv_array args;
 	struct str_array env;

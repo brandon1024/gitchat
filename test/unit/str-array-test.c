@@ -347,6 +347,7 @@ int str_array_test(struct test_runner_instance *instance)
 			{ "pushing elements to str-array using variadic variant should append to the end", str_array_vpush_test },
 			{ "inserting element in str-array should shift elements correctly", str_array_insert_test },
 			{ "inserting element in str-array should insert without duplication", str_array_insert_nodup_test },
+			{ "sorting element in str-array should sort by strcmp() order", str_array_sort_test },
 			{ "removing element from str-array should shift elements correctly", str_array_remove_test },
 			{ "detaching element from str-array should correctly detach", str_array_detach_test },
 			{ NULL, NULL }

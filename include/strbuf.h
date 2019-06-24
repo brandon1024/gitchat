@@ -28,6 +28,11 @@ void strbuf_release(struct strbuf *buff);
 void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len);
 
 /**
+ * Attach a single character to the strbuf.
+ * */
+void strbuf_attach_chr(struct strbuf *buff, char ch);
+
+/**
  * Detach the string from the strbuf. The strbuf is released and must be
  * reinitialized for reuse.
  * */

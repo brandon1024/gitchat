@@ -8,6 +8,8 @@
 
 static void print_message(FILE *output_stream, const char *prefix,
 		const char *fmt, va_list varargs);
+static NORETURN void default_exit_routine(int status);
+static NORETURN void (*exit_routine)(int status) = default_exit_routine;
 
 NORETURN void BUG(const char *fmt, ...)
 {
@@ -17,7 +19,7 @@ NORETURN void BUG(const char *fmt, ...)
 	print_message(stderr, "BUG: ", fmt, varargs);
 	va_end(varargs);
 
-	exit(EXIT_FAILURE);
+	exit_routine(EXIT_FAILURE);
 }
 
 NORETURN void FATAL(const char *fmt, ...)
@@ -28,7 +30,7 @@ NORETURN void FATAL(const char *fmt, ...)
 	print_message(stderr, "Fatal Error: ", fmt, varargs);
 	va_end(varargs);
 
-	exit(EXIT_FAILURE);
+	exit_routine(EXIT_FAILURE);
 }
 
 NORETURN void DIE(const char *fmt, ...)
@@ -43,7 +45,7 @@ NORETURN void DIE(const char *fmt, ...)
 	if (errno > 0)
 		fprintf(stderr, "%s\n", strerror(errno));
 
-	exit(EXIT_FAILURE);
+	exit_routine(EXIT_FAILURE);
 }
 
 static void print_message(FILE *output_stream, const char *prefix,
@@ -55,4 +57,14 @@ static void print_message(FILE *output_stream, const char *prefix,
 
 	if (errno > 0)
 		fprintf(stderr, "%s\n", strerror(errno));
+}
+
+void set_exit_routine(void (*new_exit_routine)(int status))
+{
+	exit_routine = new_exit_routine;
+}
+
+static NORETURN void default_exit_routine(int status)
+{
+	exit(status);
 }

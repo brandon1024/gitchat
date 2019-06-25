@@ -7,9 +7,12 @@
 /**
  * argv-array api
  *
- * The argv-array is mainly used to build a list of arguments which can be used
+ * The argv-array api is mainly used to build a list of arguments which can be used
  * to assemble command arguments passed to a subprocess, or to manipulate
  * arguments passed to builtins.
+ *
+ * Since argv_array is just an str_array under the hood, it is possible to use
+ * any str_array functions on an argv_array thanks to memory alignment.
  * */
 
 struct argv_array {

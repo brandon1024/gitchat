@@ -4,16 +4,17 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "run-command.h"
 #include "utils.h"
 
 #define READ 0
-#define WRITE 0
+#define WRITE 1
 
 static int execute(struct child_process_def *cmd, int capture,
 		struct strbuf *buffer);
-static inline void close_pair(int fd[2]);
+static inline void set_cloexec(int fd);
 static void merge_env(struct str_array *deltaenv, struct str_array *result);
 static char *find_in_path(const char *file);
 static int is_executable(const char *name);
@@ -22,10 +23,14 @@ static NORETURN void child_exit_routine(int status);
 void child_process_def_init(struct child_process_def *cmd)
 {
 	cmd->pid = -1;
-	cmd->git_cmd = 0;
-	cmd->discard_out = 0;
-	cmd->executable = NULL;
 	cmd->dir = NULL;
+	cmd->executable = NULL;
+	cmd->no_in = 0;
+	cmd->no_out = 0;
+	cmd->no_err = 0;
+	cmd->stderr_to_stdout = 0;
+	cmd->use_shell = 0;
+	cmd->git_cmd = 0;
 
 	argv_array_init(&cmd->args);
 	str_array_init(&cmd->env);
@@ -49,7 +54,11 @@ int capture_command(struct child_process_def *cmd, struct strbuf *buffer)
 }
 
 /**
- * TODO DOCUMENT ME
+ * Execute a command or program in a child process.
+ *
+ * If capture is 1, the stdout of the child process is captured and placed into
+ * the string buffer `buffer`. Otherwise, the child stdout is written to the
+ * console.
  * */
 static int execute(struct child_process_def *cmd, int capture,
 		struct strbuf *buffer)
@@ -96,10 +105,10 @@ static int execute(struct child_process_def *cmd, int capture,
 	int in_fd[2];
 	int out_fd[2];
 	int err_fd[2];
-
-	if(pipe(in_fd) != 0 || pipe(out_fd) != 0 || pipe(err_fd) != 0)
+	if(pipe(in_fd) < 0 || pipe(out_fd) < 0 || pipe(err_fd) < 0)
 		FATAL("Invocation of pipe() system call failed.");
 
+	int child_ret_status = -1;
 	cmd->pid = fork();
 	if (cmd->pid == 0) {
 		set_exit_routine(&child_exit_routine);
@@ -107,14 +116,54 @@ static int execute(struct child_process_def *cmd, int capture,
 		if (cmd->dir && chdir(cmd->dir))
 			FATAL("Unable to chdir to '%s'", cmd->dir);
 
-		//todo set up pipes
+		/*
+		 * Prepare pipes between current (child) process and parent process.
+		 * */
+		close(in_fd[WRITE]);
+		close(out_fd[READ]);
+		close(err_fd[READ]);
+		set_cloexec(in_fd[READ]);
+		set_cloexec(out_fd[WRITE]);
+		set_cloexec(err_fd[WRITE]);
+
+		int null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
+		if (null_fd < 0)
+			FATAL("Failed to open() /dev/null.");
+		set_cloexec(null_fd);
+
+		if (cmd->no_in) {
+			close(in_fd[READ]);
+			in_fd[READ] = null_fd;
+		}
+
+		if (cmd->no_out) {
+			close(out_fd[WRITE]);
+			out_fd[WRITE] = null_fd;
+		}
+
+		if (cmd->no_err) {
+			close(err_fd[WRITE]);
+			err_fd[WRITE] = null_fd;
+		}
+
+		if (dup2(in_fd[READ], 0) < 0)
+			FATAL("dup2() failed unexpectedly.");
+		if (dup2(out_fd[WRITE], 1) < 0)
+			FATAL("dup2() failed unexpectedly.");
+		if (dup2(err_fd[WRITE], 2) < 0)
+			FATAL("dup2() failed unexpectedly.");
+
+		if (cmd->stderr_to_stdout) {
+			if (dup2(1, 2) < 0)
+				FATAL("dup2() failed unexpectedly.");
+		}
 
 		/*
 		 * Prepare arguments. argv[0] must be the path of the executable,
 		 * and argv must be NULL terminated.
 		 */
 		argv_array_prepend(&args, executable_path, NULL);
-		str_array_insert_nodup(&args.arr, args.arr.len, NULL);
+		str_array_insert_nodup((struct str_array *)&args, args.arr.len, NULL);
 		char **argv = args.arr.strings;
 
 		/*
@@ -127,9 +176,12 @@ static int execute(struct child_process_def *cmd, int capture,
 		 * Attempt to exec using the command and arguments. In the event execve()
 		 * failed with ENOEXEC, try to interpret the command using 'sh -c'.
 		 */
-		execve(argv[0], argv, argp);
-		if (errno == ENOEXEC) {
-			LOG_TRACE("execve() failed to execute '%s'; attempting to run through 'sh -c'", cmd->executable);
+		if (!cmd->use_shell)
+			execve(argv[0], argv, argp);
+
+		if (cmd->use_shell || errno == ENOEXEC) {
+			if (errno == ENOEXEC)
+				LOG_WARN("execve() failed to execute '%s'; attempting to run through 'sh -c'", cmd->executable);
 
 			//prepare arguments
 			char *collapsed_arguments = argv_array_collapse(&args);
@@ -144,7 +196,29 @@ static int execute(struct child_process_def *cmd, int capture,
 
 		FATAL("execve() returned unexpectedly.");
 	} else if (cmd->pid > 0) {
-		//parent
+		size_t BUFF_LEN = 1024;
+		char stdout_buffer[BUFF_LEN];
+
+		close(in_fd[READ]);
+		close(out_fd[WRITE]);
+		close(err_fd[WRITE]);
+
+		size_t bytes_read = 0;
+		while ((bytes_read = read(out_fd[READ], stdout_buffer, BUFF_LEN)) > 0) {
+			if (capture)
+				strbuf_attach(buffer, stdout_buffer, bytes_read);
+			else
+				fwrite(stdout_buffer, bytes_read, 1, stdout);
+		}
+
+		close(in_fd[WRITE]);
+		close(out_fd[READ]);
+		close(err_fd[READ]);
+
+		/* spin waiting for process exit or error */
+		while (waitpid(cmd->pid, &child_ret_status, 0) < 0 && errno == EINTR);
+		if (WIFEXITED(child_ret_status))
+			child_ret_status = WEXITSTATUS(child_ret_status);
 	} else {
 		FATAL("Failed to fork process.");
 	}
@@ -153,19 +227,27 @@ static int execute(struct child_process_def *cmd, int capture,
 	argv_array_release(&args);
 	str_array_release(&env);
 
-	close_pair(in_fd);
-	close_pair(out_fd);
-	close_pair(err_fd);
-
-	return 0;
+	return child_ret_status;
 }
 
-static inline void close_pair(int fd[2])
+/**
+ * Configure the given file descriptor with the FD_CLOEXEC, the close-on-exec,
+ * flag, which ensures the file descriptor will automatically be closed after
+ * a successful execve(2). If the execve(2) fails, the file descriptor is left
+ * open. If left unset, the file descriptor will remain open across an execve(2).
+ * */
+static inline void set_cloexec(int fd)
 {
-	close(fd[0]);
-	close(fd[1]);
+	int flags = fcntl(fd, F_GETFD);
+	if (flags >= 0)
+		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
+/**
+ * Extract the environment variable key into the given string buffer.
+ *
+ * env_var must be NULL terminated.
+ * */
 static void env_variable_key(char *env_var, struct strbuf *buff)
 {
 	char *eq = strchr(env_var, '=');

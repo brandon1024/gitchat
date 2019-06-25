@@ -10,6 +10,7 @@ static struct suite_test tests[] = {
 		{ "strbuf", strbuf_test },
 		{ "parse-config", parse_config_test },
 		{ "usage", usage_test },
+		{ "run-command", run_command_test },
 		{ NULL, NULL }
 };
 

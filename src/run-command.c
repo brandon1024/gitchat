@@ -12,12 +12,15 @@
 #define READ 0
 #define WRITE 1
 
-static int execute(struct child_process_def *cmd, int capture,
+extern char **environ;
+
+static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		struct strbuf *buffer);
 static inline void set_cloexec(int fd);
 static void merge_env(struct str_array *deltaenv, struct str_array *result);
 static char *find_in_path(const char *file);
 static int is_executable(const char *name);
+
 static NORETURN void child_exit_routine(int status);
 
 void child_process_def_init(struct child_process_def *cmd)
@@ -45,12 +48,12 @@ void child_process_def_release(struct child_process_def *cmd)
 
 int run_command(struct child_process_def *cmd)
 {
-	return execute(cmd, 0, NULL);
+	return exec_as_child_process(cmd, 0, NULL);
 }
 
 int capture_command(struct child_process_def *cmd, struct strbuf *buffer)
 {
-	return execute(cmd, 1, buffer);
+	return exec_as_child_process(cmd, 1, buffer);
 }
 
 /**
@@ -60,7 +63,7 @@ int capture_command(struct child_process_def *cmd, struct strbuf *buffer)
  * the string buffer `buffer`. Otherwise, the child stdout is written to the
  * console.
  * */
-static int execute(struct child_process_def *cmd, int capture,
+static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		struct strbuf *buffer)
 {
 	if (capture && !buffer)
@@ -268,11 +271,13 @@ static void env_variable_key(char *env_var, struct strbuf *buff)
  * */
 static void merge_env(struct str_array *deltaenv, struct str_array *result)
 {
-	extern char **environ;
+	char **env_test = environ;
 	struct str_array current_env;
 	str_array_init(&current_env);
-	while (*environ)
-		str_array_push(&current_env, *(environ++), NULL);
+
+	while (*env_test) {
+		str_array_push(&current_env, *(env_test++), NULL);
+	}
 
 	for (size_t i = 0; i < deltaenv->len; i++)
 		str_array_insert(result, i, deltaenv->strings[i]);

@@ -28,6 +28,12 @@ void strbuf_release(struct strbuf *buff);
 void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len);
 
 /**
+ * Attach a null-terminated string to the strbuf. Similar to strbuf_attach(), except
+ * uses strlen() to determine the buffer_len.
+ * */
+void strbuf_attach_str(struct strbuf *buff, char *str);
+
+/**
  * Attach a single character to the strbuf.
  * */
 void strbuf_attach_chr(struct strbuf *buff, char ch);

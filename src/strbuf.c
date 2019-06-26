@@ -41,6 +41,11 @@ void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
 	buff->len += str_len;
 }
 
+void strbuf_attach_str(struct strbuf *buff, char *str)
+{
+	strbuf_attach(buff, str, strlen(str));
+}
+
 void strbuf_attach_chr(struct strbuf *buff, char chr)
 {
 	char cbuf[2] = {chr, 0};

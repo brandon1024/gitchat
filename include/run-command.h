@@ -72,6 +72,9 @@ void child_process_def_release(struct child_process_def *cmd);
 /**
  * Run an executable, as described by the child_process_def.
  *
+ * The child process will inherit all standard streams from the parent process,
+ * however this can be manipulated in the child_process_def.
+ *
  * Returns the exit status of the command.
  * */
 int run_command(struct child_process_def *cmd);
@@ -79,6 +82,8 @@ int run_command(struct child_process_def *cmd);
 /**
  * Run a command, as described by the child_process_def, but capture the command
  * stdout to the given strbuf.
+ *
+ * All other standard streams will be inherited from the parent process.
  *
  * Returns the exit status of the command.
  * */

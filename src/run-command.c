@@ -12,6 +12,7 @@
 
 #define READ 0
 #define WRITE 1
+#define BUFF_LEN 1024
 
 extern char **environ;
 
@@ -21,7 +22,6 @@ static inline void set_cloexec(int fd);
 static void merge_env(struct str_array *deltaenv, struct str_array *result);
 static char *find_in_path(const char *file);
 static int is_executable(const char *name);
-
 static NORETURN void child_exit_routine(int status);
 
 void child_process_def_init(struct child_process_def *cmd)
@@ -106,10 +106,8 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 
 	merge_env(&cmd->env, &env);
 
-	int in_fd[2];
 	int out_fd[2];
-	int err_fd[2];
-	if(pipe(in_fd) < 0 || pipe(out_fd) < 0 || pipe(err_fd) < 0)
+	if(pipe(out_fd) < 0)
 		FATAL("Invocation of pipe() system call failed.");
 
 	int child_ret_status = -1;
@@ -123,38 +121,26 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		/*
 		 * Prepare pipes between current (child) process and parent process.
 		 * */
-		close(in_fd[WRITE]);
 		close(out_fd[READ]);
-		close(err_fd[READ]);
-		set_cloexec(in_fd[READ]);
 		set_cloexec(out_fd[WRITE]);
-		set_cloexec(err_fd[WRITE]);
 
 		int null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
 		if (null_fd < 0)
 			FATAL("Failed to open() /dev/null.");
 		set_cloexec(null_fd);
 
-		if (cmd->no_in) {
-			close(in_fd[READ]);
-			in_fd[READ] = null_fd;
-		}
+		if (cmd->no_in && dup2(null_fd, 0) < 0)
+			FATAL("dup2() failed unexpectedly.");
+
+		if (cmd->no_err && dup2(null_fd, 2) < 0)
+			FATAL("dup2() failed unexpectedly.");
 
 		if (cmd->no_out) {
 			close(out_fd[WRITE]);
-			out_fd[WRITE] = null_fd;
-		}
 
-		if (cmd->no_err) {
-			close(err_fd[WRITE]);
-			err_fd[WRITE] = null_fd;
-		}
-
-		if (dup2(in_fd[READ], 0) < 0)
-			FATAL("dup2() failed unexpectedly.");
-		if (dup2(out_fd[WRITE], 1) < 0)
-			FATAL("dup2() failed unexpectedly.");
-		if (dup2(err_fd[WRITE], 2) < 0)
+			if (dup2(null_fd, 1) < 0)
+				FATAL("dup2() failed unexpectedly.");
+		} else if (capture && dup2(out_fd[WRITE], 1) < 0)
 			FATAL("dup2() failed unexpectedly.");
 
 		if (cmd->stderr_to_stdout) {
@@ -200,24 +186,17 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 
 		FATAL("execve() returned unexpectedly.");
 	} else if (cmd->pid > 0) {
-		size_t BUFF_LEN = 1024;
-		char stdout_buffer[BUFF_LEN];
-
-		close(in_fd[READ]);
 		close(out_fd[WRITE]);
-		close(err_fd[WRITE]);
 
-		size_t bytes_read = 0;
-		while ((bytes_read = read(out_fd[READ], stdout_buffer, BUFF_LEN)) > 0) {
-			if (capture)
-				strbuf_attach(buffer, stdout_buffer, bytes_read);
-			else
-				fwrite(stdout_buffer, bytes_read, 1, stdout);
+		if (capture) {
+			char out_buffer[BUFF_LEN];
+			size_t bytes_read = 0;
+
+			while ((bytes_read = read(out_fd[READ], out_buffer, BUFF_LEN)) > 0)
+				strbuf_attach(buffer, out_buffer, bytes_read);
 		}
 
-		close(in_fd[WRITE]);
 		close(out_fd[READ]);
-		close(err_fd[READ]);
 
 		/* spin waiting for process exit or error */
 		while (waitpid(cmd->pid, &child_ret_status, 0) < 0 && errno == EINTR);
@@ -272,12 +251,12 @@ static void env_variable_key(char *env_var, struct strbuf *buff)
  * */
 static void merge_env(struct str_array *deltaenv, struct str_array *result)
 {
-	char **env_test = environ;
+	char **parent_env = environ;
 	struct str_array current_env;
 	str_array_init(&current_env);
 
-	while (*env_test) {
-		str_array_push(&current_env, *(env_test++), NULL);
+	while (*parent_env) {
+		str_array_push(&current_env, *(parent_env++), NULL);
 	}
 
 	for (size_t i = 0; i < deltaenv->len; i++)

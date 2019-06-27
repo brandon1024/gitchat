@@ -101,8 +101,6 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 
 	struct str_array env;
 	str_array_init(&env);
-	for (size_t i = 0; i < cmd->env.len; i++)
-		str_array_push(&env, cmd->env.strings[i], NULL);
 
 	merge_env(&cmd->env, &env);
 
@@ -190,10 +188,14 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 
 		if (capture) {
 			char out_buffer[BUFF_LEN];
-			size_t bytes_read = 0;
+			ssize_t bytes_read = 0;
 
-			while ((bytes_read = read(out_fd[READ], out_buffer, BUFF_LEN)) > 0)
+			while ((bytes_read = read(out_fd[READ], out_buffer, BUFF_LEN)) > 0) {
+				if (bytes_read < 0)
+					FATAL("Failed to read from pipe to child process.");
+
 				strbuf_attach(buffer, out_buffer, bytes_read);
+			}
 		}
 
 		close(out_fd[READ]);
@@ -254,6 +256,9 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 	char **parent_env = environ;
 	struct str_array current_env;
 	str_array_init(&current_env);
+
+	if (result->len)
+		BUG("merge_env() accepts an empty str_array as an argument, but given str_array was not empty.");
 
 	while (*parent_env) {
 		str_array_push(&current_env, *(parent_env++), NULL);

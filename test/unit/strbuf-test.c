@@ -30,6 +30,22 @@ TEST_DEFINE(strbuf_release_test)
 	TEST_END();
 }
 
+TEST_DEFINE(strbuf_grow_test)
+{
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	TEST_START() {
+		size_t len = buf.alloc + 256;
+		strbuf_grow(&buf, len);
+		assert_eq(len, buf.alloc);
+	}
+
+	strbuf_release(&buf);
+
+	TEST_END();
+}
+
 TEST_DEFINE(strbuf_attach_test)
 {
 	struct strbuf buf;
@@ -111,6 +127,7 @@ int strbuf_test(struct test_runner_instance *instance)
 	struct unit_test tests[] = {
 			{ "strbuf should initialize correctly", strbuf_init_test },
 			{ "strbuf should release correctly", strbuf_release_test },
+			{ "resizing a strbuf should resize as expected", strbuf_grow_test },
 			{ "attaching string to strbuf should grow the strbuf appropriately", strbuf_attach_test },
 			{ "attaching character to strbuf should grow the strbuf appropriately", strbuf_attach_chr_test },
 			{ "detaching string from strbuf should return correct string", strbuf_detach_test },

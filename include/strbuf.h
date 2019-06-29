@@ -22,6 +22,12 @@ void strbuf_init(struct strbuf *buff);
 void strbuf_release(struct strbuf *buff);
 
 /**
+ * Reallocate the strbuf to the given size. If the buffer is already larger than
+ * size, the buffer is left as is.
+ * */
+void strbuf_grow(struct strbuf *buff, size_t size);
+
+/**
  * Attach a string to the strbuf, up to buffer_len characters or until null byte
  * is encountered.
  * */

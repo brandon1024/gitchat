@@ -11,8 +11,8 @@ void strbuf_init(struct strbuf *buff)
 	buff->alloc = BUFF_SLOP;
 	buff->len = 0;
 	buff->buff = (char *)calloc(buff->alloc, sizeof(char));
-	if(buff->buff == NULL)
-		FATAL("Unable to allocate memory.");
+	if (buff->buff == NULL)
+		FATAL(MEM_ALLOC_FAILED);
 }
 
 void strbuf_release(struct strbuf *buff)
@@ -31,7 +31,7 @@ void strbuf_grow(struct strbuf *buff, size_t size)
 	buff->alloc = size;
 	buff->buff = (char *)realloc(buff->buff, buff->alloc * sizeof(char));
 	if (!buff->buff)
-		FATAL("Unable to allocate memory.");
+		FATAL(MEM_ALLOC_FAILED);
 }
 
 void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
@@ -39,7 +39,7 @@ void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
 	char *eos = memchr(str, 0, buffer_len);
 	size_t str_len = (eos == NULL) ? buffer_len : (size_t)(eos - str);
 
-	if((buff->len + str_len + 1) >= buff->alloc)
+	if ((buff->len + str_len + 1) >= buff->alloc)
 		strbuf_grow(buff, buffer_len + BUFF_SLOP);
 
 	strncpy(buff->buff + buff->len, str, str_len);

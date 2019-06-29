@@ -2,7 +2,7 @@
 #define GIT_CHAT_PARSE_CONFIG_H
 
 /**
- * Parse-Config API
+ * parse-config api
  *
  * Configuration File Format:
  * The config file has a format similar to INI or TOML, but simplified. It
@@ -120,10 +120,7 @@ struct conf_data {
 };
 
 /**
- * Parse the config file, and represent its contents in struct conf_data. This
- * function may be used when multiple queries into the config file are necessary,
- * and rather than sequentially parse the file for every key, like
- * parse_config_callback() does, simply parse the file once.
+ * Parse the config file, and represent its contents in struct conf_data.
  *
  * Returns:
  * - 0 if the file was parsed successfully
@@ -133,10 +130,24 @@ struct conf_data {
 int parse_config(struct conf_data *conf, const char *conf_path);
 
 /**
- * Query a struct conf_data for a key, returning the value if found, or NULL if
- * does not exist.
+ * Write a struct conf_data to a file.
+ *
+ * If a file at the path 'conf_path' already exists, it is overwritten.
  * */
-char *find_value(struct conf_data *conf, char *key);
+void write_config(struct conf_data *conf, const char *conf_path);
+
+/**
+ * Query a struct conf_data with a given secion and key, returning a pointer to
+ * to struct conf_data_entry if found, or NULL if does not exist.
+ * */
+struct conf_data_entry *conf_data_find_entry(struct conf_data *conf,
+		char *section, char *key);
+
+/**
+ * Sort a struct conf_data in strcmp() order, first sorting sections then sorting
+ * keys.
+ * */
+void conf_data_sort(struct conf_data *conf);
 
 /**
  * Release any resources under a struct conf_data.

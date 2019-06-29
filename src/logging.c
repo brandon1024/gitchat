@@ -19,21 +19,21 @@ static void initialize_logging(struct logger *log,
 	char *log_level_val = getenv("GIT_CHAT_LOG_LEVEL");
 
 	log->initialized = 1;
-	if(log_level_val == NULL)
+	if (log_level_val == NULL)
 		log->level = default_log_level;
-	else if(!strcmp(log_level_val, "ALL"))
+	else if (!strcmp(log_level_val, "ALL"))
 		log->level = LEVEL_ALL;
-	else if(!strcmp(log_level_val, "TRACE"))
+	else if (!strcmp(log_level_val, "TRACE"))
 		log->level = LEVEL_TRACE;
-	else if(!strcmp(log_level_val, "DEBUG"))
+	else if (!strcmp(log_level_val, "DEBUG"))
 		log->level = LEVEL_DEBUG;
-	else if(!strcmp(log_level_val, "INFO"))
+	else if (!strcmp(log_level_val, "INFO"))
 		log->level = LEVEL_INFO;
-	else if(!strcmp(log_level_val, "WARN"))
+	else if (!strcmp(log_level_val, "WARN"))
 		log->level = LEVEL_WARN;
-	else if(!strcmp(log_level_val, "ERROR"))
+	else if (!strcmp(log_level_val, "ERROR"))
 		log->level = LEVEL_ERROR;
-	else if(!strcmp(log_level_val, "NONE"))
+	else if (!strcmp(log_level_val, "NONE"))
 		log->level = LEVEL_NONE;
 	else
 		log->level = default_log_level;
@@ -45,22 +45,22 @@ static void vflog(const unsigned int level, const char *file_path,
 	time_t rawtime;
 	struct tm *timeinfo;
 
-	if(!log_data.initialized)
+	if (!log_data.initialized)
 		initialize_logging(&log_data, LEVEL_NONE);
 
-	if(level < log_data.level)
+	if (level < log_data.level)
 		return;
 
 	char *level_str = "";
-	if(level == LEVEL_TRACE)
+	if (level == LEVEL_TRACE)
 		level_str = "[TRACE]";
-	else if(level == LEVEL_DEBUG)
+	else if (level == LEVEL_DEBUG)
 		level_str = "[DEBUG]";
-	else if(level == LEVEL_INFO)
+	else if (level == LEVEL_INFO)
 		level_str = "[INFO]";
-	else if(level == LEVEL_WARN)
+	else if (level == LEVEL_WARN)
 		level_str = "[WARN]";
-	else if(level == LEVEL_ERROR)
+	else if (level == LEVEL_ERROR)
 		level_str = "[ERROR]";
 
 	FILE *fd = (level < LEVEL_WARN) ? stdout : stderr;
@@ -75,9 +75,9 @@ static void vflog(const unsigned int level, const char *file_path,
 			timeinfo->tm_sec);
 
 	const char *filename = strrchr(file_path, '/');
-	if(filename && *(filename + 1))
+	if (filename && *(filename + 1))
 		filename++;
-	else if(filename == NULL)
+	else if (filename == NULL)
 		filename = file_path;
 
 	fprintf(fd, " %s %s:%d - ", level_str, filename, line_number);

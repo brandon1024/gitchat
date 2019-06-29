@@ -7,6 +7,7 @@
 
 #include "run-command.h"
 #include "usage.h"
+#include "utils.h"
 
 #define LIST_MODE_LOCAL 0x1
 #define LIST_MODE_REMOTE 0x2
@@ -51,25 +52,25 @@ int cmd_channel(int argc, char *argv[])
 	unsigned char action_mode = 0;
 	const char *target = NULL;
 
-	if(argc == 0) {
+	if (argc == 0) {
 		show_channel_usage(0, NULL);
 		return 0;
 	}
 
 	//parse arguments
-	for(int arg_index = 0; arg_index < argc; arg_index++) {
+	for (int arg_index = 0; arg_index < argc; arg_index++) {
 		size_t arg_char_len = strlen(argv[arg_index]);
 		char *arg = argv[arg_index];
 
-		if(!is_valid_argument(arg, channel_cmd_options)) {
+		if (!is_valid_argument(arg, channel_cmd_options)) {
 			show_channel_usage(1, "error: unknown flag '%s'", arg);
 			return 1;
 		}
 
 		//handle implicit channel create
-		if(arg_char_len > 1 && arg[0] != '-') {
+		if (arg_char_len > 1 && arg[0] != '-') {
 			//if already implicitly defined
-			if(action_mode & ACTION_MODE_CREATE) {
+			if (action_mode & ACTION_MODE_CREATE) {
 				show_channel_usage(1, "error: unknown flag '%s'", arg);
 				return 1;
 			}
@@ -80,21 +81,21 @@ int cmd_channel(int argc, char *argv[])
 		}
 
 		//list local channels
-		if(argument_matches_option(arg, channel_cmd_options[0]))
+		if (argument_matches_option(arg, channel_cmd_options[0]))
 			list_mode |= LIST_MODE_LOCAL;
 
 		//list remote channels
-		if(argument_matches_option(arg, channel_cmd_options[1]))
+		if (argument_matches_option(arg, channel_cmd_options[1]))
 			list_mode |= LIST_MODE_REMOTE;
 
 		//list remote channels
-		if(argument_matches_option(arg, channel_cmd_options[2]))
+		if (argument_matches_option(arg, channel_cmd_options[2]))
 			list_mode |= LIST_MODE_LOCAL | LIST_MODE_REMOTE;
 
 		//explicit create branch
-		if(argument_matches_option(arg, channel_cmd_options[3])) {
+		if (argument_matches_option(arg, channel_cmd_options[3])) {
 			arg_index++;
-			if((argc-1) < arg_index) {
+			if ((argc-1) < arg_index) {
 				show_channel_usage(1, "error: invalid usage of %s. no channel "
 						"name specified.", arg);
 				return 1;
@@ -105,9 +106,9 @@ int cmd_channel(int argc, char *argv[])
 		}
 
 		//switch to another channel
-		if(argument_matches_option(arg, channel_cmd_options[4])) {
+		if (argument_matches_option(arg, channel_cmd_options[4])) {
 			arg_index++;
-			if((argc-1) < arg_index) {
+			if ((argc-1) < arg_index) {
 				show_channel_usage(1, "error: invalid usage of %s. no channel "
 						"name specified.", arg);
 				return 1;
@@ -118,9 +119,9 @@ int cmd_channel(int argc, char *argv[])
 		}
 
 		//delete a channel
-		if(argument_matches_option(arg, channel_cmd_options[5])) {
+		if (argument_matches_option(arg, channel_cmd_options[5])) {
 			arg_index++;
-			if((argc-1) < arg_index) {
+			if ((argc-1) < arg_index) {
 				show_channel_usage(1, "error: invalid usage of %s. no channel "
 						"name specified.", arg);
 				return 1;
@@ -131,7 +132,7 @@ int cmd_channel(int argc, char *argv[])
 		}
 
 		//import gpg key to channel
-		if(argument_matches_option(arg, channel_cmd_options[6]))
+		if (argument_matches_option(arg, channel_cmd_options[6]))
 			action_mode |= ACTION_MODE_GPGIMPORT;
 
 		//show help
@@ -142,23 +143,23 @@ int cmd_channel(int argc, char *argv[])
 	}
 
 	//is list mode
-	if(list_mode)
+	if (list_mode)
 		return list_channels(list_mode);
 
 	//is create mode
-	if(action_mode == ACTION_MODE_CREATE)
+	if (action_mode == ACTION_MODE_CREATE)
 		return create_channel(target);
 
 	//is switch mode
-	if(action_mode == ACTION_MODE_SWITCH)
+	if (action_mode == ACTION_MODE_SWITCH)
 		return switch_to_channel(target);
 
 	//is delete mode
-	if(action_mode == ACTION_MODE_DELETE)
+	if (action_mode == ACTION_MODE_DELETE)
 		return delete_channel(target);
 
 	//is import key mode
-	if(action_mode == ACTION_MODE_GPGIMPORT)
+	if (action_mode == ACTION_MODE_GPGIMPORT)
 		return import_gpg_key_to_channel();
 
 	//show error if multiple conflicting actions specified
@@ -175,16 +176,14 @@ static int list_channels(unsigned char scope)
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
 
-	if(scope == LIST_MODE_LOCAL)
+	if (scope == LIST_MODE_LOCAL)
 		argv_array_push(&cmd.args, "branch", "-l", NULL);
-	else if(scope == LIST_MODE_REMOTE)
+	else if (scope == LIST_MODE_REMOTE)
 		argv_array_push(&cmd.args, "branch", "-r", NULL);
-	else if(scope == (LIST_MODE_LOCAL | LIST_MODE_REMOTE))
+	else if (scope == (LIST_MODE_LOCAL | LIST_MODE_REMOTE))
 		argv_array_push(&cmd.args, "branch", "-a", NULL);
-	else {
-		fprintf(stderr, "fatal: invalid scope. %x\n", scope);
-		return 1;
-	}
+	else
+		FATAL("invalid scope '%x'", scope);
 
 	ret = run_command(&cmd);
 	child_process_def_release(&cmd);

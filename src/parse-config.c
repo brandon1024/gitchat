@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -16,6 +18,7 @@ static char *read_line(FILE *fd);
 static char *extract_section_name(char *line_str);
 static int validate_section_name(char *section_name);
 static int extract_key_value_pair(char *line_str, char **key, char **value);
+static int conf_entry_comparator(const void *a, const void *b);
 
 int parse_config(struct conf_data *conf, const char *conf_path)
 {
@@ -88,14 +91,14 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 				conf->entries_alloc += BUFF_SLOP;
 				conf->entries = (struct conf_data_entry **)realloc(conf->entries,
 						sizeof(struct conf_data_entry *) * conf->entries_alloc);
-				if(!conf->entries)
-					FATAL("Unable to allocate memory.");
+				if (!conf->entries)
+					FATAL(MEM_ALLOC_FAILED);
 			}
 
 			struct conf_data_entry *alloc_entry =
 					(struct conf_data_entry *)malloc(sizeof(struct conf_data_entry));
 			if (!alloc_entry)
-				FATAL("Unable to allocate memory.");
+				FATAL(MEM_ALLOC_FAILED);
 
 			struct conf_data_entry entry = {current_section, key, value};
 			conf->entries[conf->entries_len] = alloc_entry;
@@ -110,41 +113,74 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 	return 0;
 }
 
-char *find_value(struct conf_data *conf, char *key)
+void write_config(struct conf_data *conf, const char *conf_path)
 {
-	size_t len = strlen(key);
-	char *section_key_delim = key + len;
+	int conf_fd = open(conf_path, O_TRUNC | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	if (conf_fd < 0)
+		FATAL(FILE_OPEN_FAILED, conf_path);
 
-	//find section-key delimiter
-	while (section_key_delim > key && *section_key_delim != '.')
-		section_key_delim--;
+	conf_data_sort(conf);
 
-	for (size_t i = 0; i < conf->entries_len; i++) {
-		//if key does not have a section, simply compare key to entry key
-		if (section_key_delim == key) {
-			if (strcmp(key, conf->entries[i]->key) != 0)
-				continue;
+	//write to file
+	char *current_section = NULL;
+	for (size_t index = 0; index < conf->entries_len; index++) {
+		struct conf_data_entry *entry = conf->entries[index];
+		struct strbuf tmp_buf;
+		strbuf_init(&tmp_buf);
 
-			return conf->entries[i]->value;
+		if (!current_section || strcmp(current_section, entry->section) != 0) {
+			current_section = entry->section;
+
+			strbuf_attach_chr(&tmp_buf, '[');
+			strbuf_attach_str(&tmp_buf, current_section);
+			strbuf_attach_str(&tmp_buf, "]\n");
+
+			if (write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
+				FATAL(FILE_WRITE_FAILED, conf_path);
+
+			strbuf_release(&tmp_buf);
+			strbuf_init(&tmp_buf);
 		}
 
-		if (!conf->entries[i]->section)
+		strbuf_attach_chr(&tmp_buf, '\t');
+		strbuf_attach_str(&tmp_buf, entry->key);
+		strbuf_attach_chr(&tmp_buf, '=');
+		strbuf_attach_str(&tmp_buf, entry->value);
+		strbuf_attach_chr(&tmp_buf, '\n');
+
+		if (write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
+			FATAL(FILE_WRITE_FAILED, conf_path);
+
+		strbuf_release(&tmp_buf);
+	}
+
+	close(conf_fd);
+}
+
+struct conf_data_entry *conf_data_find_entry(struct conf_data *conf,
+		char *section, char *key)
+{
+	for (size_t i = 0; i < conf->entries_len; i++) {
+		struct conf_data_entry *current_entry = conf->entries[i];
+
+		// if true, entry cannot possibly match
+		if (!section ^ !current_entry->section)
 			continue;
 
-		//continue if section from entry does not match section
-		if (strncmp(conf->entries[i]->section, key,
-				(section_key_delim - key)) != 0)
-			continue;
-
-		//continue if key from entry does not match key
-		if (strncmp(conf->entries[i]->key, section_key_delim + 1,
-				(key + len - section_key_delim)) != 0)
-			continue;
-
-		return conf->entries[i]->value;
+		if (!section && !current_entry->section) {
+			if (!strcmp(key, current_entry->key))
+				return current_entry;
+		} else if (!strcmp(section, current_entry->section) && !strcmp(key, current_entry->key))
+			return current_entry;
 	}
 
 	return NULL;
+}
+
+void conf_data_sort(struct conf_data *conf)
+{
+	qsort(conf->entries, conf->entries_len, sizeof(struct conf_data_entry *),
+		  conf_entry_comparator);
 }
 
 void release_config_resources(struct conf_data *conf)
@@ -201,7 +237,7 @@ static char *read_line(FILE *fd)
 			strbuf_attach(&buf, buffer, BUFF_LEN);
 			eos = NULL;
 		}
-	} while(!eos);
+	} while (!eos);
 
 	char *new_str = strbuf_detach(&buf);
 	char *line_start = new_str;
@@ -214,7 +250,7 @@ static char *read_line(FILE *fd)
 
 	char *resized_str = (char *)calloc((line_end - line_start + 1), sizeof(char));
 	if (!resized_str)
-		FATAL("Unable to allocate memory.");
+		FATAL(MEM_ALLOC_FAILED);
 
 	len = line_end - line_start;
 	strncpy(resized_str, line_start, len);
@@ -248,7 +284,7 @@ static char *extract_section_name(char *line_str)
 	/* start and end must only be preceded/succeeded by whitespace */
 	char *curr = start - 1;
 	while (curr >= line_str) {
-		if(isspace(*curr))
+		if (isspace(*curr))
 			return NULL;
 
 		curr--;
@@ -256,7 +292,7 @@ static char *extract_section_name(char *line_str)
 
 	curr = end + 1;
 	while (curr < (line_str + len + 1)) {
-		if(isspace(*curr))
+		if (isspace(*curr))
 			return NULL;
 
 		curr++;
@@ -276,7 +312,7 @@ static char *extract_section_name(char *line_str)
 	len = end - start + 1;
 	char *section_name = strndup(start, len);
 	if (!section_name)
-		FATAL("Unable to allocate memory.");
+		FATAL(MEM_ALLOC_FAILED);
 
 	return section_name;
 }
@@ -368,8 +404,31 @@ static int extract_key_value_pair(char *line_str, char **key, char **value)
 	while ((val_end - 1) > val_start && isspace(*val_end - 1))
 		val_end--;
 
+	if ((*val_start == *(val_end - 1)) && (*val_start == '"' || *val_start == '\'')) {
+		val_start++;
+		val_end = val_end - 1 < val_start ? val_start : val_end - 1;
+	}
+
 	*key = strndup(key_start, (key_end - key_start));
 	*value = strndup(val_start, (val_end - val_start));
 
 	return 0;
+}
+
+static int conf_entry_comparator(const void *a, const void *b)
+{
+	struct conf_data_entry *entry_a = *(struct conf_data_entry **)a;
+	struct conf_data_entry *entry_b = *(struct conf_data_entry **)b;
+
+	if (!entry_a->section ^ !entry_b->section)
+		return entry_a->section != NULL;
+
+	if (!entry_a->section && !entry_b->section)
+		return strcmp(entry_a->key, entry_b->key);
+
+	int cmp = strcmp(entry_a->section, entry_b->section);
+	if (!strcmp(entry_a->section, entry_b->section))
+		return strcmp(entry_a->key, entry_b->key);
+
+	return cmp;
 }

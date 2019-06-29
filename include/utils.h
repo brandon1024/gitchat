@@ -6,6 +6,13 @@
 #define NORETURN
 
 /**
+ * Frequently used error/information messages should be defined here.
+ * */
+#define MEM_ALLOC_FAILED "unable to allocate memory"
+#define FILE_OPEN_FAILED "failed to open file '%s'"
+#define FILE_WRITE_FAILED "failed to write to file '%s'"
+
+/**
  * Simple assertion function. Invoking this function will cause the application
  * to print a message to stderr, and exit with status EXIT_FAILURE.
  *

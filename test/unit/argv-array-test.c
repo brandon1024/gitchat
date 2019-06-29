@@ -127,7 +127,7 @@ TEST_DEFINE(argv_array_detach_test)
 		assert_string_eq("str5", strings[4]);
 	}
 
-	if(strings) {
+	if (strings) {
 		for (size_t i = 0; i < len; i++)
 			free(strings[i]);
 

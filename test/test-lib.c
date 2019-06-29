@@ -50,7 +50,7 @@ static void print_test_summary(const char *test_name, int ret)
 
 	printf("%s ", test_name);
 	int len = 96 - (int)strlen(test_name);
-	for(int i = 0; len > 0 && i < len; i++)
+	for (int i = 0; len > 0 && i < len; i++)
 		printf(".");
 	printf(" %s\n" ANSI_COLOR_RESET, ret ? "fail" : "ok");
 }
@@ -64,16 +64,16 @@ int execute_suite(struct suite_test tests[], int verbose, int immediate)
 	instance.verbose = verbose;
 	instance.immediate = immediate;
 
-	while(test->test_name) {
-		if(instance.verbose)
+	while (test->test_name) {
+		if (instance.verbose)
 			print_test_heading(test->test_name);
 
 		ret = test->fn(&instance);
 		failed |= ret;
-		if(!instance.verbose)
+		if (!instance.verbose)
 			print_test_summary(test->test_name, ret);
 
-		if(ret && instance.immediate)
+		if (ret && instance.immediate)
 			break;
 
 		test++;
@@ -88,19 +88,19 @@ int execute_tests(struct test_runner_instance *instance, struct unit_test *tests
 	int ret = 0, failed = 0;
 	struct unit_test *test = tests;
 
-	while(test->test_name) {
+	while (test->test_name) {
 		ret = test->fn();
-		if(instance->verbose)
+		if (instance->verbose)
 			print_test_summary(test->test_name, ret);
 
 		instance->executed++;
-		if(ret)
+		if (ret)
 			instance->failed++;
 		else
 			instance->passed++;
 
 		failed |= ret;
-		if(ret && instance->immediate)
+		if (ret && instance->immediate)
 			break;
 
 		test++;
@@ -113,9 +113,9 @@ void print_assertion_failure_message(const char *file_path, int line_number,
 		const char *func_name, const char *fmt, ...)
 {
 	const char *filename = strrchr(file_path, '/');
-	if(filename && *(filename + 1))
+	if (filename && *(filename + 1))
 		filename++;
-	else if(filename == NULL)
+	else if (!filename)
 		filename = file_path;
 
 	printf(ANSI_COLOR_RED "Assertion failed: %s:%d in %s()\n\t", filename, line_number, func_name);

@@ -19,11 +19,11 @@ int main(void)
 	int verbose = 0, immediate = 0;
 
 	char *env = getenv("GIT_CHAT_TEST_VERBOSE");
-	if(env && strcmp(env, "") != 0 && strcmp(env, "0") != 0)
+	if (env && strcmp(env, "") != 0 && strcmp(env, "0") != 0)
 		verbose = 1;
 
 	env = getenv("GIT_CHAT_TEST_IMMEDIATE");
-	if(env && strcmp(env, "") != 0 && strcmp(env, "0") != 0)
+	if (env && strcmp(env, "") != 0 && strcmp(env, "0") != 0)
 		immediate = 1;
 
 	return execute_suite(tests, verbose, immediate);

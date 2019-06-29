@@ -68,21 +68,21 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		struct strbuf *buffer)
 {
 	if (capture && !buffer)
-		BUG("Command output capture enabled but buffer is NULL.");
+		BUG("command output capture enabled but buffer is NULL.");
 	if (cmd->git_cmd && cmd->executable)
-		BUG("Ambiguous child_process_def; git_cmd is true but executable is not NULL");
+		BUG("ambiguous child_process_def; git_cmd is true but executable is not NULL");
 	if (!cmd->git_cmd && !cmd->executable)
-		BUG("Unexpected child_process_def without executable specified.");
+		BUG("unexpected child_process_def without executable specified.");
 
 	char *executable_path = NULL;
 	if (cmd->git_cmd || !strchr(cmd->executable, '/')) {
 		executable_path = find_in_path(cmd->git_cmd ? "git" : cmd->executable);
 		if (!executable_path)
-			FATAL("Executable '%s' could not be found in PATH, or is not executable.", cmd->executable);
+			FATAL("executable '%s' could not be found in PATH, or is not executable.", cmd->executable);
 	} else {
 		executable_path = strdup(cmd->executable);
-		if(!executable_path)
-			FATAL("Unable to allocate memory.");
+		if (!executable_path)
+			FATAL(MEM_ALLOC_FAILED);
 	}
 
 	if (cmd->args.arr.len) {
@@ -105,8 +105,8 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 	merge_env(&cmd->env, &env);
 
 	int out_fd[2];
-	if(pipe(out_fd) < 0)
-		FATAL("Invocation of pipe() system call failed.");
+	if (pipe(out_fd) < 0)
+		FATAL("invocation of pipe() system call failed.");
 
 	int child_ret_status = -1;
 	cmd->pid = fork();
@@ -114,7 +114,7 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		set_exit_routine(&child_exit_routine);
 
 		if (cmd->dir && chdir(cmd->dir))
-			FATAL("Unable to chdir to '%s'", cmd->dir);
+			FATAL("unable to chdir to '%s'", cmd->dir);
 
 		/*
 		 * Prepare pipes between current (child) process and parent process.
@@ -124,7 +124,7 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 
 		int null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
 		if (null_fd < 0)
-			FATAL("Failed to open() /dev/null.");
+			FATAL(FILE_OPEN_FAILED, "/dev/null.");
 		set_cloexec(null_fd);
 
 		if (cmd->no_in && dup2(null_fd, 0) < 0)
@@ -192,7 +192,7 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 
 			while ((bytes_read = read(out_fd[READ], out_buffer, BUFF_LEN)) > 0) {
 				if (bytes_read < 0)
-					FATAL("Failed to read from pipe to child process.");
+					FATAL("failed to read from pipe to child process.");
 
 				strbuf_attach(buffer, out_buffer, bytes_read);
 			}
@@ -205,7 +205,7 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		if (WIFEXITED(child_ret_status))
 			child_ret_status = WEXITSTATUS(child_ret_status);
 	} else {
-		FATAL("Failed to fork process.");
+		FATAL("failed to fork process.");
 	}
 
 	free(executable_path);

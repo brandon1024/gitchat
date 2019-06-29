@@ -8,27 +8,22 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <utils.h>
 #include <dirent.h>
 #include <fcntl.h>
 
 #include "run-command.h"
+#include "parse-config.h"
 #include "usage.h"
-
-/* This is not a POSIX standard, so need to define it if it isn't defined */
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
-#define BUFF_LEN 1024
+#include "fs-utils.h"
+#include "utils.h"
 
 #ifndef DEFAULT_GIT_CHAT_TEMPLATES_DIR
 #define DEFAULT_GIT_CHAT_TEMPLATES_DIR "/usr/local/share/git-chat/templates"
 #endif //DEFAULT_GIT_CHAT_TEMPLATES_DIR
 
 static const struct usage_description init_cmd_usage[] = {
-		USAGE("git chat init [(-r | --name) <name>] [(-d | --description) <desc>]"),
-		USAGE("git chat init [-q | --quiet] [--config <config>]"),
+		USAGE("git chat init [(-n | --name) <name>] [(-d | --description) <desc>]"),
+		USAGE("git chat init [-q | --quiet]"),
 		USAGE("git chat init (-h | --help)"),
 		USAGE_END()
 };
@@ -42,62 +37,62 @@ static const struct option_description init_cmd_options[] = {
 };
 
 /* Function Prototypes */
-static int init(char *room_name, char *space_desc, int quiet);
-static void copy_dir(char *path_from, char *path_to);
-static int get_symlink_target(char *symlink_path, struct strbuf *result, size_t size);
-void copy_file(const char *dest, const char *src, int mode);
-static void get_cwd(struct strbuf *buff);
-static void safe_create_dir(char *base_path, char *dir);
+static int init(char *channel_name, char *space_desc, int quiet);
+static void update_config(char *base, char *channel_name, char *author);
+static void update_space_description(char *base, char *description);
+static void initialize_channel_root(char *base);
 static void show_init_usage(int err, const char *optional_message_format, ...);
 
 /* Public Functions */
 int cmd_init(int argc, char *argv[])
 {
-	char *room_name = NULL;
+	char *channel_name = NULL;
 	char *room_desc = NULL;
 	bool opt_quiet = false;
 
-	for(size_t arg_index = 0; arg_index < argc; arg_index++) {
+	for (size_t arg_index = 0; arg_index < argc; arg_index++) {
 		char *arg = argv[arg_index];
 
-		if(!is_valid_argument(arg, init_cmd_options)) {
+		if (!is_valid_argument(arg, init_cmd_options)) {
 			show_init_usage(1, "error: unknown flag '%s'", arg);
 			return 1;
 		}
 
 		//room name
-		if(argument_matches_option(arg, init_cmd_options[0])) {
-			room_name = argv[arg_index];
+		if (argument_matches_option(arg, init_cmd_options[0])) {
+			channel_name = argv[++arg_index];
 			continue;
 		}
 
 		//room description
-		if(argument_matches_option(arg, init_cmd_options[1])) {
-			room_desc = argv[arg_index];
+		if (argument_matches_option(arg, init_cmd_options[1])) {
+			room_desc = argv[++arg_index];
 			continue;
 		}
 
 		//quiet
-		if(argument_matches_option(arg, init_cmd_options[3])) {
+		if (argument_matches_option(arg, init_cmd_options[2])) {
 			opt_quiet = true;
 			continue;
 		}
 
 		//show help
-		if(argument_matches_option(arg, init_cmd_options[4])) {
+		if (argument_matches_option(arg, init_cmd_options[3])) {
 			show_init_usage(0, NULL);
 			return 0;
 		}
 	}
 
-	return init(room_name, room_desc, opt_quiet);
+	return init(channel_name, room_desc, opt_quiet);
 }
 
-/* Internal Functions */
-static int init(char *room_name, char *space_desc, int quiet)
+static int init(char *channel_name, char *space_desc, int quiet)
 {
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
+
+	LOG_INFO("Initializing new space '%s' with master channel name '%s'",
+			space_desc, channel_name);
 
 	cmd.git_cmd = 1;
 	cmd.no_out = quiet ? 1 : 0;
@@ -105,178 +100,152 @@ static int init(char *room_name, char *space_desc, int quiet)
 	cmd.no_in = 1;
 
 	argv_array_push(&cmd.args, "init", NULL);
-	if(run_command(&cmd))
-		FATAL("Failed to 'git init' from the current directory.");
+	int ret = run_command(&cmd);
+	if (ret)
+		DIE("unable to 'git init' from the current directory; "
+				"git exited with status %d", ret);
 
 	child_process_def_release(&cmd);
 
-	// create .keys and .cache dirs
-	struct strbuf cwd;
-	strbuf_init(&cwd);
-	get_cwd(&cwd);
-	safe_create_dir(cwd.buff, ".keys");
+	struct strbuf cwd_path_buf;
+	strbuf_init(&cwd_path_buf);
+	if (get_cwd(&cwd_path_buf))
+		FATAL("unable to obtain the current working directory from getcwd()");
 
-	//recursively copy from templates dir into .cache
-	strbuf_attach_str(&cwd, "/.cache");
-	copy_dir(DEFAULT_GIT_CHAT_TEMPLATES_DIR, cwd.buff);
-	strbuf_release(&cwd);
+	// create .keys directory
+	safe_create_dir(cwd_path_buf.buff, ".keys");
 
-	//todo update config
-	//todo set room name and description
+	//recursively copy from template dir into .cache
+	struct strbuf cache_path;
+	strbuf_init(&cache_path);
+	strbuf_attach_str(&cache_path, cwd_path_buf.buff);
+	strbuf_attach_str(&cache_path, "/.cache");
+	copy_dir(DEFAULT_GIT_CHAT_TEMPLATES_DIR, cache_path.buff);
+	LOG_INFO("Copied directory from " DEFAULT_GIT_CHAT_TEMPLATES_DIR " to '%s'",
+			 cache_path.buff);
 
-	copy_dir("/home/brandon/Downloads/source", "/home/brandon/Downloads/destination");
+	update_config(cache_path.buff, channel_name, NULL);
+	update_space_description(cache_path.buff, space_desc);
+
+	initialize_channel_root(cwd_path_buf.buff);
+
+	if (!quiet)
+		fprintf(stdout, "Successfully initialized git-chat space.\n");
+
+	strbuf_release(&cwd_path_buf);
+	strbuf_release(&cache_path);
 
 	return 0;
 }
 
-/**
- * Copy an existing directory to an alternate location, including any directory
- * structure, file modes, and symbolic links.
- * */
-static void copy_dir(char *path_from, char *path_to)
+static void update_config(char *base, char *channel_name, char *author)
 {
-	DIR *dir;
-	struct dirent *ent;
+	struct strbuf config_path;
+	strbuf_init(&config_path);
+	strbuf_attach_str(&config_path, base);
+	strbuf_attach_str(&config_path, "/.config");
 
-	dir = opendir(path_from);
-	if (!dir)
-		FATAL("Unable to open directory '%s'", path_from);
+	struct conf_data conf;
+	int ret = parse_config(&conf, config_path.buff);
+	if (ret < 0)
+		DIE("unable to update '%s'; cannot access file", config_path);
+	else if (ret > 0)
+		DIE("unable to update '%s'; file contains syntax errors", config_path);
 
-	safe_create_dir(path_to, NULL);
-	while ((ent = readdir(dir)) != NULL) {
-		struct stat st_from;
+	if (channel_name) {
+		struct conf_data_entry *entry = conf_data_find_entry(&conf, "channel.master", "name");
+		if (!entry)
+			DIE("unexpected .config template with missing key 'channel.master.name'");
 
-		if (ent->d_name[0] == '.')
-			continue;
-
-		struct strbuf new_path_from;
-		struct strbuf new_path_to;
-		strbuf_init(&new_path_from);
-		strbuf_init(&new_path_to);
-		strbuf_attach_str(&new_path_from, path_from);
-		strbuf_attach_chr(&new_path_from, '/');
-		strbuf_attach_str(&new_path_from, ent->d_name);
-		strbuf_attach_str(&new_path_to, path_to);
-		strbuf_attach_chr(&new_path_to, '/');
-		strbuf_attach_str(&new_path_to, ent->d_name);
-
-		if (lstat(new_path_from.buff, &st_from) && errno == ENOENT)
-			FATAL("Unable to stat directory '%s'", new_path_from.buff);
-
-		if (S_ISDIR(st_from.st_mode)) {
-			//need to recurse.
-			copy_dir(new_path_from.buff, new_path_to.buff);
-		} else if (S_ISLNK(st_from.st_mode)) {
-			//read the target of the symbolic link, then attempt to symlink.
-			struct strbuf target;
-			strbuf_init(&target);
-			if (get_symlink_target(new_path_from.buff, &target, st_from.st_size))
-				FATAL("Unable to read symlink target for '%s'", new_path_from.buff);
-
-			if (symlink(target.buff, new_path_to.buff))
-				FATAL("Cannot symlink '%s' to '%s'");
-
-			strbuf_release(&target);
-		} else if (S_ISREG(st_from.st_mode)) {
-			copy_file(new_path_to.buff, new_path_from.buff, st_from.st_mode);
-		} else
-			DIE("Cannot copy from '%s' to '%s'; unexpected file",
-					new_path_from.buff, new_path_to.buff);
-
-		strbuf_release(&new_path_from);
-		strbuf_release(&new_path_to);
+		//overwrite updated config file
+		free(entry->value);
+		entry->value = strdup(channel_name);
+		if (!entry->value)
+			FATAL(MEM_ALLOC_FAILED);
 	}
 
-	closedir(dir);
+	if (author) {
+		struct conf_data_entry *entry = conf_data_find_entry(&conf, "channel.master", "createdby");
+		if (!entry)
+			DIE("unexpected .config template with missing key 'channel.master.createdby'");
+
+		//overwrite updated config file
+		free(entry->value);
+		entry->value = strdup(channel_name);
+		if (!entry->value)
+			FATAL(MEM_ALLOC_FAILED);
+	}
+
+	write_config(&conf, config_path.buff);
+	release_config_resources(&conf);
 }
 
-/**
- * Read a symbolic link for the target path, and store the path in the given str_buf.
- *
- * The 'size' parameter is the stat.st_size from the result of a call to lstat()
- * on the link. This is used to help determine the size of the buffer to use.
- * */
-static int get_symlink_target(char *symlink_path, struct strbuf *result, size_t size)
+static void update_space_description(char *base, char *description)
 {
-	if (size < 64)
-		size = 64;
+	struct strbuf desc_path;
 
-	while (size < PATH_MAX) {
-		ssize_t len;
+	if (!description)
+		return;
 
-		strbuf_grow(result, size);
-		len = readlink(symlink_path, result->buff, size);
-		if (len < 0)
-			return 1;
+	strbuf_init(&desc_path);
+	strbuf_attach_str(&desc_path, base);
+	strbuf_attach_str(&desc_path, "/description");
 
-		if (len < size)
-			return 0;
+	int desc_fd = open(desc_path.buff, O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (desc_fd < 0)
+		FATAL(FILE_OPEN_FAILED, desc_path);
 
-		size *= 2;
-	}
+	size_t len = strlen(description);
+	if (write(desc_fd, description, len) != len)
+		FATAL("failed to write to description file file '%s'", desc_path);
 
-	return 1;
+	close(desc_fd);
 }
 
-/**
- * Copy a file from the src location to the dest location. The source and destination
- * file paths must be full paths to the file to be copied.
- *
- * The new file will assume the given mode.
- * */
-void copy_file(const char *dest, const char *src, int mode)
+static void initialize_channel_root(char *base)
 {
-	int in_fd, out_fd;
-	ssize_t bytes_read;
-	char buffer[BUFF_LEN];
+	//Add .config and description to index
+	struct child_process_def cmd;
+	child_process_def_init(&cmd);
+	cmd.git_cmd = 1;
+	cmd.no_out = 1;
+	cmd.no_err = 1;
+	cmd.no_in = 1;
 
-	if (!(in_fd = open(src, O_RDONLY)))
-		FATAL("Failed to open file '%s'", src);
+	struct strbuf config_path;
+	strbuf_init(&config_path);
+	strbuf_attach_str(&config_path, base);
+	strbuf_attach_str(&config_path, "/.config");
 
-	if (!(out_fd = open(dest, O_WRONLY | O_CREAT | O_EXCL, mode)))
-		FATAL("Failed to open file '%s'", dest);
+	struct strbuf description_path;
+	strbuf_init(&description_path);
+	strbuf_attach_str(&description_path, base);
+	strbuf_attach_str(&description_path, "/description");
 
-	while ((bytes_read = read(in_fd, buffer, BUFF_LEN)) > 0) {
-		if (write(out_fd, buffer, bytes_read) != bytes_read)
-			FATAL("Failed to write to file '%s'", dest);
-	}
+	argv_array_push(&cmd.args, "add", config_path.buff, description_path.buff, NULL);
+	int ret = run_command(&cmd);
+	if (ret)
+		DIE("unable to 'git add' from the current directory; git exited with status %d", ret);
 
-	if (bytes_read == -1)
-		FATAL("Unexpected error while reading from file '%s'", src);
+	strbuf_release(&config_path);
+	strbuf_release(&description_path);
+	child_process_def_release(&cmd);
 
-	close(in_fd);
-	close(out_fd);
-}
+	//create commit object
+	child_process_def_init(&cmd);
+	cmd.git_cmd = 1;
+	cmd.no_out = 1;
+	cmd.no_err = 1;
+	cmd.no_in = 1;
 
-static void get_cwd(struct strbuf *buff)
-{
-	char cwd[PATH_MAX];
-	if (!getcwd(cwd, PATH_MAX))
-		FATAL("Unable to obtain the current working directory from getcwd().");
+	argv_array_push(&cmd.args, "commit", "--no-gpg-sign", "--no-verify",
+			"--message", "You have reached the beginning of time.", NULL);
 
-	strbuf_attach(buff, cwd, PATH_MAX);
-}
+	ret = run_command(&cmd);
+	if (ret)
+		DIE("unable to create initial commit; git exited with status %d", ret);
 
-static void safe_create_dir(char *base_path, char *dir)
-{
-	struct strbuf buff;
-	strbuf_init(&buff);
-
-	strbuf_attach(&buff, base_path, PATH_MAX);
-
-	if (dir) {
-		strbuf_attach_chr(&buff, '/');
-		strbuf_attach_str(&buff, dir);
-	}
-
-	if (mkdir(buff.buff, 0777) < 0) {
-		if(errno != EEXIST)
-			FATAL("Unable to create directory '%s'.", buff.buff);
-
-		LOG_WARN("Directory '%s' already exists.", buff.buff);
-	}
-
-	strbuf_release(&buff);
+	child_process_def_release(&cmd);
 }
 
 static void show_init_usage(int err, const char *optional_message_format, ...)

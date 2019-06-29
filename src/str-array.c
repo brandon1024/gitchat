@@ -19,7 +19,7 @@ void str_array_grow(struct str_array *str_a, size_t size)
 	str_a->strings = (char **)realloc(str_a->strings,
 			str_a->alloc * sizeof(char *));
 	if (!str_a->strings)
-		FATAL("Unable to allocate memory.");
+		FATAL(MEM_ALLOC_FAILED);
 }
 
 void str_array_release(struct str_array *str_a)
@@ -46,7 +46,7 @@ int str_array_set(struct str_array *str_a, char *str, size_t pos)
 
 	char *duplicated_str = strdup(str);
 	if (!duplicated_str)
-		FATAL("Unable to allocate memory.");
+		FATAL(MEM_ALLOC_FAILED);
 
 	return str_array_set_nodup(str_a, duplicated_str, pos);
 }
@@ -82,7 +82,7 @@ int str_array_vpush(struct str_array *str_a, va_list args)
 
 		char *str = strdup(arg);
 		if (!str)
-			FATAL("Unable to allocate memory.");
+			FATAL(MEM_ALLOC_FAILED);
 
 		str_a->strings[str_a->len++] = str;
 		str_a->strings[str_a->len] = NULL;
@@ -96,7 +96,7 @@ size_t str_array_insert(struct str_array *str_a, size_t pos, char *str)
 {
 	char *duplicated_str = strdup(str);
 	if (!duplicated_str)
-		FATAL("Unable to allocate memory.");
+		FATAL(MEM_ALLOC_FAILED);
 
 	return str_array_insert_nodup(str_a, pos, duplicated_str);
 }
@@ -128,7 +128,7 @@ static int str_comparator(const void *a, const void *b)
 
 void str_array_sort(struct str_array *str_a)
 {
-	qsort(str_a->strings, str_a->len, sizeof(const char*), str_comparator);
+	qsort(str_a->strings, str_a->len, sizeof(const char *), str_comparator);
 }
 
 char *str_array_remove(struct str_array *str_a, size_t pos)

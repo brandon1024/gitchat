@@ -46,26 +46,26 @@ static void show_version(void);
 int main(int argc, char *argv[])
 {
 	//Show usage and return if no arguments provided
-	if(argc < 2) {
+	if (argc < 2) {
 		show_main_usage(0, NULL);
 		return 0;
 	}
 
 	//Show usage and return if -h argument
-	if(argument_matches_option(argv[1], main_cmd_options[5])) {
+	if (argument_matches_option(argv[1], main_cmd_options[5])) {
 		show_main_usage(0, NULL);
 		return 0;
 	}
 
 	//Show version and return if -v argument
-	if(argument_matches_option(argv[1], main_cmd_options[6])) {
+	if (argument_matches_option(argv[1], main_cmd_options[6])) {
 		show_version();
 		return 0;
 	}
 
 	//delegate commands
 	struct cmd_builtin *builtin = get_builtin(argv[1]);
-	if(builtin == NULL) {
+	if (builtin == NULL) {
 		show_main_usage(1, "error: unknown command '%s'", argv[1]);
 		return 1;
 	}
@@ -76,8 +76,8 @@ int main(int argc, char *argv[])
 static struct cmd_builtin *get_builtin(const char *s)
 {
 	struct cmd_builtin *builtin = builtins;
-	while(builtin->cmd != NULL) {
-		if(!strcmp(s, builtin->cmd))
+	while (builtin->cmd != NULL) {
+		if (!strcmp(s, builtin->cmd))
 			return builtin;
 
 		builtin++;

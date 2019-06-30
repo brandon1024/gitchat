@@ -68,8 +68,10 @@ char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim)
 	if (str_a.len > 1)
 		len += (str_a.len - 1) * strlen(delim);
 
-	for (size_t i = 0; i < str_a.len; i++)
-		len += strlen(str_a.strings[i]);
+	for (size_t i = 0; i < str_a.len; i++) {
+		if (str_a.strings[i])
+			len += strlen(str_a.strings[i]);
+	}
 
 	char *str = (char *)calloc(len, sizeof(char));
 	if (str == NULL)
@@ -77,6 +79,9 @@ char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim)
 
 	strcat(str, str_a.strings[0]);
 	for (size_t i = 1; i < str_a.len; i++) {
+		if (!str_a.strings[i])
+			continue;
+
 		strcat(str, delim);
 		strcat(str, str_a.strings[i]);
 	}

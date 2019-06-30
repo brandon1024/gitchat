@@ -176,6 +176,7 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 			argv_array_release(&args);
 			argv_array_init(&args);
 			argv_array_push(&args, "/bin/sh", "-c", collapsed_arguments, NULL);
+			str_array_insert_nodup(&args.arr, args.arr.len, NULL);
 			str_array_insert_nodup(&env, env.len, NULL);
 			argv = args.arr.strings;
 

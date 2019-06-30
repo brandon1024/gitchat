@@ -7,6 +7,10 @@
  * Copy an existing directory to an alternate location, including any directory
  * structure, file modes, and symbolic links.
  *
+ * `path_from` must be the path to an existing directory. `path_to` must be the
+ * path to the destination of the copied directory. `path_from` and `path_to`
+ * must be null-terminated strings.
+ *
  * If copy_dir fails for any reason, the current process will be terminated.
  * */
 void copy_dir(char *path_from, char *path_to);
@@ -14,6 +18,8 @@ void copy_dir(char *path_from, char *path_to);
 /**
  * Copy a file from the src location to the dest location. The source and destination
  * file paths must be full paths to the file to be copied.
+ *
+ * `dest` and `src` must be null-terminated strings.
  *
  * The new file will assume the given mode.
  *
@@ -26,6 +32,8 @@ void copy_file(const char *dest, const char *src, int mode);
  *
  * The 'size' parameter is the stat.st_size from the result of a call to lstat()
  * on the link. This is used to help determine the size of the buffer to use.
+ *
+ * `symlink_path` must be a null-terminated string.
  *
  * Returns 0 if the target of the symbolic link was successfully read into the
  * string buffer, and 1 otherwise.
@@ -42,6 +50,8 @@ int get_cwd(struct strbuf *buff);
 
 /**
  * Create a new directory with the given base path and directory name.
+ *
+ * `base_path` and `dir` must be null terminated strings.
  *
  * If safe_create_dir fails for any reason, the current process will be terminated.
  * */

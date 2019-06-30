@@ -36,12 +36,8 @@ void copy_dir(char *path_from, char *path_to)
 		struct strbuf new_path_to;
 		strbuf_init(&new_path_from);
 		strbuf_init(&new_path_to);
-		strbuf_attach_str(&new_path_from, path_from);
-		strbuf_attach_chr(&new_path_from, '/');
-		strbuf_attach_str(&new_path_from, ent->d_name);
-		strbuf_attach_str(&new_path_to, path_to);
-		strbuf_attach_chr(&new_path_to, '/');
-		strbuf_attach_str(&new_path_to, ent->d_name);
+		strbuf_attach_fmt(&new_path_from, "%s/%s", path_from, ent->d_name);
+		strbuf_attach_fmt(&new_path_to, "%s/%s", path_to, ent->d_name);
 
 		if (lstat(new_path_from.buff, &st_from) && errno == ENOENT)
 			FATAL("unable to stat directory '%s'", new_path_from.buff);
@@ -139,10 +135,8 @@ void safe_create_dir(char *base_path, char *dir)
 
 	strbuf_attach(&buff, base_path, PATH_MAX);
 
-	if (dir) {
-		strbuf_attach_chr(&buff, '/');
-		strbuf_attach_str(&buff, dir);
-	}
+	if (dir)
+		strbuf_attach_fmt(&buff, "/%s", dir);
 
 	if (mkdir(buff.buff, 0777) < 0) {
 		if (errno != EEXIST)
@@ -177,7 +171,7 @@ char *find_in_path(const char *file)
 			strbuf_attach_chr(&buf, '/');
 		}
 
-		strbuf_attach(&buf, (char *)file, strlen(file));
+		strbuf_attach_str(&buf, (char *)file);
 
 		if (is_executable(buf.buff))
 			return strbuf_detach(&buf);

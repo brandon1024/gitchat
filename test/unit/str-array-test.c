@@ -213,19 +213,19 @@ TEST_DEFINE(str_array_insert_test)
 	str_array_init(&str_a);
 
 	TEST_START() {
-		size_t pos = str_array_insert(&str_a, 0, "str1");
+		size_t pos = str_array_insert(&str_a, "str1", 0);
 		assert_zero(pos);
 		assert_string_eq("str1", str_a.strings[0]);
 
-		pos = str_array_insert(&str_a, 0, "str-1");
+		pos = str_array_insert(&str_a, "str-1", 0);
 		assert_zero(pos);
 		assert_string_eq("str-1", str_a.strings[0]);
 
-		pos = str_array_insert(&str_a, 1, "str0");
+		pos = str_array_insert(&str_a, "str0", 1);
 		assert_eq(1, pos);
 		assert_string_eq("str0", str_a.strings[1]);
 
-		pos = str_array_insert(&str_a, 10, "str10");
+		pos = str_array_insert(&str_a, "str10", 10);
 		assert_eq(3, pos);
 		assert_string_eq("str10", str_a.strings[3]);
 	}
@@ -243,11 +243,11 @@ TEST_DEFINE(str_array_insert_nodup_test)
 		char *str = strdup("my string");
 		assert_nonnull(str);
 
-		size_t pos = str_array_insert(&str_a, 0, "str1");
+		size_t pos = str_array_insert(&str_a, "str1", 0);
 		assert_zero(pos);
 		assert_string_eq("str1", str_a.strings[0]);
 
-		pos = str_array_insert_nodup(&str_a, 0, str);
+		pos = str_array_insert_nodup(&str_a, str, 0);
 		assert_zero(pos);
 		assert_eq(str, str_a.strings[0]);
 	}

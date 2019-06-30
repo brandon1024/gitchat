@@ -122,6 +122,8 @@ struct conf_data {
 /**
  * Parse the config file, and represent its contents in struct conf_data.
  *
+ * `conf_path` must be a null-terminated string.
+ *
  * Returns:
  * - 0 if the file was parsed successfully
  * - <0 if the file could not be read (file not found, insufficient permissions)
@@ -132,6 +134,8 @@ int parse_config(struct conf_data *conf, const char *conf_path);
 /**
  * Write a struct conf_data to a file.
  *
+ * `conf_path` must be a null-terminated string.
+ *
  * If a file at the path 'conf_path' already exists, it is overwritten.
  * */
 void write_config(struct conf_data *conf, const char *conf_path);
@@ -139,6 +143,8 @@ void write_config(struct conf_data *conf, const char *conf_path);
 /**
  * Query a struct conf_data with a given secion and key, returning a pointer to
  * to struct conf_data_entry if found, or NULL if does not exist.
+ *
+ * `section` and `key` must be null-terminated strings.
  * */
 struct conf_data_entry *conf_data_find_entry(struct conf_data *conf,
 		char *section, char *key);

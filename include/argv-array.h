@@ -31,7 +31,7 @@ void argv_array_init(struct argv_array *argv_a);
 void argv_array_release(struct argv_array *argv_a);
 
 /**
- * Push one or more strings (const char *) to the argv_array.
+ * Push one or more null-terminated strings to the argv_array.
  *
  * Each string is duplicated, and a pointer to it is stored under argv_a->argv
  * at the next available index in the buffer. If no space remains, the buffer is
@@ -45,14 +45,14 @@ int argv_array_push(struct argv_array *argv_a, ...);
 
 /**
  * Pop the last value from the argv_array. The popped string is returned, and
- * must be freed by the caller. argv_a->argv is not reallocated.
+ * must be freed by the caller.
  *
- * If argv_a->argc is 0 (argv_array is empty), NULL is returned.
+ * If argv_a->argc is 0 (argv_array is empty), a null pointer is returned.
  * */
 char *argv_array_pop(struct argv_array *argv_a);
 
 /**
- * Prepend one or more strings (const char *) to the beginning of the argv_array.
+ * Prepend one or more null-terminated strings to the beginning of the argv_array.
  *
  * Similarly to argv_array_push, each string is duplicated and a pointer to it
  * is stored under argv_a->argv. Internally, the new strings to prepend are
@@ -66,9 +66,9 @@ int argv_array_prepend(struct argv_array *argv_a, ...);
 
 /**
  * Detach from the argv_array the array of strings. The argv_array is reset to
- * its initial state.
+ * its initial state, and need not be argv_array_release()'d.
  *
- * The array of strings will need to be free()d manually.
+ * The detached array of strings will need to be free()d manually.
  * */
 char **argv_array_detach(struct argv_array *argv_a, size_t *len);
 
@@ -94,7 +94,7 @@ char *argv_array_collapse(struct argv_array *argv_a);
 
 /**
  * Similar to argv_array_collapse(), but delimit each string in the argv_array
- * with the specified delimiter.
+ * with the specified null-terminated delimiter.
  *
  * Unlike argv_array_detach, the argv_array remains untouched, and still needs
  * to be freed using argv_array_release().

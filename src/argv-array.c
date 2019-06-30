@@ -38,7 +38,7 @@ int argv_array_prepend(struct argv_array *argv_a, ...)
 	char *arg;
 	int new_args = 0;
 	while ((arg = va_arg(ap, char *))) {
-		str_array_insert(&argv_a->arr, 0, arg);
+		str_array_insert(&argv_a->arr, arg, 0);
 		new_args++;
 	}
 

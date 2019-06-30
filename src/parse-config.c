@@ -131,9 +131,7 @@ void write_config(struct conf_data *conf, const char *conf_path)
 		if (!current_section || strcmp(current_section, entry->section) != 0) {
 			current_section = entry->section;
 
-			strbuf_attach_chr(&tmp_buf, '[');
-			strbuf_attach_str(&tmp_buf, current_section);
-			strbuf_attach_str(&tmp_buf, "]\n");
+			strbuf_attach_fmt(&tmp_buf, "[%s]\n", current_section);
 
 			if (write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
 				FATAL(FILE_WRITE_FAILED, conf_path);
@@ -142,11 +140,7 @@ void write_config(struct conf_data *conf, const char *conf_path)
 			strbuf_init(&tmp_buf);
 		}
 
-		strbuf_attach_chr(&tmp_buf, '\t');
-		strbuf_attach_str(&tmp_buf, entry->key);
-		strbuf_attach_chr(&tmp_buf, '=');
-		strbuf_attach_str(&tmp_buf, entry->value);
-		strbuf_attach_chr(&tmp_buf, '\n');
+		strbuf_attach_fmt(&tmp_buf, "\t%s = %s\n", entry->key, entry->value);
 
 		if (write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
 			FATAL(FILE_WRITE_FAILED, conf_path);

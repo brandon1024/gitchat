@@ -136,7 +136,7 @@ int cmd_channel(int argc, char *argv[])
 			action_mode |= ACTION_MODE_GPGIMPORT;
 
 		//show help
-		if(argument_matches_option(arg, channel_cmd_options[7])) {
+		if (argument_matches_option(arg, channel_cmd_options[7])) {
 			show_channel_usage(0, NULL);
 			return 0;
 		}

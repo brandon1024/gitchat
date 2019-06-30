@@ -92,16 +92,16 @@ int str_array_vpush(struct str_array *str_a, va_list args)
 	return new_strings;
 }
 
-size_t str_array_insert(struct str_array *str_a, size_t pos, char *str)
+size_t str_array_insert(struct str_array *str_a, char *str, size_t pos)
 {
 	char *duplicated_str = strdup(str);
 	if (!duplicated_str)
 		FATAL(MEM_ALLOC_FAILED);
 
-	return str_array_insert_nodup(str_a, pos, duplicated_str);
+	return str_array_insert_nodup(str_a, duplicated_str, pos);
 }
 
-size_t str_array_insert_nodup(struct str_array *str_a, size_t pos, char *str)
+size_t str_array_insert_nodup(struct str_array *str_a, char *str, size_t pos)
 {
 	if ((str_a->len + 2) >= str_a->alloc)
 		str_array_grow(str_a, str_a->alloc + BUFF_SLOP);

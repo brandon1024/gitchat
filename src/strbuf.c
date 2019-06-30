@@ -1,6 +1,8 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 #include "strbuf.h"
 #include "utils.h"
@@ -58,6 +60,39 @@ void strbuf_attach_chr(struct strbuf *buff, char chr)
 {
 	char cbuf[2] = {chr, 0};
 	strbuf_attach(buff, cbuf, 2);
+}
+
+void strbuf_attach_fmt(struct strbuf *buff, const char *fmt, ...)
+{
+	struct strbuf tmp;
+	strbuf_init(&tmp);
+
+	va_list varargs;
+
+	size_t size = strlen(fmt);
+	size = size > 64 ? size : 64;
+
+	while (1) {
+		ssize_t len;
+		strbuf_grow(&tmp, size);
+
+		va_start(varargs, fmt);
+		len = vsnprintf(tmp.buff, size, fmt, varargs);
+		if (len < 0)
+			FATAL("Unexpected error from vsnprintf()");
+
+		va_end(varargs);
+
+		if (len < size) {
+			tmp.len = len;
+			break;
+		}
+
+		size *= 2;
+	}
+
+	strbuf_attach(buff, tmp.buff, tmp.len);
+	strbuf_release(&tmp);
 }
 
 int strbuf_trim(struct strbuf *buff)

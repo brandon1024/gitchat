@@ -3,6 +3,17 @@
 
 #include <stdlib.h>
 
+/**
+ * strbuf api
+ *
+ * The strbuf api is used as an alternative to dynamically allocating character
+ * arrays. strbuf's are linearly resized when needed.
+ *
+ * Conventional string buffers can be easily attached (appended) to a strbuf, and
+ * accessed using the strbuf->buff property. The internal buffer is guaranteed
+ * to be null-terminated.
+ * */
+
 struct strbuf {
 	char *buff;
 	size_t len;
@@ -45,11 +56,21 @@ void strbuf_attach_str(struct strbuf *buff, char *str);
 void strbuf_attach_chr(struct strbuf *buff, char ch);
 
 /**
+ * Attach a formatted string to the strbuf.
+ *
+ * The formatted string is constructed using snprintf(), potentially requiring
+ * everal passes to allocate a buffer sufficiently large to hold the formatting
+ * string.
+ * */
+void strbuf_attach_fmt(struct strbuf *buff, const char *fmt, ...);
+
+/**
  * Trim leading and trailing whitespace from an strbuf, returning the number of
  * characters removed from the buffer.
  *
  * The underlying buffer is not resized, rather characters are just shifted such
- * that no leading or trailing whitespace exists.
+ * that no leading or trailing whitespace exists. Note that this may not be
+ * efficient with very large buffers.
  * */
 int strbuf_trim(struct strbuf *buff);
 

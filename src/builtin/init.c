@@ -126,8 +126,7 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 	//recursively copy from template dir into .cache
 	struct strbuf cache_path;
 	strbuf_init(&cache_path);
-	strbuf_attach_str(&cache_path, cwd_path_buf.buff);
-	strbuf_attach_str(&cache_path, "/.cache");
+	strbuf_attach_fmt(&cache_path, "%s/.cache", cwd_path_buf.buff);
 	copy_dir(DEFAULT_GIT_CHAT_TEMPLATES_DIR, cache_path.buff);
 	LOG_INFO("Copied directory from " DEFAULT_GIT_CHAT_TEMPLATES_DIR " to '%s'",
 			 cache_path.buff);
@@ -165,8 +164,7 @@ static void update_config(char *base, const char *channel_name, const char *auth
 {
 	struct strbuf config_path;
 	strbuf_init(&config_path);
-	strbuf_attach_str(&config_path, base);
-	strbuf_attach_str(&config_path, "/config");
+	strbuf_attach_fmt(&config_path, "%s/config", base);
 
 	struct conf_data conf;
 	int ret = parse_config(&conf, config_path.buff);
@@ -217,8 +215,7 @@ static void update_space_description(char *base, const char *description)
 		return;
 
 	strbuf_init(&desc_path);
-	strbuf_attach_str(&desc_path, base);
-	strbuf_attach_str(&desc_path, "/description");
+	strbuf_attach_fmt(&desc_path, "%s/description", base);
 
 	int desc_fd = open(desc_path.buff, O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (desc_fd < 0)
@@ -254,13 +251,11 @@ static void initialize_channel_root(char *base)
 
 	struct strbuf config_path;
 	strbuf_init(&config_path);
-	strbuf_attach_str(&config_path, base);
-	strbuf_attach_str(&config_path, "/config");
+	strbuf_attach_fmt(&config_path, "%s/config", base);
 
 	struct strbuf description_path;
 	strbuf_init(&description_path);
-	strbuf_attach_str(&description_path, base);
-	strbuf_attach_str(&description_path, "/description");
+	strbuf_attach_fmt(&description_path, "%s/description", base);
 
 	argv_array_push(&cmd.args, "add", config_path.buff, description_path.buff, NULL);
 	int ret = run_command(&cmd);

@@ -1,6 +1,11 @@
 #include "test-lib.h"
 #include "strbuf.h"
 
+static int is_null_terminated(struct strbuf *buff)
+{
+	return buff->buff[buff->len] == 0;
+}
+
 TEST_DEFINE(strbuf_init_test)
 {
 	struct strbuf buf;
@@ -10,6 +15,7 @@ TEST_DEFINE(strbuf_init_test)
 		assert_zero(buf.len);
 		assert_nonnull(buf.buff);
 		assert_string_eq("", buf.buff);
+		assert_true(is_null_terminated(&buf));
 	}
 
 	strbuf_release(&buf);
@@ -39,9 +45,11 @@ TEST_DEFINE(strbuf_grow_test)
 		size_t len = buf.alloc + 256;
 		strbuf_grow(&buf, len);
 		assert_eq(len, buf.alloc);
+		assert_true(is_null_terminated(&buf));
 
 		strbuf_grow(&buf, 128);
 		assert_eq(len, buf.alloc);
+		assert_true(is_null_terminated(&buf));
 	}
 
 	strbuf_release(&buf);
@@ -61,6 +69,7 @@ TEST_DEFINE(strbuf_attach_test)
 		strbuf_attach(&buf, attached_str, strlen(attached_str));
 		assert_string_eq(expected_str, buf.buff);
 		assert_eq(strlen(buf.buff), buf.len);
+		assert_true(is_null_terminated(&buf));
 
 		/* attach string with strlen(str) + 10 for buffer length */
 		attached_str = " This is also a test!";
@@ -68,6 +77,7 @@ TEST_DEFINE(strbuf_attach_test)
 		strbuf_attach(&buf, attached_str, strlen(attached_str) + 10);
 		assert_string_eq(expected_str, buf.buff);
 		assert_eq(strlen(buf.buff), buf.len);
+		assert_true(is_null_terminated(&buf));
 
 		/* attach portion of string */
 		attached_str = " This is also a test!";
@@ -75,6 +85,7 @@ TEST_DEFINE(strbuf_attach_test)
 		strbuf_attach(&buf, attached_str, 9);
 		assert_string_eq(expected_str, buf.buff);
 		assert_eq(strlen(buf.buff), buf.len);
+		assert_true(is_null_terminated(&buf));
 	}
 
 	strbuf_release(&buf);
@@ -91,8 +102,44 @@ TEST_DEFINE(strbuf_attach_chr_test)
 		strbuf_attach_chr(&buf, 'o');
 		strbuf_attach_chr(&buf, 'o');
 		assert_string_eq("foo", buf.buff);
+		assert_true(is_null_terminated(&buf));
 	}
 	
+	strbuf_release(&buf);
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_attach_fmt_test)
+{
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	TEST_START() {
+		strbuf_attach_fmt(&buf, "%s %s %d", "Hello", "World", 1);
+		assert_string_eq("Hello World 1", buf.buff);
+		assert_true(is_null_terminated(&buf));
+
+		strbuf_release(&buf);
+		strbuf_init(&buf);
+
+		strbuf_attach_fmt(&buf, "");
+		assert_string_eq("", buf.buff);
+		assert_true(is_null_terminated(&buf));
+
+		strbuf_release(&buf);
+		strbuf_init(&buf);
+
+		char string[128];
+		memset(string, 'A', 128);
+		string[127] = 0;
+		string[0] = '%';
+		string[1] = 's';
+
+		strbuf_attach_fmt(&buf, string, "HITHERE");
+		assert_eq(132, buf.len);
+		assert_true(is_null_terminated(&buf));
+	}
+
 	strbuf_release(&buf);
 	TEST_END();
 }
@@ -110,6 +157,7 @@ TEST_DEFINE(strbuf_trim_test) {
 		ret = strbuf_trim(&buf);
 		assert_eq_msg(strlen(str), ret, "Incorrect number of characters trimmed from strbuf.");
 		assert_zero(buf.len);
+		assert_true(is_null_terminated(&buf));
 
 		strbuf_release(&buf);
 		strbuf_init(&buf);
@@ -121,6 +169,7 @@ TEST_DEFINE(strbuf_trim_test) {
 		assert_eq_msg(3, ret, "Incorrect number of characters trimmed from strbuf.");
 		assert_eq(12, buf.len);
 		assert_string_eq("Hello World!", buf.buff);
+		assert_true(is_null_terminated(&buf));
 
 		strbuf_release(&buf);
 		strbuf_init(&buf);
@@ -132,6 +181,7 @@ TEST_DEFINE(strbuf_trim_test) {
 		assert_eq_msg(3, ret, "Incorrect number of characters trimmed from strbuf.");
 		assert_eq(12, buf.len);
 		assert_string_eq("Hello World!", buf.buff);
+		assert_true(is_null_terminated(&buf));
 
 		strbuf_release(&buf);
 		strbuf_init(&buf);
@@ -143,6 +193,7 @@ TEST_DEFINE(strbuf_trim_test) {
 		assert_eq_msg(6, ret, "Incorrect number of characters trimmed from strbuf.");
 		assert_eq(12, buf.len);
 		assert_string_eq("Hello World!", buf.buff);
+		assert_true(is_null_terminated(&buf));
 
 		strbuf_release(&buf);
 		strbuf_init(&buf);
@@ -154,6 +205,7 @@ TEST_DEFINE(strbuf_trim_test) {
 		assert_eq_msg(6, ret, "Incorrect number of characters trimmed from strbuf.");
 		assert_eq(12, buf.len);
 		assert_string_eq("Hello World!", buf.buff);
+		assert_true(is_null_terminated(&buf));
 	}
 
 	strbuf_release(&buf);
@@ -197,6 +249,7 @@ int strbuf_test(struct test_runner_instance *instance)
 			{ "resizing a strbuf should resize as expected", strbuf_grow_test },
 			{ "attaching string to strbuf should grow the strbuf appropriately", strbuf_attach_test },
 			{ "attaching character to strbuf should grow the strbuf appropriately", strbuf_attach_chr_test },
+			{ "attaching a formatted string to strbuf should format the buffer correctly", strbuf_attach_fmt_test },
 			{ "trimming whitespace from strbuf should trim correct number of characters", strbuf_trim_test },
 			{ "detaching string from strbuf should return correct string", strbuf_detach_test },
 			{ NULL, NULL }

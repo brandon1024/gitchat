@@ -68,7 +68,7 @@ static void print_message(FILE *output_stream, const char *prefix,
 		fprintf(stderr, "%s\n", strerror(errno));
 }
 
-void set_exit_routine(void (*new_exit_routine)(int))
+void set_exit_routine(NORETURN void (*new_exit_routine)(int))
 {
 	exit_routine = new_exit_routine;
 }

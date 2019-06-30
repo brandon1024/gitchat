@@ -62,6 +62,6 @@ void WARN(const char *fmt, ...);
  * used in certain situations, such as within a fork()'ed process. This
  * provides an interface to modify this behavior.
  * */
-void set_exit_routine(void (*new_exit_routine)(int status));
+void set_exit_routine(NORETURN void (*new_exit_routine)(int status));
 
 #endif //GIT_CHAT_UTILS_H

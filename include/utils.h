@@ -48,6 +48,14 @@ NORETURN void FATAL(const char *fmt, ...);
 NORETURN void DIE(const char *fmt, ...);
 
 /**
+ * Function used to warn the user of exceptional situations, but not fatal to
+ * the application.
+ *
+ * The message is printed to stderr.
+ * */
+void WARN(const char *fmt, ...);
+
+/**
  * Configure which routine should be invoked to exit the current process.
  *
  * By default, exit(int) is used as the exit routine. However, this cannot be

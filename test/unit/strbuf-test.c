@@ -39,6 +39,9 @@ TEST_DEFINE(strbuf_grow_test)
 		size_t len = buf.alloc + 256;
 		strbuf_grow(&buf, len);
 		assert_eq(len, buf.alloc);
+
+		strbuf_grow(&buf, 128);
+		assert_eq(len, buf.alloc);
 	}
 
 	strbuf_release(&buf);
@@ -94,6 +97,70 @@ TEST_DEFINE(strbuf_attach_chr_test)
 	TEST_END();
 }
 
+TEST_DEFINE(strbuf_trim_test) {
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	int ret = 0;
+	TEST_START() {
+		//entirely whitespace
+		char *str = "  \t    \r\v  \n \f";
+		strbuf_attach_str(&buf, str);
+		assert_zero(buf.buff[buf.len]);
+		ret = strbuf_trim(&buf);
+		assert_eq_msg(strlen(str), ret, "Incorrect number of characters trimmed from strbuf.");
+		assert_zero(buf.len);
+
+		strbuf_release(&buf);
+		strbuf_init(&buf);
+
+		//leading whitespace
+		strbuf_attach_str(&buf, " \t\nHello World!");
+		assert_zero(buf.buff[buf.len]);
+		ret = strbuf_trim(&buf);
+		assert_eq_msg(3, ret, "Incorrect number of characters trimmed from strbuf.");
+		assert_eq(12, buf.len);
+		assert_string_eq("Hello World!", buf.buff);
+
+		strbuf_release(&buf);
+		strbuf_init(&buf);
+
+		//trailing whitespace
+		strbuf_attach_str(&buf, "Hello World! \t\n");
+		assert_zero(buf.buff[buf.len]);
+		ret = strbuf_trim(&buf);
+		assert_eq_msg(3, ret, "Incorrect number of characters trimmed from strbuf.");
+		assert_eq(12, buf.len);
+		assert_string_eq("Hello World!", buf.buff);
+
+		strbuf_release(&buf);
+		strbuf_init(&buf);
+
+		//leading and trailing whitespace
+		strbuf_attach_str(&buf, "\f\r\vHello World! \t\n");
+		assert_zero(buf.buff[buf.len]);
+		ret = strbuf_trim(&buf);
+		assert_eq_msg(6, ret, "Incorrect number of characters trimmed from strbuf.");
+		assert_eq(12, buf.len);
+		assert_string_eq("Hello World!", buf.buff);
+
+		strbuf_release(&buf);
+		strbuf_init(&buf);
+
+		//buffer without null terminator
+		strbuf_attach_str(&buf, "   Hello World!   123   ");
+		buf.alloc = buf.len = 18;
+		ret = strbuf_trim(&buf);
+		assert_eq_msg(6, ret, "Incorrect number of characters trimmed from strbuf.");
+		assert_eq(12, buf.len);
+		assert_string_eq("Hello World!", buf.buff);
+	}
+
+	strbuf_release(&buf);
+
+	TEST_END();
+}
+
 TEST_DEFINE(strbuf_detach_test)
 {
 	struct strbuf buf;
@@ -130,6 +197,7 @@ int strbuf_test(struct test_runner_instance *instance)
 			{ "resizing a strbuf should resize as expected", strbuf_grow_test },
 			{ "attaching string to strbuf should grow the strbuf appropriately", strbuf_attach_test },
 			{ "attaching character to strbuf should grow the strbuf appropriately", strbuf_attach_chr_test },
+			{ "trimming whitespace from strbuf should trim correct number of characters", strbuf_trim_test },
 			{ "detaching string from strbuf should return correct string", strbuf_detach_test },
 			{ NULL, NULL }
 	};

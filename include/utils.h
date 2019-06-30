@@ -3,7 +3,7 @@
 
 #include "logging.h"
 
-#define NORETURN
+#define NORETURN __attribute__((noreturn))
 
 /**
  * Frequently used error/information messages should be defined here.

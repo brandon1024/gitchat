@@ -1,15 +1,9 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <stdarg.h>
 #include <unistd.h>
-#include <limits.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 #include "run-command.h"
 #include "parse-config.h"
@@ -37,10 +31,11 @@ static const struct option_description init_cmd_options[] = {
 };
 
 /* Function Prototypes */
-static int init(char *channel_name, char *space_desc, int quiet);
-static void update_config(char *base, char *channel_name, char *author);
-static void update_space_description(char *base, char *description);
+static int init(const char *channel_name, const char *space_desc, int quiet);
+static void update_config(char *base, const char *channel_name, const char *author);
+static void update_space_description(char *base, const char *description);
 static void initialize_channel_root(char *base);
+int get_author_identity(struct strbuf *result);
 static void show_init_usage(int err, const char *optional_message_format, ...);
 
 /* Public Functions */
@@ -48,7 +43,7 @@ int cmd_init(int argc, char *argv[])
 {
 	char *channel_name = NULL;
 	char *room_desc = NULL;
-	bool opt_quiet = false;
+	int opt_quiet = 0;
 
 	for (size_t arg_index = 0; arg_index < argc; arg_index++) {
 		char *arg = argv[arg_index];
@@ -72,7 +67,7 @@ int cmd_init(int argc, char *argv[])
 
 		//quiet
 		if (argument_matches_option(arg, init_cmd_options[2])) {
-			opt_quiet = true;
+			opt_quiet = 1;
 			continue;
 		}
 
@@ -86,13 +81,26 @@ int cmd_init(int argc, char *argv[])
 	return init(channel_name, room_desc, opt_quiet);
 }
 
-static int init(char *channel_name, char *space_desc, int quiet)
+static int init(const char *channel_name, const char *space_desc, const int quiet)
 {
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 
 	LOG_INFO("Initializing new space '%s' with master channel name '%s'",
 			space_desc, channel_name);
+
+	struct stat sb;
+	if (stat(DEFAULT_GIT_CHAT_TEMPLATES_DIR, &sb) == -1) {
+		if (errno == EACCES)
+			DIE("Something's not quite right with your installation.\n"
+				"Tried to copy from template directory '%s' but don't have\n"
+				"sufficient permission to read from there.",
+				DEFAULT_GIT_CHAT_TEMPLATES_DIR);
+
+		DIE("Something's not quite right with your installation.\n"
+			"Tried to copy from template directory '%s' but directory doesn't exist.",
+			DEFAULT_GIT_CHAT_TEMPLATES_DIR);
+	}
 
 	cmd.git_cmd = 1;
 	cmd.no_out = quiet ? 1 : 0;
@@ -124,21 +132,31 @@ static int init(char *channel_name, char *space_desc, int quiet)
 	LOG_INFO("Copied directory from " DEFAULT_GIT_CHAT_TEMPLATES_DIR " to '%s'",
 			 cache_path.buff);
 
-	update_config(cache_path.buff, channel_name, NULL);
+	struct strbuf author;
+	strbuf_init(&author);
+
+	char *author_str = NULL;
+	if (!get_author_identity(&author))
+		author_str = author.buff;
+	else
+		WARN("Unable to retrieve your user information. Is your user configured through .gitconfig?");
+
+	update_config(cache_path.buff, channel_name, author_str);
 	update_space_description(cache_path.buff, space_desc);
 
-	initialize_channel_root(cwd_path_buf.buff);
+	initialize_channel_root(cache_path.buff);
 
 	if (!quiet)
 		fprintf(stdout, "Successfully initialized git-chat space.\n");
 
+	strbuf_release(&author);
 	strbuf_release(&cwd_path_buf);
 	strbuf_release(&cache_path);
 
 	return 0;
 }
 
-static void update_config(char *base, char *channel_name, char *author)
+static void update_config(char *base, const char *channel_name, const char *author)
 {
 	struct strbuf config_path;
 	strbuf_init(&config_path);
@@ -171,16 +189,17 @@ static void update_config(char *base, char *channel_name, char *author)
 
 		//overwrite updated config file
 		free(entry->value);
-		entry->value = strdup(channel_name);
+		entry->value = strdup(author);
 		if (!entry->value)
 			FATAL(MEM_ALLOC_FAILED);
 	}
 
 	write_config(&conf, config_path.buff);
+	strbuf_release(&config_path);
 	release_config_resources(&conf);
 }
 
-static void update_space_description(char *base, char *description)
+static void update_space_description(char *base, const char *description)
 {
 	struct strbuf desc_path;
 
@@ -200,6 +219,7 @@ static void update_space_description(char *base, char *description)
 		FATAL("failed to write to description file file '%s'", desc_path);
 
 	close(desc_fd);
+	strbuf_release(&desc_path);
 }
 
 static void initialize_channel_root(char *base)
@@ -246,6 +266,70 @@ static void initialize_channel_root(char *base)
 		DIE("unable to create initial commit; git exited with status %d", ret);
 
 	child_process_def_release(&cmd);
+}
+
+int get_author_identity(struct strbuf *result)
+{
+	int ret = 0;
+	struct strbuf cmd_out;
+	strbuf_init(&cmd_out);
+
+	//prefer user.username
+	struct child_process_def cmd;
+	child_process_def_init(&cmd);
+	cmd.git_cmd = 1;
+	cmd.no_in = 1;
+	cmd.no_out = 1;
+	cmd.no_err = 1;
+	argv_array_push(&cmd.args, "config", "--get", "user.username", NULL);
+	ret = capture_command(&cmd, &cmd_out);
+	child_process_def_release(&cmd);
+	if (!ret) {
+		strbuf_trim(&cmd_out);
+		strbuf_attach(result, cmd_out.buff, cmd_out.len);
+		strbuf_release(&cmd_out);
+		return 0;
+	}
+
+	//then user.name
+	strbuf_release(&cmd_out);
+	strbuf_init(&cmd_out);
+	child_process_def_init(&cmd);
+	cmd.git_cmd = 1;
+	cmd.no_in = 1;
+	cmd.no_out = 1;
+	cmd.no_err = 1;
+	argv_array_push(&cmd.args, "config", "--get", "user.name", NULL);
+	ret = capture_command(&cmd, &cmd_out);
+	child_process_def_release(&cmd);
+	if (!ret) {
+		strbuf_trim(&cmd_out);
+		strbuf_attach(result, cmd_out.buff, cmd_out.len);
+		strbuf_release(&cmd_out);
+		return 0;
+	}
+
+	//then user.email
+	strbuf_release(&cmd_out);
+	strbuf_init(&cmd_out);
+	child_process_def_init(&cmd);
+	cmd.git_cmd = 1;
+	cmd.no_in = 1;
+	cmd.no_out = 1;
+	cmd.no_err = 1;
+	argv_array_push(&cmd.args, "config", "--get", "user.email", NULL);
+	ret = capture_command(&cmd, &cmd_out);
+	child_process_def_release(&cmd);
+	if (!ret) {
+		strbuf_trim(&cmd_out);
+		strbuf_attach(result, cmd_out.buff, cmd_out.len);
+		strbuf_release(&cmd_out);
+		return 0;
+	}
+
+	strbuf_release(&cmd_out);
+
+	return 1;
 }
 
 static void show_init_usage(int err, const char *optional_message_format, ...)

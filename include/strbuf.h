@@ -45,6 +45,15 @@ void strbuf_attach_str(struct strbuf *buff, char *str);
 void strbuf_attach_chr(struct strbuf *buff, char ch);
 
 /**
+ * Trim leading and trailing whitespace from an strbuf, returning the number of
+ * characters removed from the buffer.
+ *
+ * The underlying buffer is not resized, rather characters are just shifted such
+ * that no leading or trailing whitespace exists.
+ * */
+int strbuf_trim(struct strbuf *buff);
+
+/**
  * Detach the string from the strbuf. The strbuf is released and must be
  * reinitialized for reuse.
  * */

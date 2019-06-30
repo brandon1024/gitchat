@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "strbuf.h"
 #include "utils.h"
@@ -25,7 +26,7 @@ void strbuf_release(struct strbuf *buff)
 
 void strbuf_grow(struct strbuf *buff, size_t size)
 {
-	if ((size - 1) < buff->len)
+	if ((size - 1) < buff->alloc)
 		return;
 
 	buff->alloc = size;
@@ -57,6 +58,51 @@ void strbuf_attach_chr(struct strbuf *buff, char chr)
 {
 	char cbuf[2] = {chr, 0};
 	strbuf_attach(buff, cbuf, 2);
+}
+
+int strbuf_trim(struct strbuf *buff)
+{
+	int chars_trimmed = 0;
+	char *leading = buff->buff;
+	char *index = buff->buff;
+
+	//move to first non-space character
+	while (leading < (buff->buff + buff->alloc) && (isspace(*leading) || isblank(*leading))) {
+		leading++;
+		chars_trimmed++;
+	}
+
+	//if string is entirely whitespace, simply null every character
+	if (leading >= (buff->buff + buff->alloc) || !*leading) {
+		while (index < leading)
+			*(index++) = 0;
+
+		buff->len -= chars_trimmed;
+		return chars_trimmed;
+	}
+
+	if (leading != index) {
+		//while leading is not null, copy leading over to index
+		while (leading < (buff->buff + buff->alloc) && *leading) {
+			*index = *leading;
+			index++;
+			leading++;
+		}
+
+		//be sure to copy the null byte
+		*index = 0;
+	} else {
+		index = buff->buff + buff->len;
+	}
+
+	//when buffer is shifted, work backwards checking for whitespace, setting to nulls
+	while (--index, isspace(*index) || isblank(*index)) {
+		*index = 0;
+		chars_trimmed++;
+	}
+
+	buff->len -= chars_trimmed;
+	return chars_trimmed;
 }
 
 char *strbuf_detach(struct strbuf *buff)

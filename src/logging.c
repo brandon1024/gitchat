@@ -6,6 +6,14 @@
 
 #include "logging.h"
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 struct logger {
 	unsigned initialized: 1;
 	unsigned int level;
@@ -64,6 +72,11 @@ static void vflog(const unsigned int level, const char *file_path,
 		level_str = "[ERROR]";
 
 	FILE *fd = (level < LEVEL_WARN) ? stdout : stderr;
+	if (level == LEVEL_WARN)
+		fprintf(fd, ANSI_COLOR_YELLOW);
+	else if (level == LEVEL_ERROR)
+		fprintf(fd, ANSI_COLOR_RED);
+
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 	fprintf(fd, "%.4d-%.2d-%.2d %.2d:%.2d:%.2d",
@@ -82,7 +95,7 @@ static void vflog(const unsigned int level, const char *file_path,
 
 	fprintf(fd, " %s %s:%d - ", level_str, filename, line_number);
 	vfprintf(fd, fmt, varargs);
-	fprintf(fd, "\n");
+	fprintf(fd, ANSI_COLOR_RESET "\n");
 }
 
 void log_trace(const char *file, int line_number, const char *fmt, ...)

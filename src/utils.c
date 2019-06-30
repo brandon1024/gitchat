@@ -48,6 +48,15 @@ NORETURN void DIE(const char *fmt, ...)
 	exit_routine(EXIT_FAILURE);
 }
 
+void WARN(const char *fmt, ...)
+{
+	va_list varargs;
+
+	va_start(varargs, fmt);
+	print_message(stderr, "Warn: ", fmt, varargs);
+	va_end(varargs);
+}
+
 static void print_message(FILE *output_stream, const char *prefix,
 		const char *fmt, va_list varargs)
 {

@@ -47,4 +47,26 @@ int get_cwd(struct strbuf *buff);
  * */
 void safe_create_dir(char *base_path, char *dir);
 
+/**
+ * Search $PATH for a command.  This emulates the path search that
+ * execvp would perform, without actually executing the command so it
+ * can be used before fork() to prepare to run a command using
+ * execve().
+ *
+ * The caller should ensure that file contains no directory
+ * separators.
+ *
+ * Returns the path to the command, as found in $PATH or NULL if the
+ * command could not be found.  The caller assumes ownership of the memory
+ * used to store the resultant path.
+ */
+char *find_in_path(const char *file);
+
+/**
+ * Determine whether a file with the given name and path is executable.
+ *
+ * Returns 1 if the given file is executable, 0 otherwise.
+ * */
+int is_executable(const char *name);
+
 #endif //GIT_CHAT_FS_UTILS_H

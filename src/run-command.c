@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 
 #include "run-command.h"
+#include "fs-utils.h"
 #include "utils.h"
 
 #define READ 0
@@ -20,8 +21,6 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		struct strbuf *buffer);
 static inline void set_cloexec(int fd);
 static void merge_env(struct str_array *deltaenv, struct str_array *result);
-static char *find_in_path(const char *file);
-static int is_executable(const char *name);
 static NORETURN void child_exit_routine(int status);
 
 void child_process_def_init(struct child_process_def *cmd)
@@ -298,67 +297,6 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 		str_array_push(result, current_env.strings[p++], NULL);
 
 	str_array_release(&current_env);
-}
-
-/**
- * Search $PATH for a command.  This emulates the path search that
- * execvp would perform, without actually executing the command so it
- * can be used before fork() to prepare to run a command using
- * execve().
- *
- * The caller should ensure that file contains no directory
- * separators.
- *
- * Returns the path to the command, as found in $PATH or NULL if the
- * command could not be found.  The caller assumes ownership of the memory
- * used to store the resultant path.
- */
-static char *find_in_path(const char *file)
-{
-	const char *p = getenv("PATH");
-	struct strbuf buf;
-
-	if (!p || !*p)
-		return NULL;
-
-	while (1) {
-		const char *end = strchr(p, ':');
-		strbuf_init(&buf);
-
-		/* POSIX specifies an empty entry as the current directory. */
-		if (end != p) {
-			strbuf_attach(&buf, (char *)p, end - p);
-			strbuf_attach_chr(&buf, '/');
-		}
-
-		strbuf_attach(&buf, (char *)file, strlen(file));
-
-		if (is_executable(buf.buff))
-			return strbuf_detach(&buf);
-
-		strbuf_release(&buf);
-		if (!*end)
-			break;
-
-		p = end + 1;
-	}
-
-	return NULL;
-}
-
-/**
- * Determine whether a file with the given name and path is executable.
- *
- * Returns 1 if the given file is executable, 0 otherwise.
- * */
-static int is_executable(const char *name)
-{
-	struct stat st;
-
-	int not_executable = stat(name, &st) || !S_ISREG(st.st_mode);
-	errno = 0;
-
-	return not_executable ? 0 : st.st_mode & S_IXUSR;
 }
 
 static NORETURN void child_exit_routine(int status)

@@ -156,12 +156,17 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 	return 0;
 }
 
+/**
+ * Update the channel name and channel creator in .cache/config.
+ *
+ * The argument 'base' is a full path to the .cache directory.
+ * */
 static void update_config(char *base, const char *channel_name, const char *author)
 {
 	struct strbuf config_path;
 	strbuf_init(&config_path);
 	strbuf_attach_str(&config_path, base);
-	strbuf_attach_str(&config_path, "/.config");
+	strbuf_attach_str(&config_path, "/config");
 
 	struct conf_data conf;
 	int ret = parse_config(&conf, config_path.buff);
@@ -173,7 +178,7 @@ static void update_config(char *base, const char *channel_name, const char *auth
 	if (channel_name) {
 		struct conf_data_entry *entry = conf_data_find_entry(&conf, "channel.master", "name");
 		if (!entry)
-			DIE("unexpected .config template with missing key 'channel.master.name'");
+			DIE("unexpected config template with missing key 'channel.master.name'");
 
 		//overwrite updated config file
 		free(entry->value);
@@ -185,7 +190,7 @@ static void update_config(char *base, const char *channel_name, const char *auth
 	if (author) {
 		struct conf_data_entry *entry = conf_data_find_entry(&conf, "channel.master", "createdby");
 		if (!entry)
-			DIE("unexpected .config template with missing key 'channel.master.createdby'");
+			DIE("unexpected config template with missing key 'channel.master.createdby'");
 
 		//overwrite updated config file
 		free(entry->value);
@@ -199,6 +204,11 @@ static void update_config(char *base, const char *channel_name, const char *auth
 	release_config_resources(&conf);
 }
 
+/**
+ * Update the description of the space by writing to .cache/description.
+ *
+ * The argument 'base' is a full path to the .cache directory.
+ * */
 static void update_space_description(char *base, const char *description)
 {
 	struct strbuf desc_path;
@@ -222,9 +232,19 @@ static void update_space_description(char *base, const char *description)
 	strbuf_release(&desc_path);
 }
 
+/**
+ * Initialize the master channel by making the first commit on the branch. The first
+ * commit will have only two tracked files, config and description. The commit
+ * message will have the following message:
+ *
+ * "You have reached the beginning of time."
+ *
+ * Note that this commit will not be gpg signed. Also, the '--no-verify' flag is
+ * used to suppress any hooks that the user may have configured.
+ * */
 static void initialize_channel_root(char *base)
 {
-	//Add .config and description to index
+	//Add config and description to index
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
@@ -235,7 +255,7 @@ static void initialize_channel_root(char *base)
 	struct strbuf config_path;
 	strbuf_init(&config_path);
 	strbuf_attach_str(&config_path, base);
-	strbuf_attach_str(&config_path, "/.config");
+	strbuf_attach_str(&config_path, "/config");
 
 	struct strbuf description_path;
 	strbuf_init(&description_path);
@@ -268,6 +288,17 @@ static void initialize_channel_root(char *base)
 	child_process_def_release(&cmd);
 }
 
+/**
+ * Attempt to fetch the user identify from their .gitconfig. The author's name
+ * is chosen, in the following order:
+ * 1. user.username
+ * 2. user.name
+ * 3. user.email
+ *
+ * If none of these are available (i.e. git returns a status of 1 for all three),
+ * then this function returns 1. Otherwise, returns 0 and populates the given
+ * strbuf with the author's name.
+ * */
 int get_author_identity(struct strbuf *result)
 {
 	int ret = 0;

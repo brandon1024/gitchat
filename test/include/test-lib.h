@@ -103,170 +103,170 @@
 #include <string.h>
 
 #define TEST_DEFINE(__test_name) static int __test_name ()
-#define TEST_START() int __ret = 0; for(int __i = 1;__i--;)
+#define TEST_START() int __ret = 0; for (int __i = 1;__i--;)
 #define TEST_END() return __ret
 
 #define assert_string_eq(a, b) \
-	if((a) && !(b)) { \
+	if ((a) && !(b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected '%s' but got NULL.", (a)); \
 		__ret = 1; \
 		break; \
-	} else if(!(a) && (b)) { \
+	} else if (!(a) && (b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected NULL but got '%s'.", (b)); \
 		__ret = 1; \
 		break; \
-	} else if(strcmp((a), (b)) != 0) { \
+	} else if (strcmp((a), (b)) != 0) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected '%s' but got '%s'.", (a), (b)); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_string_eq_msg(a, b, ...) \
-	if((a) && !(b)) { \
+	if ((a) && !(b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
-	} else if(!(a) && (b)) { \
+	} else if (!(a) && (b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
-	} else if(strcmp((a), (b)) != 0) { \
+	} else if (strcmp((a), (b)) != 0) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_string_neq(a, b) \
-	if(((a) && !(b)) || (!(a) && (b))) {} \
-	else if(!(a) && !(b)) { \
+	if (((a) && !(b)) || (!(a) && (b))) {} \
+	else if (!(a) && !(b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected different strings, but both were NULL.", (a)); \
 		__ret = 1; \
 		break; \
-	} else if(a == b || !strcmp((a), (b))) { \
+	} else if (a == b || !strcmp((a), (b))) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected '%s' but got '%s'.", (a), (b)); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_string_neq_msg(a, b, ...) \
-	if(((a) && !(b)) || (!(a) && (b))) {} \
-	else if(!(a) && !(b)) { \
+	if (((a) && !(b)) || (!(a) && (b))) {} \
+	else if (!(a) && !(b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected different strings, but both were NULL.", (a)); \
 		__ret = 1; \
 		break; \
-	} else if(a == b || !strcmp((a), (b))) { \
+	} else if (a == b || !strcmp((a), (b))) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_eq(a, b) \
-	if((a) != (b)) { \
+	if ((a) != (b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected equal values, but actual values not equal."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_eq_msg(a, b, ...) \
-	if((a) != (b)) { \
+	if ((a) != (b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_neq(a, b) \
-	if((a) == (b)) { \
+	if ((a) == (b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected non-equal values, but actual values equal."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_neq_msg(a, b, ...) \
-	if((a) == (b)) { \
+	if ((a) == (b)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_true(a) \
-	if(!(a)) { \
+	if (!(a)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected true, but got false."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_true_msg(a, ...) \
-	if(!(a)) { \
+	if (!(a)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_false(a) \
-	if(!!(a)) { \
+	if (!!(a)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected false, but got true."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_false_msg(a, ...) \
-	if(!!(a)) { \
+	if (!!(a)) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_null(a) \
-	if((a) != NULL) { \
+	if ((a) != NULL) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected null, but got non-null."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_null_msg(a, ...) \
-	if((a) != NULL) { \
+	if ((a) != NULL) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_nonnull(a) \
-	if((a) == NULL) { \
+	if ((a) == NULL) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected non-null, but got null."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_nonnull_msg(a, ...) \
-	if((a) == NULL) { \
+	if ((a) == NULL) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_zero(a) \
-	if((a) != 0) { \
+	if ((a) != 0) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected zero, but got non-zero."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_zero_msg(a, ...) \
-	if((a) != 0) { \
+	if ((a) != 0) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_nonzero(a) \
-	if((a) == 0) { \
+	if ((a) == 0) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected non-zero, but got zero."); \
 		__ret = 1; \
 		break; \
 	}
 
 #define assert_nonzero_msg(a, ...) \
-	if((a) == 0) { \
+	if ((a) == 0) { \
 		print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 		__ret = 1; \
 		break; \

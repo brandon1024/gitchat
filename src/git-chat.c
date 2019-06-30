@@ -4,6 +4,7 @@
 
 #include "builtin.h"
 #include "run-command.h"
+#include "fs-utils.h"
 #include "usage.h"
 #include "version.h"
 #include "utils.h"
@@ -39,6 +40,8 @@ static struct cmd_builtin builtins[] = {
 /* Function Prototypes */
 static struct cmd_builtin *get_builtin(const char *s);
 static int run_builtin(struct cmd_builtin *builtin, int argc, char *argv[]);
+static int run_extension(const char *s, int argc, char *argv[]);
+static char *find_extension(char *extension_name);
 static void show_main_usage(int err, const char *optional_message_format, ...);
 static void show_version(void);
 
@@ -66,6 +69,16 @@ int main(int argc, char *argv[])
 	//delegate commands
 	struct cmd_builtin *builtin = get_builtin(argv[1]);
 	if (builtin == NULL) {
+		//check if any extensions exist
+		char *extension_on_path = find_extension(argv[1]);
+		if (extension_on_path) {
+			LOG_INFO("builtin: extension '%s' found on the PATH", extension_on_path);
+
+			int status = run_extension(extension_on_path, argc - 2, argv + 2);
+			free(extension_on_path);
+			return status;
+		}
+
 		show_main_usage(1, "error: unknown command '%s'", argv[1]);
 		return 1;
 	}
@@ -88,8 +101,38 @@ static struct cmd_builtin *get_builtin(const char *s)
 
 static int run_builtin(struct cmd_builtin *builtin, int argc, char *argv[])
 {
-	LOG_TRACE("builtin: executing %s builtin", builtin->cmd);
+	LOG_INFO("builtin: executing %s builtin", builtin->cmd);
 	return builtin->fn(argc, argv);
+}
+
+static int run_extension(const char *s, int argc, char *argv[])
+{
+	LOG_INFO("builtin: executing %s as an extension", s);
+
+	struct child_process_def cmd;
+	child_process_def_init(&cmd);
+	cmd.executable = s;
+	for (size_t i = 0; i < argc; i++)
+		argv_array_push(&cmd.args, argv[i]);
+
+	int status = run_command(&cmd);
+	child_process_def_release(&cmd);
+
+	return status;
+}
+
+static char *find_extension(char *extension_name)
+{
+	struct strbuf filename;
+	strbuf_init(&filename);
+
+	strbuf_attach_str(&filename, "git-chat-");
+	strbuf_attach_str(&filename, extension_name);
+	char *path = find_in_path(filename.buff);
+
+	strbuf_release(&filename);
+
+	return path;
 }
 
 static void show_main_usage(int err, const char *optional_message_format, ...)

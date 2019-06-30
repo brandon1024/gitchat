@@ -155,3 +155,49 @@ void safe_create_dir(char *base_path, char *dir)
 
 	strbuf_release(&buff);
 }
+
+char *find_in_path(const char *file)
+{
+	const char *p = getenv("PATH");
+	struct strbuf buf;
+
+	if (!p || !*p)
+		return NULL;
+
+	while (1) {
+		const char *end = strchr(p, ':');
+		strbuf_init(&buf);
+
+		if (!end)
+			end = strchr(p, 0);
+
+		/* POSIX specifies an empty entry as the current directory. */
+		if (end != p) {
+			strbuf_attach(&buf, (char *)p, end - p);
+			strbuf_attach_chr(&buf, '/');
+		}
+
+		strbuf_attach(&buf, (char *)file, strlen(file));
+
+		if (is_executable(buf.buff))
+			return strbuf_detach(&buf);
+
+		strbuf_release(&buf);
+		if (!*end)
+			break;
+
+		p = end + 1;
+	}
+
+	return NULL;
+}
+
+int is_executable(const char *name)
+{
+	struct stat st;
+
+	int not_executable = stat(name, &st) || !S_ISREG(st.st_mode);
+	errno = 0;
+
+	return not_executable ? 0 : st.st_mode & S_IXUSR;
+}

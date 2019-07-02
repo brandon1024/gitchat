@@ -53,13 +53,13 @@ void show_options(const struct option_description *opts, int err)
 
 		if (opt.type == OPTION_GROUP_T) {
 			if (index > 1)
-				fprintf(stdout, "\n");
+				fprintf(fp, "\n");
 
-			fprintf(stdout, "%s\n", opt.desc);
+			fprintf(fp, "%s:\n", opt.desc);
 			continue;
 		}
 
-		printed_chars += fprintf(fp, "	");
+		printed_chars += fprintf(fp, "    ");
 		if (opt.type == OPTION_BOOL_T) {
 			if (opt.s_flag)
 				printed_chars += fprintf(fp, "-%c", opt.s_flag);
@@ -254,3 +254,4 @@ int is_valid_argument(const char *arg,
 
 	return false;
 }
+

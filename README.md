@@ -87,6 +87,32 @@ Create a new channel by branching off the current point in the conversation.
 ### git chat message
 Create a new message in the current channel. The message is encrypted with GPG. The message is not yet published, and needs to be pushed to the remote repository using `git chat publish`.
 
+```
+usage: git chat message [-a | --asym] [--no-gpg-sign] [(--recipient <alias>...) | (--all)]
+   or: git chat message (-s | --sym) [--password <password>]
+   or: git chat message (-m | --message) <message>
+   or: git chat message (-f | --file) <filename>
+   or: git chat message (-h | --help)
+
+asymmetric (public-key) encryption:
+    -a, --asym          encrypt message using public-key (asymmetric) cryptography
+    --recipient <alias>
+                        specify one or more recipients that may read the message
+
+symmetric (password) encryption:
+    -s, --symmetric     encrypt the message using private-key (symmetric) cryptography
+    --password <password>
+                        provide the password necessary to decrypt the message
+
+configuring message:
+    -m, --message <message>
+                        provide the message contents directly through the command line
+    -f, --file <filename>
+                        specify a file to be encrypted as the message
+    --no-gpg-sign       do not GPG sign commit
+    -h, --help          show usage and exit
+```
+
 ### git chat publish
 Push a any new messages to the remote repository.
 

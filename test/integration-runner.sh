@@ -94,8 +94,11 @@ debug "test pattern: $TEST_PATTERN"
 # Trick Git into thinking that the test trash directory is not in a git working tree
 GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
 
+TEST_RESOURCES_DIR="$TEST_RUNNER_PATH/resources"
+debug "resources directory path: $TEST_RESOURCES_DIR"
+
 if [ ! -d $TEST_RUNNER_PATH/integration ]; then
-	echo 'No tests were found; directory does not exist: $TEST_RUNNER_PATH/integration' 1>&2
+	echo "No tests were found; directory does not exist: $TEST_RUNNER_PATH/integration" 1>&2
 fi
 
 debug "running tests from path: $TEST_RUNNER_PATH/integration"
@@ -107,11 +110,17 @@ export TEST_DEBUG
 export TEST_WITH_COLOR_OUT
 export TEST_TRASH_DIR
 export GIT_CEILING_DIRECTORIES
+export TEST_RESOURCES_DIR
 
 TESTS="$TEST_RUNNER_PATH/integration/$TEST_PATTERN"
 TEST_FAILURES=0
 for test_path in $TESTS; do
 	rebuild_trash_dir
+
+	if [[ ! -x "$test_path" ]]; then
+		echo "Integration test file is not executable: $test_path" 1>&2
+		exit 1
+	fi
 
 	echo '***' $(basename -- "$test_path") '***'
 	sh $test_path

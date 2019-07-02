@@ -63,7 +63,7 @@ int cmd_channel(int argc, char *argv[])
 		char *arg = argv[arg_index];
 
 		if (!is_valid_argument(arg, channel_cmd_options)) {
-			show_channel_usage(1, "error: unknown flag '%s'", arg);
+			show_channel_usage(1, "error: unknown option '%s'", arg);
 			return 1;
 		}
 
@@ -71,7 +71,7 @@ int cmd_channel(int argc, char *argv[])
 		if (arg_char_len > 1 && arg[0] != '-') {
 			//if already implicitly defined
 			if (action_mode & ACTION_MODE_CREATE) {
-				show_channel_usage(1, "error: unknown flag '%s'", arg);
+				show_channel_usage(1, "error: unknown option '%s'", arg);
 				return 1;
 			}
 

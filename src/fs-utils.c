@@ -86,7 +86,7 @@ void copy_file(const char *dest, const char *src, int mode)
 			FATAL(FILE_WRITE_FAILED, dest);
 	}
 
-	if (bytes_read == -1)
+	if (bytes_read < 0)
 		FATAL("unexpected error while reading from file '%s'", src);
 
 	LOG_TRACE("File copied from '%s' to '%s'", src, dest);
@@ -189,9 +189,10 @@ char *find_in_path(const char *file)
 int is_executable(const char *name)
 {
 	struct stat st;
+	int errsv = errno;
 
 	int not_executable = stat(name, &st) || !S_ISREG(st.st_mode);
-	errno = 0;
+	errno = errsv;
 
 	return not_executable ? 0 : st.st_mode & S_IXUSR;
 }

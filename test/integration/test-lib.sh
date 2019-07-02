@@ -40,17 +40,17 @@ pass_test () {
 assert_success () {
 	if [ "$#" -eq 2 ]; then
 		if [ "$TEST_DEBUG" -eq "1" ]; then
-			eval "$2"
+			(eval "$2")
 		else
-			eval "$2" > /dev/null 2>&1
+			(eval "$2") > /dev/null 2>&1
 		fi
 	elif [ "$#" -eq 3 ]; then
 		if [ "$TEST_DEBUG" -eq "1" ]; then
-			eval "$2"
-			eval "$3"
+			(eval "$2")
+			(eval "$3")
 		else
-			eval "$2" > /dev/null 2>&1
-			eval "$3" > /dev/null 2>&1
+			(eval "$2") > /dev/null 2>&1
+			(eval "$3") > /dev/null 2>&1
 		fi
 	else
 		echo 'unexpected number of arguments passed to assert_success' 1>&2
@@ -74,17 +74,17 @@ assert_success () {
 assert_failure () {
 	if [ "$#" -eq 2 ]; then
 		if [ "$TEST_DEBUG" -eq "1" ]; then
-			eval "$2"
+			(eval "$2")
 		else
-			eval "$2" > /dev/null 2>&1
+			(eval "$2") > /dev/null 2>&1
 		fi
 	elif [ "$#" -eq 3 ]; then
 		if [ "$TEST_DEBUG" -eq "1" ]; then
-			eval "$2"
-			eval "$3"
+			(eval "$2")
+			(eval "$3")
 		else
-			eval "$2" > /dev/null 2>&1
-			eval "$3" > /dev/null 2>&1
+			(eval "$2") > /dev/null 2>&1
+			(eval "$3") > /dev/null 2>&1
 		fi
 	else
 		echo 'unexpected number of arguments passed to assert_failure' 1>&2

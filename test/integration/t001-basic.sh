@@ -34,6 +34,12 @@ assert_success 'git chat -h should exit with status 0' '
 	git-chat -h | grep '\''^usage: git chat'\''
 '
 
+assert_success 'git chat with unknown flag should exit with status 1 and print useful message' '
+	git chat --test 2>err
+	test "$?" = "1" &&
+	grep "error: unknown command or option '\''--test'\''" err
+'
+
 assert_success 'git chat -v should exit with status 0' '
 	git-chat -v > output &&
 	grep "^git-chat version" output &&

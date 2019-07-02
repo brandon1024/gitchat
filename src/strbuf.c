@@ -37,13 +37,13 @@ void strbuf_grow(struct strbuf *buff, size_t size)
 		FATAL(MEM_ALLOC_FAILED);
 }
 
-void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
+void strbuf_attach(struct strbuf *buff, const char *str, size_t buffer_len)
 {
 	char *eos = memchr(str, 0, buffer_len);
 	size_t str_len = (eos == NULL) ? buffer_len : (size_t)(eos - str);
 
 	if ((buff->len + str_len + 1) >= buff->alloc)
-		strbuf_grow(buff, buffer_len + BUFF_SLOP);
+		strbuf_grow(buff, buff->alloc + buffer_len + BUFF_SLOP);
 
 	strncpy(buff->buff + buff->len, str, str_len);
 	buff->buff[buff->len + str_len] = 0;
@@ -51,7 +51,7 @@ void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
 	buff->len += str_len;
 }
 
-void strbuf_attach_str(struct strbuf *buff, char *str)
+void strbuf_attach_str(struct strbuf *buff, const char *str)
 {
 	strbuf_attach(buff, str, strlen(str));
 }
@@ -147,4 +147,37 @@ char *strbuf_detach(struct strbuf *buff)
 	strbuf_release(buff);
 
 	return detached_buffer;
+}
+
+int strbuf_split(const struct strbuf *buff, const char *delim, struct str_array *result)
+{
+	if (!delim || !strlen(delim)) {
+		str_array_push(result, buff->buff, NULL);
+		return 1;
+	}
+
+	int inserted = 0;
+	size_t delim_len = strlen(delim);
+	char *begin = buff->buff;
+	char *delim_ptr = NULL;
+
+	do {
+		delim_ptr = strstr(begin, delim);
+		if (!delim_ptr)
+			delim_ptr = strchr(begin, 0);
+		if (!delim_len)
+			BUG("strchr() could not find the null byte");
+
+		char *substring = (char *)calloc((delim_ptr - begin) + 1, sizeof(char));
+		if (!substring)
+			FATAL(MEM_ALLOC_FAILED);
+
+		strncpy(substring, begin, (delim_ptr - begin));
+		str_array_insert_nodup(result, substring, result->len);
+
+		begin = delim_ptr + delim_len;
+		inserted++;
+	} while(delim_ptr && *delim_ptr);
+
+	return inserted;
 }

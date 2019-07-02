@@ -8,11 +8,21 @@ compiler:
   - clang
   - gcc
 
+addons:
+  apt:
+    packages:
+      - cmake
+      - gnupg
+      - valgrind
+  homebrew:
+    packages:
+      - cmake
+      - gnupg
+
 before_script:
   - mkdir build
   - cd build
   - cmake ..
 
 script:
-  - cmake --build .
-  - ./git-chat-test
+  - ./run-build.sh

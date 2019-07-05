@@ -148,7 +148,7 @@ static void show_main_usage(int err, const char *optional_message_format, ...)
 
 static void show_version(void)
 {
-	fprintf(stdout, "git-chat version %u.%u\n", GITCHAT_VERSION_MAJOR,
+	fprintf(stdout, "git-chat version %s.%s\n", GITCHAT_VERSION_MAJOR,
 			GITCHAT_VERSION_MINOR);
 
 	struct child_process_def cmd;

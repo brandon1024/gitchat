@@ -1,0 +1,136 @@
+.TH git-chat 1 "@CMAKE_COMPILATION_DATE@" "git-chat @CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@" "git-chat manual"
+
+.SH NAME
+git-chat \- use a Git repository as a chatroom
+
+.SH SYNOPSIS
+.sp
+.nf
+\fIgit-chat\fR <command> [options]
+\fIgit-chat\fR [\-h | \-\-help]
+\fIgit-chat\fR [\-v | \-\-version]
+
+
+.SH DESCRIPTION
+\fIgit-chat\fR is a secure messaging application build on top of the \fIGit\fR suite. It leverages Git's ability to track content, using commit objects as messages and branches as message channels. git-chat also leverages GnuPG for message signing and encryption.
+
+If you're using git-chat for messaging, keep in mind that it should not be used as secure and tamper proof communication. It suffers from potential tampering (lost messages, erased history, etc.). Please use at your own risk.
+
+
+.SH OPTIONS
+.TP
+\-h, \-\-help
+Print a simple synopsis, along with any common subcommands and options.
+
+.TP
+\-v, \-\-version
+Print the current version for git-chat and its dependencies.
+
+
+.SH SUBCOMMANDS
+.TP
+\fBgit-chat-channel\fR(1)
+Create and manage message channels.
+
+.TP
+\fBgit-chat-get\fR(1)
+Fetch new messages and channels from remote repositories.
+
+.TP
+\fBgit-chat-init\fR(1)
+Initialize a new git-chat messaging space.
+
+.TP
+\fBgit-chat-message\fR(1)
+Create new gpg-encrypted messages.
+
+.TP
+\fBgit-chat-publish\fR(1)
+Publish new messages to remote repositories.
+
+.TP
+\fBgit-chat-read\fR(1)
+Display and format messages in a channel.
+
+
+.SH FILE/DIRECTORY LAYOUT
+\fIgit-chat\fR uses a rather simple directory structure. When a repository is initialized, three directories are created at the root of the working tree: \fB.git\fR, \fB.git-chat\fR, and \fB.keys\fR.
+
+.TP
+.B .git
+This directory is created by \fIgit-init\fR, and is largely untouched by git-chat, with the exception of \fB.git/chat-cache\fR which contains git-chat configuration files, temporary files, and gpg keyring.
+
+.TP
+.B .git-chat
+This directory is created by \fIgit-chat-init\fR. It contains channel metadata, such as the channel name and description. These files are tracked, and are therefore public to all users.
+
+.TP
+.B .keys
+This directory is created by \fIgit-chat-init\fR. It contains public gpg keys for all users in the current channel. These keys are used by the users in a channel to encrypt messages. These files are tracked, and are therefore public to all users.
+
+
+.SH CONFIGURATION
+The config file has a format similar to INI or TOML, but simplified. It consists of key-value pairs, organized in sections.
+
+.EX
+    [ section_a ]
+        key_1 = value
+        key_2 = valueb
+
+    [ section_b ]
+        key_1 = 123
+        key_a = 321
+.EE
+
+.TP
+.B Recognized Configuration Properties
+Each channel may have it's own configuration. The configurations are organized by channel name in the following manner:
+
+.EX
+[channel.<rev>]
+    name = <channel alias>
+    createdby = <channel creator>
+    description = <description>
+.EE
+
+
+.SH ENVIRONMENT VARIABLES
+\fIgit-chat\fR uses a number of environment variables that allow you to configure how the application behaves.
+
+.TP
+\fBGIT_CHAT_LOG_LEVEL\fR
+Display additional logging to the console. May have any of the following values, ordered decreasing in verbosity level:
+.RS
+.IP \[bu]
+ALL
+.IP \[bu]
+TRACE
+.IP \[bu]
+DEBUG
+.IP \[bu]
+INFO
+.IP \[bu]
+WARN
+.IP \[bu]
+ERROR
+.IP \[bu]
+NONE
+.RE
+
+
+.SH EXTENDING GIT-CHAT
+\fIgit-chat\fR follows a similar extension model to Git, where executables located on the PATH that are prefixed with \fBgit-chat-\fR will be invoked when \fBgit chat <extension name>\fR is run at the command line. This allows you to build custom plugins in your language of choice.
+
+
+.SH SEE ALSO
+\fBgit-chat-init\fR(1)
+
+
+.SH REPORTING BUGS
+git-chat is still a work in progress. We try our best to support as many platforms and environments as possible, but there are certainly going to be issues.
+
+If you have any issues, please log an issue in our GitHub issue tracker at \fBhttps://github.com/brandon1024/gitchat\fR.
+
+
+.SH AUTHOR
+Brandon Richardson (brandon1024.br@gmail.com)

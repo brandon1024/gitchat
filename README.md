@@ -1,56 +1,66 @@
 # git-chat
+[![Build Status](https://travis-ci.com/brandon1024/gitchat.svg?token=zYgs3LGRABLGhdeJPft1&branch=master)](https://travis-ci.com/brandon1024/gitchat)
+
 `git-chat` is a Git-based command line messaging application. Version control systems were never built to be used as an messaging application, but Git is built such that it can be used as a chat application. So we set out to build this silly project.
 
 The git-chat project is a silly experiment. The purpose of the project is to prove that Git can be used as a means of secure communication. Once installed, it can be run from the command line using `git chat [args]`.
 
 If you're using git-chat for messaging with your savvy friends, you're an awesome person. But please do keep in mind that git-chat should not be used for secure and tamper proof communication, because it suffers from potential tampering (lost messages, erased history, etc.). Please use at your own risk.
 
-## Compiling git-chat
-This project uses the CMake build tool. We recommend version 2.8.11.
+## Runtime Dependencies
+git-chat has very few dependencies. It only needs `Git` and `GPG` to be installed somewhere on the PATH.
+
+## Building git-chat
+This project uses the `CMake` build tool. We recommend version 2.8.11. This project also uses `CTest` for executing unit and integration tests, and optionally `Valgrind` for running memcheck.
 
 We actively try to support as many environments as possible. This project can be compiled and run on Linux-based distributions, and MacOS, and can be compiled using GCC or Clang compilers. If we don't support your current system, let us know!
 
 A note about Windows: We don't offer support for building or running git-chat on Windows machines, and we don't plan to support Windows any time soon.
 
-### Dependencies
-git-chat has very few dependencies. It only needs Git and GPG to be installed somewhere on the PATH.
-
-### Build and Run Project
-You can build git-chat by following these steps from the project root directory:
-
+### Compiling
+To compile git-chat from sources:
 ```
-mkdir build
-cd build
-cmake ..
-cmake --build .
-
-./git-chat
+$ mkdir build
+$ cd build
+$ cmake ..
+$ cmake --build .
 ```
 
 ### Installing
-Installing git-chat will install the compiled binaries and copy template files to `/usr/local/share/git-chat`.
+Installing git-chat will install the `git-chat` executable in `/usr/local/bin`, install template files in `/usr/local/share/git-chat`, and install man pages in `/usr/share/man/man1`.
 
+To install git-chat:
 ```
-mkdir build
-cd build
-cmake ..
-cmake --build . --target install --config Debug
+$ mkdir build
+$ cd build
+$ cmake ..
+$ sudo cmake --build . --target install
 ```
 
-### Executing Tests
-To execute the tests:
+### Running Tests
+The steps below are the very basics--just enough to get you started. For more details, see `test/README.md`.
 
+Before you run any tests, you will need to build git-chat. To do this, from the project root directory, run:
 ```
-mkdir build
-cd buikd
-cmake ..
-cmake --build .
+$ mkdir build
+$ cd build
+$ cmake ..
+$ cmake --build .
+```
 
-# (Optional)
-export GIT_CHAT_TEST_VERBOSE=1
-export GIT_CHAT_TEST_IMMEDIATE=1
+Then to run unit tests:
+```
+$ ctest -R unit-tests
+```
 
-./git-chat-test
+To run integration tests:
+```
+$ ctest -R integration-tests
+```
+
+To run all tests:
+```
+$ ctest
 ```
 
 ## Using git-chat

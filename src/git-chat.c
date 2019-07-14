@@ -131,6 +131,9 @@ static char *find_extension(char *extension_name)
 	char *path = find_in_path(filename.buff);
 
 	strbuf_release(&filename);
+	if (!is_executable(path)) {
+		return NULL;
+	}
 
 	return path;
 }

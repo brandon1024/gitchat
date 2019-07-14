@@ -1,14 +1,17 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
+set -e
 
 # Install git-chat
 sudo cmake --build . --target install
 which git-chat
 
 # Run unit tests
-./git-chat-test
+ctest --verbose
 
 # Run valgrind, if Linux
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    cd test
     valgrind \
         --tool=memcheck \
         --gen-suppressions=all \
@@ -17,5 +20,5 @@ if [ "$TRAVIS_OS_NAME" = "linux" ]; then
         --track-origins=yes \
         --vgdb=no \
         --error-exitcode=1 \
-        ./git-chat-test
+        ./git-chat-unit-tests
 fi

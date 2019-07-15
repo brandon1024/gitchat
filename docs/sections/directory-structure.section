@@ -1,0 +1,13 @@
+\fIgit-chat\fR uses a rather simple directory structure. When a repository is initialized, three directories are created at the root of the working tree: \fB.git\fR, \fB.git-chat\fR, and \fB.keys\fR.
+
+.TP
+.B .git
+This directory is created by \fIgit-init\fR, and is largely untouched by git-chat, with the exception of \fB.git/chat-cache\fR which contains git-chat configuration files, temporary files, and gpg keyring.
+
+.TP
+.B .git-chat
+This directory is created by \fIgit-chat-init\fR. It contains channel metadata, such as the channel name and description. These files are tracked, and are therefore public to all users.
+
+.TP
+.B .keys
+This directory is created by \fIgit-chat-init\fR. It contains public gpg keys for all users in the current channel. These keys are used by the users in a channel to encrypt messages. These files are tracked, and are therefore public to all users.

@@ -34,20 +34,9 @@ Be more quiet. Do not print informational messages. Error messages will still be
 \-h, \-\-help
 Print a simple synopsis and exit.
 
+
 .SH FILE/DIRECTORY LAYOUT
-\fIgit-chat\fR uses a rather simple directory structure. When a repository is initialized, three directories are created at the root of the working tree: \fB.git\fR, \fB.git-chat\fR, and \fB.keys\fR.
-
-.TP
-.B .git
-This directory is created by \fIgit-init\fR, and is largely untouched by git-chat, with the exception of \fB.git/chat-cache\fR which contains git-chat configuration files, temporary files, and gpg keyring.
-
-.TP
-.B .git-chat
-This directory is created by \fIgit-chat-init\fR. It contains channel metadata, such as the channel name and description. These files are tracked, and are therefore public to all users.
-
-.TP
-.B .keys
-This directory is created by \fIgit-chat-init\fR. It contains public gpg keys for all users in the current channel. These keys are used by the users in a channel to encrypt messages. These files are tracked, and are therefore public to all users.
+@DOCS_FILE_DIRECTORY_LAYOUT_SECTION@
 
 
 .SH SEE ALSO
@@ -55,10 +44,8 @@ This directory is created by \fIgit-chat-init\fR. It contains public gpg keys fo
 
 
 .SH REPORTING BUGS
-git-chat is still a work in progress. We try our best to support as many platforms and environments as possible, but there are certainly going to be issues.
-
-If you have any issues, please log an issue in our GitHub issue tracker at \fBhttps://github.com/brandon1024/gitchat\fR.
+@DOCS_REPORTING_BUGS_SECTION@
 
 
 .SH AUTHOR
-Brandon Richardson (brandon1024.br@gmail.com)
+@DOCS_AUTHORS_SECTION@

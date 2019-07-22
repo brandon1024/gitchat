@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. ./test-lib.sh
+source ./test-lib.sh
 
 assert_success 'git chat init -h should exit with status 0' '
 	git-chat init -h

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. ./test-lib.sh
+source ./test-lib.sh
 
 assert_success 'git-chat should look for extensions when invoked with unrecognized subcommand' '
 	cat >git-chat-extension <<-\EOF &&

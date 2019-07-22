@@ -6,7 +6,7 @@ if [ ! -f test-lib.sh ]; then
 	exit 1
 fi
 
-. ./test-lib.sh
+source ./test-lib.sh
 
 #
 # Verify Installation

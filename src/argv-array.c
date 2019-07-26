@@ -74,7 +74,7 @@ char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim)
 	}
 
 	char *str = (char *)calloc(len, sizeof(char));
-	if (str == NULL)
+	if (!str)
 		FATAL(MEM_ALLOC_FAILED);
 
 	strcat(str, str_a.strings[0]);

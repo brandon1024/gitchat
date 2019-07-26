@@ -41,6 +41,7 @@ void argv_array_release(struct argv_array *argv_a);
  *
  * This function returns the number of items pushed to the argv_array.
  * */
+__attribute__ ((sentinel))
 int argv_array_push(struct argv_array *argv_a, ...);
 
 /**
@@ -62,6 +63,7 @@ char *argv_array_pop(struct argv_array *argv_a);
  *
  * This function returns the number of items prepended to the argv_array.
  * */
+__attribute__ ((sentinel))
 int argv_array_prepend(struct argv_array *argv_a, ...);
 
 /**

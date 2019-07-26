@@ -227,6 +227,8 @@ static void update_space_description(char *base, const char *description)
 
 	close(desc_fd);
 	strbuf_release(&desc_path);
+
+	LOG_INFO("Updated space description to '%s'", description);
 }
 
 /**
@@ -304,9 +306,6 @@ int get_author_identity(struct strbuf *result)
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	cmd.no_in = 1;
-	cmd.no_out = 1;
-	cmd.no_err = 1;
 	argv_array_push(&cmd.args, "config", "--get", "user.username", NULL);
 	ret = capture_command(&cmd, &cmd_out);
 	child_process_def_release(&cmd);
@@ -322,9 +321,6 @@ int get_author_identity(struct strbuf *result)
 	strbuf_init(&cmd_out);
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	cmd.no_in = 1;
-	cmd.no_out = 1;
-	cmd.no_err = 1;
 	argv_array_push(&cmd.args, "config", "--get", "user.name", NULL);
 	ret = capture_command(&cmd, &cmd_out);
 	child_process_def_release(&cmd);
@@ -340,9 +336,6 @@ int get_author_identity(struct strbuf *result)
 	strbuf_init(&cmd_out);
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	cmd.no_in = 1;
-	cmd.no_out = 1;
-	cmd.no_err = 1;
 	argv_array_push(&cmd.args, "config", "--get", "user.email", NULL);
 	ret = capture_command(&cmd, &cmd_out);
 	child_process_def_release(&cmd);

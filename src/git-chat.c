@@ -37,7 +37,6 @@ static struct cmd_builtin builtins[] = {
 		{ NULL, NULL }
 };
 
-/* Function Prototypes */
 static struct cmd_builtin *get_builtin(const char *s);
 static int run_builtin(struct cmd_builtin *builtin, int argc, char *argv[]);
 static int run_extension(const char *s, int argc, char *argv[]);
@@ -45,7 +44,6 @@ static char *find_extension(char *extension_name);
 static void show_main_usage(int err, const char *optional_message_format, ...);
 static void show_version(void);
 
-/* Public Functions */
 int main(int argc, char *argv[])
 {
 	//Show usage and return if no arguments provided
@@ -79,7 +77,7 @@ int main(int argc, char *argv[])
 			return status;
 		}
 
-		show_main_usage(1, "error: unknown command '%s'", argv[1]);
+		show_main_usage(1, "error: unknown command or option '%s'", argv[1]);
 		return 1;
 	}
 
@@ -113,7 +111,7 @@ static int run_extension(const char *s, int argc, char *argv[])
 	child_process_def_init(&cmd);
 	cmd.executable = s;
 	for (size_t i = 0; i < argc; i++)
-		argv_array_push(&cmd.args, argv[i]);
+		argv_array_push(&cmd.args, argv[i], NULL);
 
 	int status = run_command(&cmd);
 	child_process_def_release(&cmd);

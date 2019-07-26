@@ -16,7 +16,7 @@ ADD_TEST(NAME unit-tests COMMAND ${PROJECT_NAME}-unit-tests)
 #
 # Configure Integration Tests
 #
-FIND_PROGRAM(BASH_INTERPRETER sh)
+FIND_PROGRAM(BASH_INTERPRETER bash)
 ADD_CUSTOM_TARGET(${PROJECT_NAME}-integration-tests)
 ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME}-integration-tests COMMAND ${BASH_INTERPRETER} "${PROJECT_BINARY_DIR}/test/integration-runner.sh")
 

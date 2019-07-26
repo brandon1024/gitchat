@@ -90,6 +90,7 @@ int str_array_set_nodup(struct str_array *str_a, char *str, size_t pos);
  *
  * This function returns the number of items pushed to the str_array.
  * */
+__attribute__ ((sentinel))
 int str_array_push(struct str_array *str_a, ...);
 
 /**

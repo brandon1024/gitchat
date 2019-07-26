@@ -42,13 +42,13 @@ void strbuf_grow(struct strbuf *buff, size_t size);
  * Attach a string to the strbuf, up to buffer_len characters or until null byte
  * is encountered.
  * */
-void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len);
+void strbuf_attach(struct strbuf *buff, const char *str, size_t buffer_len);
 
 /**
  * Attach a null-terminated string to the strbuf. Similar to strbuf_attach(), except
  * uses strlen() to determine the buffer_len.
  * */
-void strbuf_attach_str(struct strbuf *buff, char *str);
+void strbuf_attach_str(struct strbuf *buff, const char *str);
 
 /**
  * Attach a single character to the strbuf.

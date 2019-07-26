@@ -64,4 +64,15 @@ void WARN(const char *fmt, ...);
  * */
 void set_exit_routine(NORETURN void (*new_exit_routine)(int status));
 
+/**
+ * Determine whether the current working directory is a valid git-chat space.
+ *
+ * The current working directory is a git-chat space if the following conditions
+ * are met:
+ * - `.git-chat` exists and is a directory
+ * - `.git` exists and is a directory
+ * - `git rev-parse --is-inside-work-tree` returns with a zero exit status
+ * */
+int is_inside_git_chat_space();
+
 #endif //GIT_CHAT_UTILS_H

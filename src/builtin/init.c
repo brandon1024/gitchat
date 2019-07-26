@@ -23,10 +23,10 @@ static const struct usage_description init_cmd_usage[] = {
 };
 
 static const struct option_description init_cmd_options[] = {
-		OPT_STRING('n', "name", "name", "Specify a name for the master channel"),
-		OPT_STRING('d', "description", "desc", "Specify a description for the space"),
-		OPT_BOOL('q', "quiet", "Only print error and warning messages"),
-		OPT_BOOL('h', "help", "Show usage and exit"),
+		OPT_STRING('n', "name", "name", "specify a name for the master channel"),
+		OPT_STRING('d', "description", "desc", "specify a description for the space"),
+		OPT_BOOL('q', "quiet", "only print error and warning messages"),
+		OPT_BOOL('h', "help", "show usage and exit"),
 		OPT_END()
 };
 
@@ -49,19 +49,29 @@ int cmd_init(int argc, char *argv[])
 		char *arg = argv[arg_index];
 
 		if (!is_valid_argument(arg, init_cmd_options)) {
-			show_init_usage(1, "error: unknown flag '%s'", arg);
+			show_init_usage(1, "error: unknown option '%s'", arg);
 			return 1;
 		}
 
 		//room name
 		if (argument_matches_option(arg, init_cmd_options[0])) {
-			channel_name = argv[++arg_index];
+			if (++arg_index >= argc) {
+				show_init_usage(1, "error: no channel name provided with %s", arg);
+				return 1;
+			}
+
+			channel_name = argv[arg_index];
 			continue;
 		}
 
 		//room description
 		if (argument_matches_option(arg, init_cmd_options[1])) {
-			room_desc = argv[++arg_index];
+			if (++arg_index >= argc) {
+				show_init_usage(1, "error: no room description provided with %s", arg);
+				return 1;
+			}
+
+			room_desc = argv[arg_index];
 			continue;
 		}
 
@@ -85,6 +95,9 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 {
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
+
+	if (is_inside_git_chat_space())
+		DIE("A git-chat space cannot be reinitialized.");
 
 	LOG_INFO("Initializing new space '%s' with master channel name '%s'",
 			space_desc, channel_name);
@@ -122,43 +135,49 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 
 	// create .keys directory
 	safe_create_dir(cwd_path_buf.buff, ".keys");
+	LOG_INFO("Created .keys directory");
 
-	//recursively copy from template dir into .cache
-	struct strbuf cache_path;
-	strbuf_init(&cache_path);
-	strbuf_attach_fmt(&cache_path, "%s/.cache", cwd_path_buf.buff);
-	copy_dir(DEFAULT_GIT_CHAT_TEMPLATES_DIR, cache_path.buff);
-	LOG_INFO("Copied directory from " DEFAULT_GIT_CHAT_TEMPLATES_DIR " to '%s'",
-			 cache_path.buff);
+	// create .keys directory
+	safe_create_dir(cwd_path_buf.buff, ".git/chat-cache");
+	LOG_INFO("Created .git/chat-cache directory");
+
+	//recursively copy from template dir into .git-chat
+	struct strbuf git_chat_path;
+	strbuf_init(&git_chat_path);
+	strbuf_attach_fmt(&git_chat_path, "%s/.git-chat", cwd_path_buf.buff);
+	copy_dir(DEFAULT_GIT_CHAT_TEMPLATES_DIR, git_chat_path.buff);
+	LOG_INFO("Copied directory from '" DEFAULT_GIT_CHAT_TEMPLATES_DIR "' to '%s'",
+			 git_chat_path.buff);
 
 	struct strbuf author;
 	strbuf_init(&author);
 
 	char *author_str = NULL;
-	if (!get_author_identity(&author))
+	if (!get_author_identity(&author)) {
 		author_str = author.buff;
-	else
+		LOG_INFO("Found user details (%s) from global .gitconfig", author_str);
+	} else
 		WARN("Unable to retrieve your user information. Is your user configured through .gitconfig?");
 
-	update_config(cache_path.buff, channel_name, author_str);
-	update_space_description(cache_path.buff, space_desc);
+	update_config(git_chat_path.buff, channel_name, author_str);
+	update_space_description(git_chat_path.buff, space_desc);
 
-	initialize_channel_root(cache_path.buff);
+	initialize_channel_root(git_chat_path.buff);
 
 	if (!quiet)
 		fprintf(stdout, "Successfully initialized git-chat space.\n");
 
 	strbuf_release(&author);
 	strbuf_release(&cwd_path_buf);
-	strbuf_release(&cache_path);
+	strbuf_release(&git_chat_path);
 
 	return 0;
 }
 
 /**
- * Update the channel name and channel creator in .cache/config.
+ * Update the channel name and channel creator in .git-chat/config.
  *
- * The argument 'base' is a full path to the .cache directory.
+ * The argument 'base' is a full path to the .git-chat directory.
  * */
 static void update_config(char *base, const char *channel_name, const char *author)
 {
@@ -200,12 +219,14 @@ static void update_config(char *base, const char *channel_name, const char *auth
 	write_config(&conf, config_path.buff);
 	strbuf_release(&config_path);
 	release_config_resources(&conf);
+
+	LOG_INFO("Updated master channel configuration");
 }
 
 /**
- * Update the description of the space by writing to .cache/description.
+ * Update the description of the space by writing to .git-chat/description.
  *
- * The argument 'base' is a full path to the .cache directory.
+ * The argument 'base' is a full path to the .git-chat directory.
  * */
 static void update_space_description(char *base, const char *description)
 {
@@ -283,14 +304,16 @@ static void initialize_channel_root(char *base)
 		DIE("unable to create initial commit; git exited with status %d", ret);
 
 	child_process_def_release(&cmd);
+
+	LOG_INFO("Successfully created channel root commit");
 }
 
 /**
  * Attempt to fetch the user identify from their .gitconfig. The author's name
  * is chosen, in the following order:
  * 1. user.username
- * 2. user.name
- * 3. user.email
+ * 2. user.email
+ * 3. user.name
  *
  * If none of these are available (i.e. git returns a status of 1 for all three),
  * then this function returns 1. Otherwise, returns 0 and populates the given
@@ -316,12 +339,12 @@ int get_author_identity(struct strbuf *result)
 		return 0;
 	}
 
-	//then user.name
+	//then user.email
 	strbuf_release(&cmd_out);
 	strbuf_init(&cmd_out);
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	argv_array_push(&cmd.args, "config", "--get", "user.name", NULL);
+	argv_array_push(&cmd.args, "config", "--get", "user.email", NULL);
 	ret = capture_command(&cmd, &cmd_out);
 	child_process_def_release(&cmd);
 	if (!ret) {
@@ -331,12 +354,12 @@ int get_author_identity(struct strbuf *result)
 		return 0;
 	}
 
-	//then user.email
+	//then user.name
 	strbuf_release(&cmd_out);
 	strbuf_init(&cmd_out);
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	argv_array_push(&cmd.args, "config", "--get", "user.email", NULL);
+	argv_array_push(&cmd.args, "config", "--get", "user.name", NULL);
 	ret = capture_command(&cmd, &cmd_out);
 	child_process_def_release(&cmd);
 	if (!ret) {

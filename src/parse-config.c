@@ -14,7 +14,7 @@
 #define BUFF_LEN 64
 #define BUFF_SLOP 8
 
-static char *read_line(FILE *fd);
+static char *read_line(FILE *fp);
 static char *extract_section_name(char *line_str);
 static int validate_section_name(char *section_name);
 static int extract_key_value_pair(char *line_str, char **key, char **value);
@@ -23,7 +23,7 @@ static int conf_entry_comparator(const void *a, const void *b);
 int parse_config(struct conf_data *conf, const char *conf_path)
 {
 	struct stat sb;
-	FILE *fd;
+	FILE *fp;
 	char *current_section = NULL, *line;
 
 	*conf = (struct conf_data){ .entries = NULL, .entries_len = 0, .entries_alloc = 0 };
@@ -34,13 +34,13 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 		return -1;
 	}
 
-	fd = fopen(conf_path, "r");
-	if (!fd) {
+	fp = fopen(conf_path, "r");
+	if (!fp) {
 		LOG_ERROR("Cannot open file '%s'; %s", conf_path, strerror(errno));
 		return -1;
 	}
 
-	while ((line = read_line(fd))) {
+	while ((line = read_line(fp))) {
 		char *section = extract_section_name(line);
 		if (section) {
 			if (validate_section_name(section)) {
@@ -49,6 +49,7 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 				free(section);
 				free(line);
 				release_config_resources(conf);
+				fclose(fp);
 				return 1;
 			}
 
@@ -63,6 +64,7 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 				free(section);
 				free(line);
 				release_config_resources(conf);
+				fclose(fp);
 				return 1;
 			}
 
@@ -83,6 +85,7 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 					free(key);
 					free(value);
 					release_config_resources(conf);
+					fclose(fp);
 					return 1;
 				}
 			}
@@ -110,6 +113,7 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 		free(line);
 	}
 
+	fclose(fp);
 	return 0;
 }
 
@@ -197,7 +201,7 @@ void release_config_resources(struct conf_data *conf)
  * Leading and trailing whitespace is trimmed before the string is returned.
  * Lines consisting of whitespace only will be skipped.
  * */
-static char *read_line(FILE *fd)
+static char *read_line(FILE *fp)
 {
 	char buffer[BUFF_LEN];
 	size_t len = 0;
@@ -207,7 +211,7 @@ static char *read_line(FILE *fd)
 
 	char *eos;
 	do {
-		if (!fgets(buffer, BUFF_LEN, fd)) {
+		if (!fgets(buffer, BUFF_LEN, fp)) {
 			strbuf_release(&buf);
 			return NULL;
 		}
@@ -215,7 +219,7 @@ static char *read_line(FILE *fd)
 		len = strlen(buffer);
 		eos = buffer + len - 1;
 
-		if (*eos == '\n' || feof(fd)) {
+		if (*eos == '\n' || feof(fp)) {
 			strbuf_attach(&buf, buffer, (buffer - eos));
 
 			char *ptr = buf.buff;

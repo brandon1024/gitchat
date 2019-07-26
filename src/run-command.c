@@ -3,8 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 
 #include "run-command.h"
@@ -224,8 +224,8 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 static inline void set_cloexec(int fd)
 {
 	int flags = fcntl(fd, F_GETFD);
-	if (flags >= 0)
-		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+	if (flags < 0 || fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)
+		FATAL("fcntl() failed unexpectedly.");
 }
 
 /**
@@ -258,9 +258,8 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 	if (result->len)
 		BUG("merge_env() accepts an empty str_array as an argument, but given str_array was not empty.");
 
-	while (*parent_env) {
+	while (*parent_env)
 		str_array_push(&current_env, *(parent_env++), NULL);
-	}
 
 	for (size_t i = 0; i < deltaenv->len; i++)
 		str_array_insert(result, deltaenv->strings[i], i);

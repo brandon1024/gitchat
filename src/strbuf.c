@@ -37,13 +37,13 @@ void strbuf_grow(struct strbuf *buff, size_t size)
 		FATAL(MEM_ALLOC_FAILED);
 }
 
-void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
+void strbuf_attach(struct strbuf *buff, const char *str, size_t buffer_len)
 {
 	char *eos = memchr(str, 0, buffer_len);
 	size_t str_len = (eos == NULL) ? buffer_len : (size_t)(eos - str);
 
 	if ((buff->len + str_len + 1) >= buff->alloc)
-		strbuf_grow(buff, buffer_len + BUFF_SLOP);
+		strbuf_grow(buff, buff->alloc + buffer_len + BUFF_SLOP);
 
 	strncpy(buff->buff + buff->len, str, str_len);
 	buff->buff[buff->len + str_len] = 0;
@@ -51,7 +51,7 @@ void strbuf_attach(struct strbuf *buff, char *str, size_t buffer_len)
 	buff->len += str_len;
 }
 
-void strbuf_attach_str(struct strbuf *buff, char *str)
+void strbuf_attach_str(struct strbuf *buff, const char *str)
 {
 	strbuf_attach(buff, str, strlen(str));
 }

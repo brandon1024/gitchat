@@ -90,14 +90,14 @@ assert_success 'git chat init -d with description should set the space descripti
 	reset_trash_dir
 ' '
 	git chat init -d "test-description" &&
-	[ "$(cat .git-chat/description)" == "test-description" ]
+	[ "$(cat .git-chat/description)" = "test-description" ]
 '
 
 assert_success 'git chat init --description with description should set the space description' '
 	reset_trash_dir
 ' '
 	git chat init --description "test-description-2" &&
-	[ "$(cat .git-chat/description)" == "test-description-2" ]
+	[ "$(cat .git-chat/description)" = "test-description-2" ]
 '
 
 assert_success 'git chat init should update config first with username' '

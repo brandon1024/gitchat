@@ -34,11 +34,11 @@ assert_success 'reinitializing a git-chat space should not overwrite .git-chat o
 	git chat init &&
 	echo "my space" >>.git-chat/description &&
 	echo "my keys" >.keys/key.gpg &&
-	md5sum .git-chat/* >expected_git_chat &&
-	md5sum .keys/* >expected_keys &&
+	shasum .git-chat/* >expected_git_chat &&
+	shasum .keys/* >expected_keys &&
 	! git chat init &&
-	md5sum .git-chat/* >actual_git_chat &&
-	md5sum .keys/* >actual_keys &&
+	shasum .git-chat/* >actual_git_chat &&
+	shasum .keys/* >actual_keys &&
 	cmp -s expected_git_chat actual_git_chat &&
 	cmp -s expected_keys actual_keys
 '

@@ -103,6 +103,6 @@ assert_failure () {
 }
 
 reset_trash_dir () {
-	rm -rf ./{*,.*}
+	rm -rf ..?* .[!.]* *
 	return 0
 }

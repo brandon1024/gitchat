@@ -114,7 +114,7 @@ for test_path in $TESTS; do
 	rebuild_trash_dir
 
 	echo '***' $(basename -- "$test_path") '***'
-	sh $test_path
+	bash $test_path
 
 	if [ "$?" -ne "0" ]; then
 		TEST_FAILURES=$((TEST_FAILURES + 1))

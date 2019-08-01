@@ -102,17 +102,44 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 	LOG_INFO("Initializing new space '%s' with master channel name '%s'",
 			space_desc, channel_name);
 
+	struct strbuf templates_dir_path;
+	strbuf_init(&templates_dir_path);
+
+	strbuf_attach_str(&templates_dir_path, DEFAULT_GIT_CHAT_TEMPLATES_DIR);
 	struct stat sb;
-	if (stat(DEFAULT_GIT_CHAT_TEMPLATES_DIR, &sb) == -1) {
+	if (stat(templates_dir_path.buff, &sb) == -1) {
 		if (errno == EACCES)
 			DIE("Something's not quite right with your installation.\n"
-				"Tried to copy from template directory '%s' but don't have\n"
+				"Tried to copy from template directory '%s' but don't have "
 				"sufficient permission to read from there.",
 				DEFAULT_GIT_CHAT_TEMPLATES_DIR);
 
-		DIE("Something's not quite right with your installation.\n"
-			"Tried to copy from template directory '%s' but directory doesn't exist.",
-			DEFAULT_GIT_CHAT_TEMPLATES_DIR);
+		LOG_INFO("Could not stat '%s'. Falling back on $HOME/share/git-chat/templates",
+				DEFAULT_GIT_CHAT_TEMPLATES_DIR);
+
+		strbuf_release(&templates_dir_path);
+		const char *home = getenv("HOME");
+		if (!home || !*home)
+			DIE("Tried to copy from template directory HOME/share/git-chat/templates, "
+				"but the $HOME environment variable is not set.");
+
+		strbuf_init(&templates_dir_path);
+		strbuf_attach_fmt(&templates_dir_path, "%s/share/git-chat/templates", home);
+		if (stat(templates_dir_path.buff, &sb) == -1) {
+			if (errno == EACCES)
+				DIE("Something's not quite right with your installation.\n"
+					"Tried to copy from template directory '%s' but don't have "
+					"sufficient permission to read from there.",
+					templates_dir_path.buff);
+
+			DIE("Something's not quite right with your installation.\n"
+				"Tried to copy from template directory but directory doesn't exist.\n"
+				"Looked in the following places:\n"
+				"%s\n"
+				"%s",
+				DEFAULT_GIT_CHAT_TEMPLATES_DIR,
+				templates_dir_path.buff);
+		}
 	}
 
 	cmd.git_cmd = 1;
@@ -145,9 +172,9 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 	struct strbuf git_chat_path;
 	strbuf_init(&git_chat_path);
 	strbuf_attach_fmt(&git_chat_path, "%s/.git-chat", cwd_path_buf.buff);
-	copy_dir(DEFAULT_GIT_CHAT_TEMPLATES_DIR, git_chat_path.buff);
-	LOG_INFO("Copied directory from '" DEFAULT_GIT_CHAT_TEMPLATES_DIR "' to '%s'",
-			 git_chat_path.buff);
+	copy_dir(templates_dir_path.buff, git_chat_path.buff);
+	LOG_INFO("Copied directory from '%s' to '%s'", templates_dir_path.buff,
+			git_chat_path.buff);
 
 	struct strbuf author;
 	strbuf_init(&author);
@@ -167,6 +194,7 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 	if (!quiet)
 		fprintf(stdout, "Successfully initialized git-chat space.\n");
 
+	strbuf_release(&templates_dir_path);
 	strbuf_release(&author);
 	strbuf_release(&cwd_path_buf);
 	strbuf_release(&git_chat_path);

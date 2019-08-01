@@ -24,11 +24,12 @@ Running unit tests is quite straightforward. First, you'll need to build git-cha
 $ mkdir build
 $ cd build
 $ cmake ..
-$ cmake --build .
+$ make git-chat-unit-tests
 ```
 
-Next, simply run the `git-chat-unit-tests` executable to run all unit tests.
+Next, run the unit tests using any of the methods below:
 ```
+$ ctest -R integration-tests --verbose
 $ ./git-chat-unit-tests
 ```
 
@@ -92,52 +93,40 @@ Failed: 1
 ```
 
 ### Integration
-Configuring and running integration tests is a bit more involved, but the steps below should be enough to get you all set up.
+Configuring and running integration tests is a bit more involved, since an installation of git-chat is needed. The steps below should be enough to get you all set up.
 
-#### CMake Build Target
-The integration tests are configured as a CMake build target, and are executed by running the following command from the cmake build directory:
+#### Using the CMake Build Target
+The integration tests are configured as a CMake build target, and can executed by running the following from the project root:
 ```
 $ mkdir build
 $ cd build
 $ cmake ..
+
+$ # for local installation
+$ TEST_GIT_CHAT_INSTALLED=~/bin cmake --build . --target git-chat-integration-tests
+
+$ # or for global installation
 $ cmake --build . --target git-chat-integration-tests
 ```
 
-This is the easiest way to run the tests. Note that this will run all integration tests against the system git-chat installation.
+This is the easiest way to run the tests.
 
-#### Integration Runner
+#### Using the Integration Runner
 The integration tests can also be executed using the `integration-runner.sh`, located in `test/`.
 ```
 $ mkdir build
 $ cd build
 $ cmake ..
 $ cd test
+
+$ # for local installation
+$ ./integration-runner.sh --git-chat-installed ~/bin
+
+$ # or for global installation
 $ ./integration-runner.sh
 ```
 
-The runner recognizes a number of arguments:
-```
-	--from-dir <directory>
-		By default, tests are executed from 'trash/' directory relative to this
-		script. This command is used to override this.
-
-	--git-chat-installed <path>
-		If git-chat is installed in an alternate directory, use that installation
-		rather than the global one. Simply places the given directory at the
-		beginning of the PATH.
-
-	--test <pattern>
-		Run specific tests according to a given pattern.
-
-	-v, --verbose
-		Be more verbose.
-
-	-d, --debug
-		Print verbose debugging information.
-
-	--no-color
-		Don't print colored output.
-```
+The runner recognizes a number of command line arguments and environment variables, which are documented fully in `integration-runner.sh`.
 
 ## Writing Tests
 ### Unit Tests

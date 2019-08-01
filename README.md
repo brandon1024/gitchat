@@ -11,56 +11,61 @@ If you're using git-chat for messaging with your savvy friends, you're an awesom
 git-chat has very few dependencies. It only needs `Git` and `GPG` to be installed somewhere on the PATH.
 
 ## Building git-chat
-This project uses the `CMake` build tool. We recommend version 2.8.11. This project also uses `CTest` for executing unit and integration tests, and optionally `Valgrind` for running memcheck.
+This project uses the `CMake` build tool. We recommend version 3.7.2 or higher. This project also uses `CTest` for executing unit and integration tests, and optionally `Valgrind` for running memcheck.
 
 We actively try to support as many environments as possible. This project can be compiled and run on Linux-based distributions, and MacOS, and can be compiled using GCC or Clang compilers. If we don't support your current system, let us know!
 
 A note about Windows: We don't offer support for building or running git-chat on Windows machines, and we don't plan to support Windows any time soon.
 
-### Compiling
-To compile git-chat from sources:
+### Installation
+By default, git-chat is installed into your ~/bin and ~/share directories. To install, from the project root run:
 ```
 $ mkdir build
 $ cd build
 $ cmake ..
-$ cmake --build .
+$ make install
+
+$ ~/bin/git-chat --version
 ```
 
-### Installing
-Installing git-chat will install the `git-chat` executable in `/usr/local/bin`, install template files in `/usr/local/share/git-chat`, and install man pages in `/usr/share/man/man1`.
-
-To install git-chat:
+For a global install, from the project root run:
 ```
 $ mkdir build
 $ cd build
-$ cmake ..
-$ sudo cmake --build . --target install
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+$ make install
+
+$ git-chat --version
 ```
 
 ### Running Tests
 The steps below are the very basics--just enough to get you started. For more details, see `test/README.md`.
 
-Before you run any tests, you will need to build git-chat. To do this, from the project root directory, run:
+Running unit tests does not require installation of git-chat. To run the unit tests, simply run from the project root:
 ```
 $ mkdir build
 $ cd build
 $ cmake ..
-$ cmake --build .
+$ make git-chat-unit-tests
+$ ctest -R unit-tests --verbose
 ```
 
-Then to run unit tests:
+To run integration tests against a local installation of git-chat, run from the project root:
 ```
-$ ctest -R unit-tests
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make all install
+$ TEST_GIT_CHAT_INSTALLED=~/bin ctest -R integration-tests --verbose
 ```
 
-To run integration tests:
+To run integration tests against a global installation of git-chat, run from the project root:
 ```
-$ ctest -R integration-tests
-```
-
-To run all tests:
-```
-$ ctest
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make all install
+$ ctest -R integration-tests --verbose
 ```
 
 ## Using git-chat

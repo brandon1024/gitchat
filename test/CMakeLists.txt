@@ -37,6 +37,13 @@ FOREACH(INTEGRATION_TEST ${INTEGRATION_TESTS})
 	)
 ENDFOREACH()
 
+FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/test/integration/valgrind)
+CONFIGURE_FILE(
+		"${PROJECT_SOURCE_DIR}/test/integration/valgrind/valgrind.sh"
+		"${PROJECT_BINARY_DIR}/test/integration/valgrind/valgrind.sh"
+		COPYONLY
+)
+
 ADD_TEST(integration-tests ${BASH_INTERPRETER} "${PROJECT_BINARY_DIR}/test/integration-runner.sh")
 
 #

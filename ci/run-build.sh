@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
+#
+# Travis CI build script for installing git-chat and executing test suites.
 
 set -e
 
 # Install git-chat
-sudo cmake --build . --target install
+sudo make all install
 which git-chat
 
-# Run unit tests
+# Run tests
 ctest --verbose
 
 # Run valgrind, if Linux
-if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     cd test
     valgrind \
         --tool=memcheck \

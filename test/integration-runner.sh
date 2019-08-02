@@ -15,6 +15,10 @@
 #	--test <pattern>
 #		Run specific tests according to a given pattern.
 #
+#	--valgrind
+#		Run all git-chat binaries under valgrind memcheck. Note that this will
+#		take much longer to execute.
+#
 #	-v, --verbose
 #		Be more verbose. Prints the output from the test setup and test commands
 #		executed.
@@ -38,6 +42,12 @@
 #	TEST_PATTERN
 #		Equivalent to using --test <pattern> option.
 #
+#	TEST_VALGRIND
+#		Equivalent to using --valgrind
+#
+#	VALGRIND_TOOL_OPTIONS
+#		Pass options to valgrind memcheck. This will override any default options.
+#
 #	TEST_VERBOSE
 #		Equivalent to using --verbose option.
 #
@@ -55,6 +65,8 @@ TEST_PATTERN="${TEST_PATTERN:-t[0-9][0-9][0-9]*.sh}"
 TEST_VERBOSE="${TEST_VERBOSE:-}"
 TEST_DEBUG="${TEST_DEBUG:-}"
 TEST_NO_COLOR_OUT="${TEST_NO_COLOR_OUT:-}"
+TEST_VALGRIND="${TEST_VALGRIND:-}"
+
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 		--from-dir)
@@ -70,6 +82,10 @@ while [[ $# -gt 0 ]]; do
 		--test)
 			TEST_PATTERN=$2
 			shift
+			shift
+			;;
+		--valgrind)
+			TEST_VALGRIND=1
 			shift
 			;;
 		-v|--verbose)
@@ -91,10 +107,6 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-if [ ! -z "${TEST_DEBUG}" ]; then
-	set -x
-fi
-
 debug () {
 	if [ ! -z "${TEST_DEBUG}" ]; then
 		echo 'DEBUG:' "${1}"
@@ -108,42 +120,79 @@ rebuild_trash_dir () {
 		rm -rf $TEST_TRASH_DIR
 	fi
 
-    mkdir $TEST_TRASH_DIR
+	mkdir $TEST_TRASH_DIR
 }
 
+# Test Setup
 #
-# Test Start
 #
+if [ ! -z "${TEST_DEBUG}" ]; then
+	set -x
+fi
+
+# Verify that git-chat binaries exist
 if [ ! -z "${TEST_GIT_CHAT_INSTALLED}" ]; then
+	if ! type "${TEST_GIT_CHAT_INSTALLED}/git-chat" >/dev/null 2>&1; then
+		echo "Could not find git-chat binaries in the provided installation location:" 1>&2
+		echo "${TEST_GIT_CHAT_INSTALLED}" 1>&2
+		exit 1
+	fi
+elif ! type git-chat >/dev/null 2>&1; then
+	echo "Could not find git-chat binaries on the path:" 1>&2
+	echo "${PATH}" 1>&2
+	exit 1
+fi
+
+if [ ! -d "${TEST_RUNNER_PATH}/integration" ]; then
+	echo "No tests were found; directory does not exist: ${TEST_RUNNER_PATH}/integration" 1>&2
+	exit 1
+fi
+
+if [ ! -z "${TEST_VALGRIND}" ]; then
+	# When running integration tests under valgrind memcheck, we wrap the git-chat
+	# executable in valgrind.sh, which accepts the same arguments as git-chat.
+	# Then, we symlink git-chat to valgrind.sh, and put it on the PATH.
+
+	if [ ! -d "${TEST_RUNNER_PATH}/integration/valgrind" ]; then
+		echo "Valgrind tooling does not exist: ${TEST_RUNNER_PATH}/integration/valgrind" 1>&2
+		exit 1
+	fi
+
+	if [ ! -z "${TEST_GIT_CHAT_INSTALLED}" ]; then
+		export VALGRIND_TARGET="${TEST_GIT_CHAT_INSTALLED}/git-chat"
+	else
+		export VALGRIND_TARGET="$(which git-chat)"
+	fi
+
+	rm -f "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
+	ln -s "${TEST_RUNNER_PATH}/integration/valgrind/valgrind.sh" "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
+	export PATH="${TEST_RUNNER_PATH}/integration/valgrind:$PATH"
+
+	debug "PATH: ${PATH}"
+elif [ ! -z "${TEST_GIT_CHAT_INSTALLED}" ]; then
 	export PATH="${TEST_GIT_CHAT_INSTALLED}:$PATH"
 	debug "PATH: ${PATH}"
 fi
-
-debug "integration runner path: ${TEST_RUNNER_PATH}"
 
 if [ -z "${TEST_TRASH_DIR}" ]; then
 	TEST_TRASH_DIR="${TEST_RUNNER_PATH}/trash"
 fi
 
-debug "trash directory path: ${TEST_TRASH_DIR}"
-debug "test pattern: ${TEST_PATTERN}"
-
 # Trick Git into thinking that the test trash directory is not in a git working tree
-GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
-
-if [ ! -d "${TEST_RUNNER_PATH}/integration" ]; then
-	echo 'No tests were found; directory does not exist: $TEST_RUNNER_PATH/integration' 1>&2
-fi
-
-debug "running tests from path: ${TEST_RUNNER_PATH}/integration"
-cd $TEST_RUNNER_PATH/integration
+export GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
 
 export TEST_TRASH_DIR
 export TEST_VERBOSE
+export TEST_VALGRIND
 export TEST_DEBUG
 export TEST_NO_COLOR_OUT
 export TEST_TRASH_DIR
-export GIT_CEILING_DIRECTORIES
+
+
+# Test Execution
+#
+#
+cd $TEST_RUNNER_PATH/integration
 
 TESTS="${TEST_RUNNER_PATH}/integration/${TEST_PATTERN}"
 TEST_FAILURES=0
@@ -162,6 +211,10 @@ done
 
 debug "finished running tests"
 
+
+# Print Test Summary
+#
+#
 echo "Test execution completed with ${TEST_FAILURES} test failures."
 if [[ ${TEST_FAILURES} -ne 0 ]]; then
 	echo "Run with --debug for more details."

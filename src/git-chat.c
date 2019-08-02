@@ -127,8 +127,12 @@ static char *find_extension(char *extension_name)
 	strbuf_attach_str(&filename, "git-chat-");
 	strbuf_attach_str(&filename, extension_name);
 	char *path = find_in_path(filename.buff);
-
 	strbuf_release(&filename);
+
+	if (!path) {
+		return NULL;
+	}
+
 	if (!is_executable(path)) {
 		return NULL;
 	}

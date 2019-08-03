@@ -38,6 +38,14 @@ $ make install
 $ git-chat --version
 ```
 
+To uninstall, use the make `uninstall` target:
+```
+$ make install
+
+# undo installation
+$ make uninstall
+```
+
 ### Running Tests
 The steps below are the very basics--just enough to get you started. For more details, see `test/README.md`.
 

@@ -10,15 +10,19 @@ INCLUDE_DIRECTORIES(
 		"${PROJECT_SOURCE_DIR}/test/include/"
 		"${PROJECT_BINARY_DIR}/include/"
 )
+
 ADD_EXECUTABLE(${PROJECT_NAME}-unit-tests ${PROJECT_SOURCE_DIR}/test/runner.c ${PROJECT_SOURCE_DIR}/test/test-lib.c ${TEST_SRC_LIST})
+ADD_CUSTOM_TARGET(unittest ${PROJECT_NAME}-unit-tests)
+ADD_CUSTOM_COMMAND(TARGET unittest COMMAND ${PROJECT_NAME}-unit-tests)
+
 ADD_TEST(NAME unit-tests COMMAND ${PROJECT_NAME}-unit-tests)
 
 #
 # Configure Integration Tests
 #
 FIND_PROGRAM(BASH_INTERPRETER bash)
-ADD_CUSTOM_TARGET(${PROJECT_NAME}-integration-tests)
-ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME}-integration-tests COMMAND ${BASH_INTERPRETER} "${PROJECT_BINARY_DIR}/test/integration-runner.sh")
+ADD_CUSTOM_TARGET(integrationtest)
+ADD_CUSTOM_COMMAND(TARGET integrationtest COMMAND ${BASH_INTERPRETER} "${PROJECT_BINARY_DIR}/test/integration-runner.sh")
 
 CONFIGURE_FILE(
 		"${PROJECT_SOURCE_DIR}/test/integration-runner.sh"

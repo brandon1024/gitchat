@@ -58,29 +58,23 @@
 #		Equivalent to using -- option.
 #
 
-TEST_RUNNER_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
-TEST_TRASH_DIR="${TEST_TRASH_DIR:-}"
-TEST_GIT_CHAT_INSTALLED="${TEST_GIT_CHAT_INSTALLED:-}"
+TEST_RUNNER_PATH="$( cd "$(dirname "${0}")" ; pwd -P )"
 TEST_PATTERN="${TEST_PATTERN:-t[0-9][0-9][0-9]*.sh}"
-TEST_VERBOSE="${TEST_VERBOSE:-}"
-TEST_DEBUG="${TEST_DEBUG:-}"
-TEST_NO_COLOR_OUT="${TEST_NO_COLOR_OUT:-}"
-TEST_VALGRIND="${TEST_VALGRIND:-}"
 
-while [[ $# -gt 0 ]]; do
-	case "$1" in
+while [[ ${#} -gt 0 ]]; do
+	case "${1}" in
 		--from-dir)
-			TEST_TRASH_DIR=$2
+			TEST_TRASH_DIR=${2}
 			shift
 			shift
 			;;
 		--git-chat-installed)
-			export TEST_GIT_CHAT_INSTALLED=$2
+			export TEST_GIT_CHAT_INSTALLED=${2}
 			shift
 			shift
 			;;
 		--test)
-			TEST_PATTERN=$2
+			TEST_PATTERN=${2}
 			shift
 			shift
 			;;
@@ -101,37 +95,38 @@ while [[ $# -gt 0 ]]; do
 			shift
 			;;
 		*)
-			echo "Error: Unknown option $1" 1>&2
+			echo "Error: Unknown option ${1}" 1>&2
 			exit 1
 			;;
 	esac
 done
 
 debug () {
-	if [ ! -z "${TEST_DEBUG}" ]; then
+	if [[ -n "${TEST_DEBUG+x}" ]]; then
 		echo 'DEBUG:' "${1}"
 	fi
 }
 
 rebuild_trash_dir () {
 	debug "rebuilding trash directory ${TEST_TRASH_DIR}"
+
 	# clear/create trash directory
-	if [ -d "$TEST_TRASH_DIR" ]; then
-		rm -rf $TEST_TRASH_DIR
+	if [[ -d "$TEST_TRASH_DIR" ]]; then
+		rm -rf "${TEST_TRASH_DIR}"
 	fi
 
-	mkdir $TEST_TRASH_DIR
+	mkdir "${TEST_TRASH_DIR}"
 }
 
 # Test Setup
 #
 #
-if [ ! -z "${TEST_DEBUG}" ]; then
+if [[ -n "${TEST_DEBUG+x}" ]]; then
 	set -x
 fi
 
 # Verify that git-chat binaries exist
-if [ ! -z "${TEST_GIT_CHAT_INSTALLED}" ]; then
+if [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 	if ! type "${TEST_GIT_CHAT_INSTALLED}/git-chat" >/dev/null 2>&1; then
 		echo "Could not find git-chat binaries in the provided installation location:" 1>&2
 		echo "${TEST_GIT_CHAT_INSTALLED}" 1>&2
@@ -143,22 +138,22 @@ elif ! type git-chat >/dev/null 2>&1; then
 	exit 1
 fi
 
-if [ ! -d "${TEST_RUNNER_PATH}/integration" ]; then
+if [[ ! -d "${TEST_RUNNER_PATH}/integration" ]]; then
 	echo "No tests were found; directory does not exist: ${TEST_RUNNER_PATH}/integration" 1>&2
 	exit 1
 fi
 
-if [ ! -z "${TEST_VALGRIND}" ]; then
+if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	# When running integration tests under valgrind memcheck, we wrap the git-chat
 	# executable in valgrind.sh, which accepts the same arguments as git-chat.
 	# Then, we symlink git-chat to valgrind.sh, and put it on the PATH.
 
-	if [ ! -d "${TEST_RUNNER_PATH}/integration/valgrind" ]; then
+	if [[ ! -d "${TEST_RUNNER_PATH}/integration/valgrind" ]]; then
 		echo "Valgrind tooling does not exist: ${TEST_RUNNER_PATH}/integration/valgrind" 1>&2
 		exit 1
 	fi
 
-	if [ ! -z "${TEST_GIT_CHAT_INSTALLED}" ]; then
+	if [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 		export VALGRIND_TARGET="${TEST_GIT_CHAT_INSTALLED}/git-chat"
 	else
 		export VALGRIND_TARGET="$(which git-chat)"
@@ -169,40 +164,37 @@ if [ ! -z "${TEST_VALGRIND}" ]; then
 	export PATH="${TEST_RUNNER_PATH}/integration/valgrind:$PATH"
 
 	debug "PATH: ${PATH}"
-elif [ ! -z "${TEST_GIT_CHAT_INSTALLED}" ]; then
+elif [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 	export PATH="${TEST_GIT_CHAT_INSTALLED}:$PATH"
 	debug "PATH: ${PATH}"
 fi
 
-if [ -z "${TEST_TRASH_DIR}" ]; then
+if [[ -z "${TEST_TRASH_DIR+x}" ]]; then
 	TEST_TRASH_DIR="${TEST_RUNNER_PATH}/trash"
 fi
 
 # Trick Git into thinking that the test trash directory is not in a git working tree
-export GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
-
 export TEST_TRASH_DIR
 export TEST_VERBOSE
 export TEST_VALGRIND
 export TEST_DEBUG
 export TEST_NO_COLOR_OUT
-export TEST_TRASH_DIR
 
+export GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
 
 # Test Execution
 #
 #
-cd $TEST_RUNNER_PATH/integration
+cd "${TEST_RUNNER_PATH}/integration" || exit 1
 
 TESTS="${TEST_RUNNER_PATH}/integration/${TEST_PATTERN}"
 TEST_FAILURES=0
 for test_path in $TESTS; do
 	rebuild_trash_dir
 
-	echo '***' $(basename -- "${test_path}") '***'
-	bash $test_path
+	echo '***' "$(basename -- "${test_path}")" '***'
 
-	if [[ ${?} -ne 0 ]]; then
+	if ! bash "${test_path}"; then
 		TEST_FAILURES=$((TEST_FAILURES + 1))
 	fi
 

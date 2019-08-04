@@ -40,40 +40,46 @@ $ git-chat --version
 
 To uninstall, use the make `uninstall` target:
 ```
-$ make install
-
-# undo installation
 $ make uninstall
 ```
 
 ### Running Tests
-The steps below are the very basics--just enough to get you started. For more details, see `test/README.md`.
+The steps below are the very basics--just enough to get you started. For more details, see `test/README.md`. Before running tests, you will need to install git-chat either locally or globally.
 
-Running unit tests does not require installation of git-chat. To run the unit tests, simply run from the project root:
+Running unit tests does not require installation of git-chat. To run the unit tests, simply run from the build directory:
 ```
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make git-chat-unit-tests
+$ make unittest
+
+or
+
 $ ctest -R unit-tests --verbose
 ```
 
-To run integration tests against a local installation of git-chat, run from the project root:
+To run integration tests against a local installation of git-chat, run from the build directory
 ```
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make all install
+$ TEST_GIT_CHAT_INSTALLED=~/bin make integrationtest
+
+or
+
 $ TEST_GIT_CHAT_INSTALLED=~/bin ctest -R integration-tests --verbose
 ```
 
-To run integration tests against a global installation of git-chat, run from the project root:
+To run integration tests against a global installation of git-chat, run from the build directory:
 ```
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make all install
+$ make integrationtest
+
+or
+
 $ ctest -R integration-tests --verbose
+```
+
+To run all tests:
+```
+$ make test
+
+or
+
+$ ctest --verbose
 ```
 
 ## Using git-chat

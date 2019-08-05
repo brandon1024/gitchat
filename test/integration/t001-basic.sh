@@ -9,6 +9,15 @@ fi
 source ./test-lib.sh
 
 #
+# Verify Assertion Functions
+#
+assert_success 'reset_trash_dir should correctly clear trash directory contents' '
+	echo test >out &&
+	reset_trash_dir &&
+	[ -z "$(ls -A .)" ]
+'
+
+#
 # Verify Installation
 #
 assert_success 'integration tests must not be executed from within a git working tree' '
@@ -32,6 +41,12 @@ assert_success 'git-chat invoked as a git extension without arguments should exi
 
 assert_success 'git chat -h should exit with status 0' '
 	git-chat -h | grep '\''^usage: git chat'\''
+'
+
+assert_success 'git chat with unknown flag should exit with status 1 and print useful message' '
+	git chat --test 2>err
+	test "$?" = "1" &&
+	grep "error: unknown command or option '\''--test'\''" err
 '
 
 assert_success 'git chat -v should exit with status 0' '

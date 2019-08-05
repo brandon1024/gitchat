@@ -241,6 +241,103 @@ TEST_DEFINE(strbuf_detach_test)
 	TEST_END();
 }
 
+TEST_DEFINE(strbuf_split_simple_delim_test)
+{
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		const char *str_1 = "this ";
+		const char *str_2 = " is a";
+		const char *str_3 = "test\tbuffer";
+		strbuf_attach_fmt(&buf, "%s\n%s\n%s\n", str_1, str_2, str_3);
+
+		int ret = strbuf_split(&buf, "\n", &str_a);
+		assert_eq_msg(4, ret, "strbuf should have split into 4 strings but was %d.", ret);
+		assert_eq_msg(4, str_a.len, "str_array should have a length of 4 but was %d", str_a.len);
+		
+		assert_string_eq(str_1, str_a.strings[0]);
+		assert_string_eq(str_2, str_a.strings[1]);
+		assert_string_eq(str_3, str_a.strings[2]);
+		assert_string_eq("", str_a.strings[3]);
+	}
+
+	strbuf_release(&buf);
+	str_array_release(&str_a);
+
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_split_multichar_delim_test)
+{
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		const char *string =
+				"This is a more complex string "
+				"testing strbuf splitting with "
+				"multichar delimiters.";
+		strbuf_attach_str(&buf, string);
+
+		int ret = strbuf_split(&buf, "str", &str_a);
+		assert_eq_msg(3, ret, "strbuf should have split into 3 strings but was %d.", ret);
+		assert_eq_msg(3, str_a.len, "str_array should have a length of 3 but was %d", str_a.len);
+
+		assert_string_eq("This is a more complex ", str_a.strings[0]);
+		assert_string_eq("ing testing ", str_a.strings[1]);
+		assert_string_eq("buf splitting with multichar delimiters.", str_a.strings[2]);
+
+		assert_string_eq_msg(string, buf.buff, "strbuf_split should not modify the strbuf, but content did not match expected string.");
+	}
+
+	str_array_release(&str_a);
+	strbuf_release(&buf);
+
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_split_no_delim_test)
+{
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		const char *string =
+				"This is a more complex string "
+				"testing strbuf splitting with "
+				"multichar delimiters.";
+		strbuf_attach_str(&buf, string);
+
+		int ret = strbuf_split(&buf, NULL, &str_a);
+		assert_eq_msg(1, ret, "strbuf should have inserted single string to str_array but inserted %d.", ret);
+		assert_eq_msg(1, str_a.len, "str_array should have a length of 1 but was %d", str_a.len);
+		assert_string_eq(string, str_a.strings[0]);
+
+		str_array_release(&str_a);
+		str_array_init(&str_a);
+
+		ret = strbuf_split(&buf, "", &str_a);
+		assert_eq_msg(1, ret, "strbuf should have inserted single string to str_array but inserted %d.", ret);
+		assert_eq_msg(1, str_a.len, "str_array should have a length of 1 but was %d", str_a.len);
+		assert_string_eq(string, str_a.strings[0]);
+	}
+
+	str_array_release(&str_a);
+	strbuf_release(&buf);
+
+	TEST_END();
+}
+
 int strbuf_test(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
@@ -252,6 +349,9 @@ int strbuf_test(struct test_runner_instance *instance)
 			{ "attaching a formatted string to strbuf should format the buffer correctly", strbuf_attach_fmt_test },
 			{ "trimming whitespace from strbuf should trim correct number of characters", strbuf_trim_test },
 			{ "detaching string from strbuf should return correct string", strbuf_detach_test },
+			{ "splitting a strbuf on a simple delimiter should split as expected", strbuf_split_simple_delim_test },
+			{ "splitting a strbuf on a multi-character delimiter should split as expected", strbuf_split_multichar_delim_test },
+			{ "splitting a strbuf without a delimiter should push entire string to str_array", strbuf_split_no_delim_test },
 			{ NULL, NULL }
 	};
 

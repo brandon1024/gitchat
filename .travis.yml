@@ -12,12 +12,12 @@ addons:
   apt:
     packages:
       - cmake
-      - gnupg
+      - gnupg2
       - valgrind
   homebrew:
     packages:
       - cmake
-      - gnupg
+      - gnupg2
 
 before_script:
   - mkdir build
@@ -26,3 +26,7 @@ before_script:
 
 script:
   - ./run-build.sh
+
+after_failure:
+  - echo "Test ouput:"
+  - cat test/out.log

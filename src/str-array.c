@@ -154,3 +154,13 @@ char **str_array_detach(struct str_array *str_a, size_t *len)
 
 	return arr;
 }
+
+void str_array_clear(struct str_array *str_a)
+{
+	for (size_t i = 0; i < str_a->len; i++) {
+		free(str_a->strings[i]);
+		str_a->strings[i] = NULL;
+	}
+
+	str_a->len = 0;
+}

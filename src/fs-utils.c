@@ -81,8 +81,8 @@ void copy_file(const char *dest, const char *src, int mode)
 	if (!(out_fd = open(dest, O_WRONLY | O_CREAT | O_EXCL, mode)))
 		FATAL(FILE_OPEN_FAILED, dest);
 
-	while ((bytes_read = read(in_fd, buffer, BUFF_LEN)) > 0) {
-		if (write(out_fd, buffer, bytes_read) != bytes_read)
+	while ((bytes_read = recoverable_read(in_fd, buffer, BUFF_LEN)) > 0) {
+		if (recoverable_write(out_fd, buffer, bytes_read) != bytes_read)
 			FATAL(FILE_WRITE_FAILED, dest);
 	}
 

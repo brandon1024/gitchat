@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -46,7 +47,7 @@ NORETURN void DIE(const char *fmt, ...)
 	va_end(varargs);
 
 	if (errno > 0)
-		fprintf(stderr, "%s\n", strerror(errno));
+		fprintf(stderr, "git-chat: %s\n", strerror(errno));
 
 	exit_routine(EXIT_FAILURE);
 }
@@ -101,9 +102,7 @@ int is_inside_git_chat_space()
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	cmd.no_in = 1;
-	cmd.no_out = 1;
-	cmd.no_err = 1;
+	cmd.std_fd_info = STDIN_NULL | STDOUT_NULL | STDERR_NULL;
 	argv_array_push(&cmd.args, "rev-parse", "--is-inside-work-tree", NULL);
 
 	//if 'git rev-parse --is-inside-work-tree' return with a zero exit status,
@@ -113,4 +112,40 @@ int is_inside_git_chat_space()
 
 	errno = errsv;
 	return status == 0;
+}
+
+ssize_t recoverable_read(int fd, void *buf, size_t len)
+{
+	int errsv = errno;
+
+	ssize_t bytes_read = 0;
+	while(1) {
+		bytes_read = read(fd, buf, len);
+		if ((bytes_read < 0) && (errno == EAGAIN || errno == EINTR)) {
+			errno = errsv;
+			continue;
+		}
+
+		break;
+	}
+
+	return bytes_read;
+}
+
+ssize_t recoverable_write(int fd, const void *buf, size_t len)
+{
+	int errsv = errno;
+
+	ssize_t bytes_written = 0;
+	while(1) {
+		bytes_written = write(fd, buf, len);
+		if ((bytes_written < 0) && (errno == EAGAIN || errno == EINTR)) {
+			errno = errsv;
+			continue;
+		}
+
+		break;
+	}
+
+	return bytes_written;
 }

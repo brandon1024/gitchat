@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include "str-array.h"
+
 /**
  * strbuf api
  *
@@ -79,5 +81,20 @@ int strbuf_trim(struct strbuf *buff);
  * reinitialized for reuse.
  * */
 char *strbuf_detach(struct strbuf *buff);
+
+/**
+ * Split a strbuf into multiple strings on a given delimiter.
+ *
+ * The split strings are pushed into the given str_array. The given strbuf is not
+ * modified.
+ *
+ * If the delimiter is NULL or the empty string, the entire strbuf is inserted into
+ * the str_array. The delimiter must be a null-terminated string.
+ *
+ * Returns the number of entries added to str_array, or -1 if an error
+ * occurred.
+ * */
+int strbuf_split(const struct strbuf *buff, const char *delim,
+		struct str_array *result);
 
 #endif //GIT_CHAT_STRBUF_H

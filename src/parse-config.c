@@ -137,7 +137,7 @@ void write_config(struct conf_data *conf, const char *conf_path)
 
 			strbuf_attach_fmt(&tmp_buf, "[%s]\n", current_section);
 
-			if (write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
+			if (recoverable_write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
 				FATAL(FILE_WRITE_FAILED, conf_path);
 
 			strbuf_release(&tmp_buf);
@@ -146,7 +146,7 @@ void write_config(struct conf_data *conf, const char *conf_path)
 
 		strbuf_attach_fmt(&tmp_buf, "\t%s = %s\n", entry->key, entry->value);
 
-		if (write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
+		if (recoverable_write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
 			FATAL(FILE_WRITE_FAILED, conf_path);
 
 		strbuf_release(&tmp_buf);

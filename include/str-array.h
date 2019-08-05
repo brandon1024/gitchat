@@ -153,6 +153,14 @@ void str_array_sort(struct str_array *str_a);
 char *str_array_remove(struct str_array *str_a, size_t pos);
 
 /**
+ * Remove all strings for the str_array.
+ *
+ * All strings are free()d, but the internal array is not reallocated and is not
+ * free()d.
+ * */
+void str_array_clear(struct str_array *str_a);
+
+/**
  * Detach from the str_array the array of strings. The str_array is reset to
  * its initial state.
  *

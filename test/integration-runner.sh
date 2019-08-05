@@ -173,13 +173,27 @@ if [[ -z "${TEST_TRASH_DIR+x}" ]]; then
 	TEST_TRASH_DIR="${TEST_RUNNER_PATH}/trash"
 fi
 
-# Trick Git into thinking that the test trash directory is not in a git working tree
+if [ ! -d $TEST_RUNNER_PATH/integration ]; then
+	echo "No tests were found; directory does not exist: ${TEST_RUNNER_PATH}/integration" 1>&2
+fi
+
+TEST_RESOURCES_DIR="${TEST_RUNNER_PATH}/resources"
+debug "resources directory path: ${TEST_RESOURCES_DIR}"
+
+# Clear any existing logs
+rm -f "${TEST_RUNNER_PATH}/out.log"
+
+debug "running tests from path: $TEST_RUNNER_PATH/integration"
+
 export TEST_TRASH_DIR
 export TEST_VERBOSE
 export TEST_VALGRIND
 export TEST_DEBUG
 export TEST_NO_COLOR_OUT
+export TEST_RESOURCES_DIR
+export TEST_RUNNER_PATH
 
+# Trick Git into thinking that the test trash directory is not in a git working tree
 export GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
 
 # Test Execution
@@ -192,7 +206,12 @@ TEST_FAILURES=0
 for test_path in $TESTS; do
 	rebuild_trash_dir
 
-	echo '***' "$(basename -- "${test_path}")" '***'
+	if [[ ! -x "$test_path" ]]; then
+		echo "Integration test file is not executable: $test_path" 1>&2
+		exit 1
+	fi
+
+	echo '***' "$(basename -- "${test_path}")" '***' >>"${TEST_RUNNER_PATH}/out.log"
 
 	if ! bash "${test_path}"; then
 		TEST_FAILURES=$((TEST_FAILURES + 1))

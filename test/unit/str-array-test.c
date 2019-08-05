@@ -336,6 +336,26 @@ TEST_DEFINE(str_array_detach_test)
 	TEST_END();
 }
 
+TEST_DEFINE(str_array_clear_test)
+{
+	struct str_array str_a;
+	str_array_init(&str_a);
+	
+	TEST_START() {
+		int ret = str_array_push(&str_a, "str1", "str2", "str3", "str4", "str5", NULL);
+		assert_eq(5, ret);
+		assert_eq(5, str_a.len);
+		
+		size_t alloc = str_a.alloc;
+		str_array_clear(&str_a);
+		assert_eq(alloc, str_a.alloc);
+		assert_zero(str_a.len);
+	}
+	
+	str_array_release(&str_a);
+	TEST_END();
+}
+
 int str_array_test(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
@@ -352,6 +372,7 @@ int str_array_test(struct test_runner_instance *instance)
 			{ "sorting element in str-array should sort by strcmp() order", str_array_sort_test },
 			{ "removing element from str-array should shift elements correctly", str_array_remove_test },
 			{ "detaching element from str-array should correctly detach", str_array_detach_test },
+			{ "clearing an str-array should remove all entries but not reallocate array", str_array_clear_test },
 			{ NULL, NULL }
 	};
 

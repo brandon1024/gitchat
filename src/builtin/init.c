@@ -143,9 +143,11 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 	}
 
 	cmd.git_cmd = 1;
-	cmd.no_out = quiet ? 1 : 0;
-	cmd.no_err = quiet ? 1 : 0;
-	cmd.no_in = 1;
+	child_process_def_stdin(&cmd, STDIN_NULL);
+	if (quiet) {
+		child_process_def_stdout(&cmd, STDOUT_NULL);
+		child_process_def_stderr(&cmd, STDERR_NULL);
+	}
 
 	argv_array_push(&cmd.args, "init", NULL);
 	int ret = run_command(&cmd);
@@ -271,7 +273,7 @@ static void update_space_description(char *base, const char *description)
 		FATAL(FILE_OPEN_FAILED, desc_path);
 
 	size_t len = strlen(description);
-	if (write(desc_fd, description, len) != len)
+	if (recoverable_write(desc_fd, description, len) != len)
 		FATAL("failed to write to description file file '%s'", desc_path);
 
 	close(desc_fd);
@@ -296,9 +298,7 @@ static void initialize_channel_root(char *base)
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	cmd.no_out = 1;
-	cmd.no_err = 1;
-	cmd.no_in = 1;
+	cmd.std_fd_info = STDIN_NULL | STDOUT_NULL | STDERR_NULL;
 
 	struct strbuf config_path;
 	strbuf_init(&config_path);
@@ -320,9 +320,7 @@ static void initialize_channel_root(char *base)
 	//create commit object
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	cmd.no_out = 1;
-	cmd.no_err = 1;
-	cmd.no_in = 1;
+	cmd.std_fd_info = STDIN_NULL | STDOUT_NULL | STDERR_NULL;
 
 	argv_array_push(&cmd.args, "commit", "--no-gpg-sign", "--no-verify",
 			"--message", "You have reached the beginning of time.", NULL);

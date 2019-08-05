@@ -1,9 +1,6 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <string.h>
-#include <errno.h>
 
 #include "run-command.h"
 #include "usage.h"

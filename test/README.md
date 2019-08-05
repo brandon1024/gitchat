@@ -16,6 +16,7 @@ Like any good piece of software, git-chat has a suite of unit and integration te
 		3. [Assertion Macros](#assertion-macros)
 	2. [Integration Tests](#integration-tests)
 		1. [Assertion Functions](#assertion-functions)
+		2. [Helper Functions](#helper-functions)
 
 ## Running Tests
 ### Unit
@@ -244,7 +245,7 @@ Here is a simple example:
 #!/usr/bin/env bash
 
 # All integration tests must source the test library
-. ./test-lib.sh
+source ./test-lib.sh
 
 assert_success '<test description>' '
 	test 1 = 1
@@ -298,5 +299,19 @@ assert_failure 'git-chat should not run extension on path if not executable' '
 	chmod -x git-chat-noex
 ' '
 	PATH=$PATH:$(pwd) git chat noex
+'
+```
+
+#### Helper Functions
+1. reset_trash_dir
+```
+reset_trash_dir ()
+Remove all files and directories in the trash dir.
+
+Example:
+assert success 'test reset_trash_dir' '
+	echo test >out &&
+	reset_trash_dir &&
+	[ -z "$(ls -A .)" ]
 '
 ```

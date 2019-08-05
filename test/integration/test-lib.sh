@@ -28,35 +28,35 @@ fi
 
 cd "${TEST_TRASH_DIR}" || exit 1
 
-fail_test() {
-	printf "${COLOR_RED}not ok ${ASSERT_TEST_NUMBER} - ${1}${COLOR_RESET}\n" 1>&2
+fail_test () {
+	printf "  ${COLOR_RED}not ok $ASSERT_TEST_NUMBER - ${1}${COLOR_RESET}\n" 1>&2
 }
 
-pass_test() {
-	printf "${COLOR_GREEN}ok ${ASSERT_TEST_NUMBER} - ${1}${COLOR_RESET}\n"
+pass_test () {
+	printf "  ${COLOR_GREEN}ok $ASSERT_TEST_NUMBER - ${1}${COLOR_RESET}\n" 1>&2
 }
 
 # Evaluate a command or script and assert that it can execute and return with a
 # zero exit status.
 # usage: assert_success <message> [<test setup>] <script>
 #
-assert_success() {
+assert_success () {
 	if [[ ${#} -eq 2 ]]; then
 		if [[ -n "${TEST_DEBUG+x}" || -n "${TEST_VERBOSE+x}" ]]; then
 			(eval "$2")
 		else
-			(eval "$2") >/dev/null 2>&1
+			(eval "$2") >>"${TEST_RUNNER_PATH}/out.log" 2>&1
 		fi
 	elif [[ ${#} -eq 3 ]]; then
 		if [[ -n "${TEST_DEBUG+x}" || -n "${TEST_VERBOSE+x}" ]]; then
 			(
-				eval "$2"
-				eval "$3"
+				eval "${2}"
+				eval "${3}"
 			)
 		else
 			(
-				eval "$2" >/dev/null 2>&1
-				eval "$3" >/dev/null 2>&1
+				eval "${2}" >>"${TEST_RUNNER_PATH}/out.log" 2>&1
+				eval "${3}" >>"${TEST_RUNNER_PATH}/out.log" 2>&1
 			)
 		fi
 	else
@@ -64,37 +64,38 @@ assert_success() {
 		exit 1
 	fi
 
-	if [[ ${?} -eq 0 ]]; then
-		pass_test "${1}"
+	test_status="${?}"
+	if [[ ${test_status} -eq 0 ]]; then
+		pass_test "${1}" 2>&1 | tee -a "${TEST_RUNNER_PATH}/out.log"
 		ASSERT_TEST_NUMBER=$((ASSERT_TEST_NUMBER + 1))
 
 		return ${ASSERT_PASSED}
 	fi
 
-	fail_test "${1}"
+	fail_test "${1}" 2>&1 | tee -a "${TEST_RUNNER_PATH}/out.log"
 	exit ${ASSERT_FAILED}
 }
 
 # Evaluate a command or script and assert that it fails with a non-zero exit status.
 # usage: assert_failure <message> [<test setup>] <script>
 #
-assert_failure() {
+assert_failure () {
 	if [[ ${#} -eq 2 ]]; then
 		if [[ -n "${TEST_DEBUG+x}" || -n "${TEST_VERBOSE+x}" ]]; then
-			(eval "$2")
+			(eval "${2}")
 		else
-			(eval "$2") >/dev/null 2>&1
+			(eval "${2}") >>"${TEST_RUNNER_PATH}/out.log" 2>&1
 		fi
 	elif [[ ${#} -eq 3 ]]; then
 		if [[ -n "${TEST_DEBUG+x}" || -n "${TEST_VERBOSE+x}" ]]; then
 			(
-				eval "$2"
-				eval "$3"
+				eval "${2}"
+				eval "${3}"
 			)
 		else
 			(
-				eval "$2" >/dev/null 2>&1
-				eval "$3" >/dev/null 2>&1
+				eval "${2}" >>"${TEST_RUNNER_PATH}/out.log" 2>&1
+				eval "${3}" >>"${TEST_RUNNER_PATH}/out.log" 2>&1
 			)
 		fi
 	else
@@ -102,18 +103,19 @@ assert_failure() {
 		exit 1
 	fi
 
-	if [[ ${?} -ne 0 ]]; then
-		pass_test "${1}"
+	test_status="${?}"
+	if [[ ${test_status} -ne 0 ]]; then
+		pass_test "${1}" 2>&1 | tee -a "${TEST_RUNNER_PATH}/out.log"
 		ASSERT_TEST_NUMBER=$((ASSERT_TEST_NUMBER + 1))
 
 		return ${ASSERT_PASSED}
 	fi
 
-	fail_test "${1}"
+	fail_test "${1}" 2>&1 | tee -a "${TEST_RUNNER_PATH}/out.log"
 	exit ${ASSERT_FAILED}
 }
 
-reset_trash_dir() {
+reset_trash_dir () {
 	rm -rf -- ..?* .[!.]* *
 	return 0
 }

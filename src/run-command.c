@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
 
 #include "run-command.h"
@@ -17,26 +16,38 @@
 
 extern char **environ;
 
-static int exec_as_child_process(struct child_process_def *cmd, int capture,
-		struct strbuf *buffer);
 static inline void set_cloexec(int fd);
 static void merge_env(struct str_array *deltaenv, struct str_array *result);
 static NORETURN void child_exit_routine(int status);
+
+static int child_failure_fd = -1;
 
 void child_process_def_init(struct child_process_def *cmd)
 {
 	cmd->pid = -1;
 	cmd->dir = NULL;
 	cmd->executable = NULL;
-	cmd->no_in = 0;
-	cmd->no_out = 0;
-	cmd->no_err = 0;
-	cmd->stderr_to_stdout = 0;
+	cmd->std_fd_info = STDIN_INHERITED | STDOUT_INHERITED | STDERR_INHERITED;
 	cmd->use_shell = 0;
 	cmd->git_cmd = 0;
+	cmd->internals = (struct child_process_def_internal) {
+		.notify_pipe = {0,0}
+	};
 
 	argv_array_init(&cmd->args);
 	str_array_init(&cmd->env);
+}
+
+void child_process_def_stdin(struct child_process_def *cmd, unsigned int flag) {
+	cmd->std_fd_info = (cmd->std_fd_info & 0xff0) | flag;
+}
+
+void child_process_def_stdout(struct child_process_def *cmd, unsigned int flag) {
+	cmd->std_fd_info = (cmd->std_fd_info & 0xf0f) | flag;
+}
+
+void child_process_def_stderr(struct child_process_def *cmd, unsigned int flag) {
+	cmd->std_fd_info = (cmd->std_fd_info & 0x0ff) | flag;
 }
 
 void child_process_def_release(struct child_process_def *cmd)
@@ -48,26 +59,53 @@ void child_process_def_release(struct child_process_def *cmd)
 
 int run_command(struct child_process_def *cmd)
 {
-	return exec_as_child_process(cmd, 0, NULL);
+	if ((cmd->std_fd_info & 0x00f) == STDIN_PROVISIONED ||
+		(cmd->std_fd_info & 0x0f0) == STDOUT_PROVISIONED ||
+		(cmd->std_fd_info & 0xf00) == STDERR_PROVISIONED)
+		BUG("cannot invoke run_command() on a child_process_def that has provisioned streams");
+
+	start_command(cmd);
+	return finish_command(cmd);
 }
 
 int capture_command(struct child_process_def *cmd, struct strbuf *buffer)
 {
-	return exec_as_child_process(cmd, 1, buffer);
+	if (cmd->pid != -1)
+		BUG("child_process_def must have a pid of -1; either the pid was modified "
+			"or the run-command api was not used correctly");
+	if ((cmd->std_fd_info & 0x00f) == STDIN_PROVISIONED ||
+		(cmd->std_fd_info & 0xf00) == STDERR_PROVISIONED)
+		BUG("cannot invoke capture_command() on a child_process_def that has provisioned streams");
+
+	if ((cmd->std_fd_info & 0x0f0) == STDOUT_NULL)
+		BUG("capture_command with STDOUT_NULL definition doesn't make sense");
+
+	if (pipe(cmd->out_fd) < 0)
+		FATAL("invocation of pipe() system call failed.");
+
+	child_process_def_stdout(cmd, STDOUT_PROVISIONED);
+
+	start_command(cmd);
+	close(cmd->out_fd[WRITE]);
+
+	char out_buffer[BUFF_LEN];
+	ssize_t bytes_read = 0;
+	while ((bytes_read = recoverable_read(cmd->out_fd[READ], out_buffer, BUFF_LEN)) > 0)
+		strbuf_attach(buffer, out_buffer, bytes_read);
+
+	if (bytes_read < 0)
+		FATAL("failed to read from pipe to child process.");
+
+	close(cmd->out_fd[READ]);
+
+	return finish_command(cmd);
 }
 
-/**
- * Execute a command or program in a child process.
- *
- * If capture is 1, the stdout of the child process is captured and placed into
- * the string buffer `buffer`. Otherwise, the child stdout is written to the
- * console.
- * */
-static int exec_as_child_process(struct child_process_def *cmd, int capture,
-		struct strbuf *buffer)
+int start_command(struct child_process_def *cmd)
 {
-	if (capture && !buffer)
-		BUG("command output capture enabled but buffer is NULL.");
+	if (cmd->pid != -1)
+		BUG("child_process_def must have a pid of -1; either the pid was modified "
+				"or the run-command api was not used correctly");
 	if (cmd->git_cmd && cmd->executable)
 		BUG("ambiguous child_process_def; git_cmd is true but executable is not NULL");
 	if (!cmd->git_cmd && !cmd->executable)
@@ -103,46 +141,81 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 
 	merge_env(&cmd->env, &env);
 
-	int out_fd[2];
-	if (pipe(out_fd) < 0)
+	/*
+	 * Setup pipe used to notify the parent event if the child process
+	 * failed before execve() was called.
+	 */
+	if (pipe(cmd->internals.notify_pipe) < 0)
 		FATAL("invocation of pipe() system call failed.");
 
-	int child_ret_status = -1;
 	cmd->pid = fork();
 	if (cmd->pid == 0) {
+		close(cmd->internals.notify_pipe[READ]);
+		set_cloexec(cmd->internals.notify_pipe[WRITE]);
+
+		child_failure_fd = cmd->internals.notify_pipe[WRITE];
 		set_exit_routine(&child_exit_routine);
 
 		if (cmd->dir && chdir(cmd->dir))
 			FATAL("unable to chdir to '%s'", cmd->dir);
 
-		/*
-		 * Prepare pipes between current (child) process and parent process.
-		 * */
-		close(out_fd[READ]);
-		set_cloexec(out_fd[WRITE]);
-
 		int null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
 		if (null_fd < 0)
-			FATAL(FILE_OPEN_FAILED, "/dev/null.");
+			FATAL(FILE_OPEN_FAILED, "/dev/null");
 		set_cloexec(null_fd);
 
-		if (cmd->no_in && dup2(null_fd, 0) < 0)
-			FATAL("dup2() failed unexpectedly.");
+		/* Configure stdin */
+		switch (cmd->std_fd_info & 0x00f) {
+			case STDIN_INHERITED:
+				break;
+			case STDIN_PROVISIONED:
+				set_cloexec(cmd->in_fd[0]);
+				close(cmd->in_fd[1]);
+				if ((cmd->in_fd[0] = dup2(cmd->in_fd[0], STDIN_FILENO)) < 0)
+					FATAL("dup2() failed unexpectedly.");
+				break;
+			case STDIN_NULL:
+				if ((cmd->in_fd[0] = dup2(null_fd, STDIN_FILENO)) < 0)
+					FATAL("dup2() failed unexpectedly.");
+				break;
+			default:
+				BUG("unexpected stream configuration for stdin (%#x).", cmd->std_fd_info & 0x00f);
+		}
 
-		if (cmd->no_err && dup2(null_fd, 2) < 0)
-			FATAL("dup2() failed unexpectedly.");
+		/* Configure stdout */
+		switch (cmd->std_fd_info & 0x0f0) {
+			case STDOUT_INHERITED:
+				break;
+			case STDOUT_PROVISIONED:
+				set_cloexec(cmd->out_fd[1]);
+				close(cmd->out_fd[0]);
+				if ((cmd->out_fd[1] = dup2(cmd->out_fd[1], STDOUT_FILENO)) < 0)
+					FATAL("dup2() failed unexpectedly.");
+				break;
+			case STDOUT_NULL:
+				if ((cmd->out_fd[1] = dup2(null_fd, STDOUT_FILENO)) < 0)
+					FATAL("dup2() failed unexpectedly.");
+				break;
+			default:
+				BUG("unexpected stream configuration for stdout (%#x).", cmd->std_fd_info & 0x0f0);
+		}
 
-		if (cmd->no_out) {
-			close(out_fd[WRITE]);
-
-			if (dup2(null_fd, 1) < 0)
-				FATAL("dup2() failed unexpectedly.");
-		} else if (capture && dup2(out_fd[WRITE], 1) < 0)
-			FATAL("dup2() failed unexpectedly.");
-
-		if (cmd->stderr_to_stdout) {
-			if (dup2(1, 2) < 0)
-				FATAL("dup2() failed unexpectedly.");
+		/* Configure stderr */
+		switch (cmd->std_fd_info & 0xf00) {
+			case STDERR_INHERITED:
+				break;
+			case STDERR_PROVISIONED:
+				set_cloexec(cmd->err_fd[1]);
+				close(cmd->err_fd[0]);
+				if ((cmd->err_fd[1] = dup2(cmd->err_fd[1], STDERR_FILENO)) < 0)
+					FATAL("dup2() failed unexpectedly.");
+				break;
+			case STDERR_NULL:
+				if ((cmd->err_fd[1] = dup2(null_fd, STDERR_FILENO)) < 0)
+					FATAL("dup2() failed unexpectedly.");
+				break;
+			default:
+				BUG("unexpected stream configuration for stderr (%#x).", cmd->std_fd_info & 0xf00);
 		}
 
 		/*
@@ -170,7 +243,6 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 			if (errno == ENOEXEC)
 				LOG_WARN("execve() failed to execute '%s'; attempting to run through 'sh -c'", cmd->executable);
 
-			//prepare arguments
 			char *collapsed_arguments = argv_array_collapse(&args);
 			argv_array_release(&args);
 			argv_array_init(&args);
@@ -183,34 +255,43 @@ static int exec_as_child_process(struct child_process_def *cmd, int capture,
 		}
 
 		FATAL("execve() returned unexpectedly.");
-	} else if (cmd->pid > 0) {
-		close(out_fd[WRITE]);
-
-		if (capture) {
-			char out_buffer[BUFF_LEN];
-			ssize_t bytes_read = 0;
-
-			while ((bytes_read = read(out_fd[READ], out_buffer, BUFF_LEN)) > 0) {
-				if (bytes_read < 0)
-					FATAL("failed to read from pipe to child process.");
-
-				strbuf_attach(buffer, out_buffer, bytes_read);
-			}
-		}
-
-		close(out_fd[READ]);
-
-		/* spin waiting for process exit or error */
-		while (waitpid(cmd->pid, &child_ret_status, 0) < 0 && errno == EINTR);
-		if (WIFEXITED(child_ret_status))
-			child_ret_status = WEXITSTATUS(child_ret_status);
-	} else {
+	} else if (cmd->pid < 0) {
 		FATAL("failed to fork process.");
 	}
+
+	close(cmd->internals.notify_pipe[WRITE]);
 
 	free(executable_path);
 	argv_array_release(&args);
 	str_array_release(&env);
+
+	LOG_TRACE("child process successfully created with pid %d", cmd->pid);
+
+	return cmd->pid;
+}
+
+int finish_command(struct child_process_def *cmd)
+{
+	if (cmd->pid == -1)
+		BUG("child_process_def must not have a pid of -1; either the pid was modified "
+			"or the run-command api was not used correctly");
+
+	int child_ret_status = -1;
+	int status = 0;
+
+	/* spin waiting for process exit or error */
+	while (waitpid(cmd->pid, &child_ret_status, 0) < 0 && errno == EINTR);
+	if (WIFEXITED(child_ret_status))
+		child_ret_status = WEXITSTATUS(child_ret_status);
+
+	LOG_TRACE("child process %d terminated with status %d", cmd->pid, child_ret_status);
+
+	if (recoverable_read(cmd->internals.notify_pipe[READ], &status, sizeof(status)) > 0)
+		FATAL("child process encountered a fatal error and exited with status %d.", status);
+
+	close(cmd->internals.notify_pipe[READ]);
+	child_failure_fd = -1;
+	cmd->pid = -1;
 
 	return child_ret_status;
 }
@@ -300,5 +381,6 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 
 static NORETURN void child_exit_routine(int status)
 {
+	write(child_failure_fd, &status, sizeof(status));
 	_exit(status);
 }

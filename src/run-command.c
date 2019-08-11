@@ -133,8 +133,10 @@ int start_command(struct child_process_def *cmd)
 	//args and env are duplicated so child_process_def is not modified.
 	struct argv_array args;
 	argv_array_init(&args);
-	for (size_t i = 0; i < cmd->args.arr.len; i++)
-		argv_array_push(&args, cmd->args.arr.strings[i], NULL);
+	for (size_t i = 0; i < cmd->args.arr.len; i++) {
+		char *string_to_copy = str_array_get((struct str_array *)&cmd->args, i);
+		argv_array_push(&args, string_to_copy, NULL);
+	}
 
 	struct str_array env;
 	str_array_init(&env);
@@ -223,14 +225,12 @@ int start_command(struct child_process_def *cmd)
 		 * and argv must be NULL terminated.
 		 */
 		argv_array_prepend(&args, executable_path, NULL);
-		str_array_insert_nodup((struct str_array *)&args, NULL, args.arr.len);
-		char **argv = args.arr.strings;
+		char **argv = argv_array_detach(&args, NULL);
 
 		/*
 		 * Prepare execve() environment. argp must be NULL terminated.
 		 */
-		str_array_insert_nodup(&env, NULL, env.len);
-		char **argp = env.strings;
+		char **argp = str_array_detach(&env, NULL);
 
 		/*
 		 * Attempt to exec using the command and arguments. In the event execve()
@@ -247,9 +247,7 @@ int start_command(struct child_process_def *cmd)
 			argv_array_release(&args);
 			argv_array_init(&args);
 			argv_array_push(&args, "/bin/sh", "-c", collapsed_arguments, NULL);
-			str_array_insert_nodup(&args.arr, NULL, args.arr.len);
-			str_array_insert_nodup(&env, NULL, env.len);
-			argv = args.arr.strings;
+			argv = argv_array_detach(&args, NULL);
 
 			execve(argv[0], argv, argp);
 		}
@@ -343,7 +341,7 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 		str_array_push(&current_env, *(parent_env++), NULL);
 
 	for (size_t i = 0; i < deltaenv->len; i++)
-		str_array_insert(result, deltaenv->strings[i], i);
+		str_array_insert(result, deltaenv->entries[i].string, i);
 
 	str_array_sort(&current_env);
 	str_array_sort(result);
@@ -352,16 +350,16 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 	while (p < current_env.len && c < result->len) {
 		struct strbuf p_key;
 		strbuf_init(&p_key);
-		env_variable_key(current_env.strings[p], &p_key);
+		env_variable_key(current_env.entries[p].string, &p_key);
 
 		struct strbuf c_key;
 		strbuf_init(&c_key);
-		env_variable_key(result->strings[c], &c_key);
+		env_variable_key(result->entries[c].string, &c_key);
 
 		/* If keys are equal, child variable will take precedence */
 		int cmp = strcmp(c_key.buff, p_key.buff);
 		if (cmp > 0) {
-			str_array_insert(result, current_env.strings[p], 0);
+			str_array_insert(result, current_env.entries[p].string, 0);
 			c++, p++;
 		} else if (!cmp)
 			p++, c++;
@@ -374,7 +372,7 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 
 	/* Add any remaining variables from parent */
 	while (p < current_env.len)
-		str_array_push(result, current_env.strings[p++], NULL);
+		str_array_push(result, current_env.entries[p++].string, NULL);
 
 	str_array_release(&current_env);
 }

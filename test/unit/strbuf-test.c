@@ -96,7 +96,7 @@ TEST_DEFINE(strbuf_attach_chr_test)
 {
 	struct strbuf buf;
 	strbuf_init(&buf);
-	
+
 	TEST_START() {
 		strbuf_attach_chr(&buf, 'f');
 		strbuf_attach_chr(&buf, 'o');
@@ -104,7 +104,7 @@ TEST_DEFINE(strbuf_attach_chr_test)
 		assert_string_eq("foo", buf.buff);
 		assert_true(is_null_terminated(&buf));
 	}
-	
+
 	strbuf_release(&buf);
 	TEST_END();
 }
@@ -258,7 +258,7 @@ TEST_DEFINE(strbuf_split_simple_delim_test)
 		int ret = strbuf_split(&buf, "\n", &str_a);
 		assert_eq_msg(4, ret, "strbuf should have split into 4 strings but was %d.", ret);
 		assert_eq_msg(4, str_a.len, "str_array should have a length of 4 but was %d", str_a.len);
-		
+
 		assert_string_eq(str_1, str_a.entries[0].string);
 		assert_string_eq(str_2, str_a.entries[1].string);
 		assert_string_eq(str_3, str_a.entries[2].string);

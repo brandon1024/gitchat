@@ -12,10 +12,11 @@ addons:
   apt:
     packages:
       - cmake
-      - gpgme
+      - libgpgme11
       - gnupg2
       - valgrind
   homebrew:
+    update: true
     packages:
       - cmake
       - gpgme

@@ -8,7 +8,7 @@ The git-chat project is a silly experiment. The purpose of the project is to pro
 If you're using git-chat for messaging with your savvy friends, you're an awesome person. But please do keep in mind that git-chat should not be used for secure and tamper proof communication, because it suffers from potential tampering (lost messages, erased history, etc.). Please use at your own risk.
 
 ## Runtime Dependencies
-git-chat has very few dependencies. It only needs `Git` and `GPG` to be installed somewhere on the PATH.
+git-chat has very few dependencies. It needs `git` and `gpg` (version 2) to be installed somewhere on the PATH. The `gpgme` library must also be installed.
 
 ## Building git-chat
 This project uses the `CMake` build tool. We recommend version 3.7.2 or higher. This project also uses `CTest` for executing unit and integration tests, and optionally `Valgrind` for running memcheck.

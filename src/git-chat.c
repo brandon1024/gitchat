@@ -5,6 +5,7 @@
 #include "builtin.h"
 #include "run-command.h"
 #include "fs-utils.h"
+#include "gpg-interface.h"
 #include "usage.h"
 #include "version.h"
 #include "utils.h"
@@ -99,6 +100,8 @@ static struct cmd_builtin *get_builtin(const char *s)
 
 static int run_builtin(struct cmd_builtin *builtin, int argc, char *argv[])
 {
+	init_gpgme_openpgp_engine();
+
 	LOG_INFO("builtin: executing %s builtin", builtin->cmd);
 	return builtin->fn(argc, argv);
 }
@@ -163,4 +166,7 @@ static void show_version(void)
 	argv_array_push(&cmd.args, "--version", NULL);
 	run_command(&cmd);
 	child_process_def_release(&cmd);
+
+	fprintf(stdout, "gpgme library version %s\n",
+			get_gpgme_library_version());
 }

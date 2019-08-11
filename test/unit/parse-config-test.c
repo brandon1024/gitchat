@@ -178,7 +178,7 @@ TEST_DEFINE(conf_data_sort_test)
 TEST_DEFINE(conf_data_find_entry_test) {
 	struct conf_data cd;
 	struct conf_data_entry *entry;
-	
+
 	TEST_START() {
 		char *config_path = "resources/good_1.config";
 		int ret = parse_config(&cd, config_path);
@@ -204,7 +204,7 @@ TEST_DEFINE(conf_data_find_entry_test) {
 	}
 
 	release_config_resources(&cd);
-	
+
 	TEST_END();
 }
 

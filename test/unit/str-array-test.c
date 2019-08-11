@@ -299,7 +299,7 @@ TEST_DEFINE(str_array_insert_test)
 	TEST_START() {
 		char *new_str = strdup("my string");
 		assert_nonnull(new_str);
-		
+
 		struct str_array_entry *entry = str_array_insert(&str_a, "str1", 0);
 		entry->data = new_str;
 		assert_string_eq("str1", str_array_get(&str_a, 0));
@@ -307,7 +307,7 @@ TEST_DEFINE(str_array_insert_test)
 
 		new_str = strdup("my string 1");
 		assert_nonnull(new_str);
-		
+
 		entry = str_array_insert(&str_a, "str-1", 0);
 		entry->data = new_str;
 		assert_string_eq("str-1", str_array_get(&str_a, 0));
@@ -315,7 +315,7 @@ TEST_DEFINE(str_array_insert_test)
 
 		new_str = strdup("my string 2");
 		assert_nonnull(new_str);
-		
+
 		entry = str_array_insert(&str_a, "str0", 1);
 		entry->data = new_str;
 		assert_string_eq("str0", str_array_get(&str_a, 1));
@@ -323,7 +323,7 @@ TEST_DEFINE(str_array_insert_test)
 
 		new_str = strdup("my string 3");
 		assert_nonnull(new_str);
-		
+
 		entry = str_array_insert(&str_a, "str10", 10);
 		entry->data = new_str;
 		assert_string_eq("str10", str_array_get(&str_a, 3));
@@ -362,7 +362,7 @@ TEST_DEFINE(str_array_sort_test)
 
 	TEST_START() {
 		str_array_sort(&str_a);
-		
+
 		char *str1 = strdup("my string 1");
 		assert_nonnull(str1);
 
@@ -376,14 +376,14 @@ TEST_DEFINE(str_array_sort_test)
 		str_array_get_entry(&str_a, 1)->data = str1;
 		str_array_get_entry(&str_a, 3)->data = str2;
 		str_array_get_entry(&str_a, 4)->data = str3;
-		
+
 		str_array_sort(&str_a);
 		assert_string_eq("astr1", str_array_get(&str_a, 0));
 		assert_string_eq("bstr2", str_array_get(&str_a, 1));
 		assert_string_eq("dstr3", str_array_get(&str_a, 2));
 		assert_string_eq("fstr5", str_array_get(&str_a, 3));
 		assert_string_eq("nstr4", str_array_get(&str_a, 4));
-		
+
 		assert_string_eq("my string 1", str_array_get_entry(&str_a, 2)->data);
 		assert_string_eq("my string 2", str_array_get_entry(&str_a, 1)->data);
 		assert_string_eq("my string 3", str_array_get_entry(&str_a, 3)->data);
@@ -506,18 +506,18 @@ TEST_DEFINE(str_array_clear_test)
 {
 	struct str_array str_a;
 	str_array_init(&str_a);
-	
+
 	TEST_START() {
 		int ret = str_array_push(&str_a, "str1", "str2", "str3", "str4", "str5", NULL);
 		assert_eq(5, ret);
 		assert_eq(5, str_a.len);
-		
+
 		size_t alloc = str_a.alloc;
 		str_array_clear(&str_a);
 		assert_eq(alloc, str_a.alloc);
 		assert_zero(str_a.len);
 	}
-	
+
 	str_array_release(&str_a);
 	TEST_END();
 }

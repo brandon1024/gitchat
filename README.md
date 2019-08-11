@@ -101,19 +101,44 @@ usage: git chat init [(-n | --name) <name>] [(-d | --description) <desc>]
 ```
 
 ### git chat channel
-Create a new channel by branching off the current point in the conversation.
+**IN PROGRESS** Create a new channel by branching off the current point in the conversation.
 
 ### git chat message
 Create a new message in the current channel. The message is encrypted with GPG. The message is not yet published, and needs to be pushed to the remote repository using `git chat publish`.
 
+```
+usage: git chat message [-a | --asym] [(--recipient <alias>...)]
+   or: git chat message (-s | --symmetric) [--password <password>]
+   or: git chat message (-m | --message) <message>
+   or: git chat message (-f | --file) <filename>
+   or: git chat message (-h | --help)
+
+asymmetric (public-key) encryption:
+    -a, --asym          encrypt message using public-key (asymmetric) cryptography
+    --recipient <alias>
+                        specify one or more recipients that may read the message
+
+symmetric (password) encryption:
+    -s, --sym           encrypt the message using private-key (symmetric) cryptography
+    --password <password>
+                        provide the password necessary to decrypt the message
+
+configuring message:
+    -m, --message <message>
+                        provide the message contents
+    -f, --file <filename>
+                        read message contents from file
+    -h, --help          show usage and exit
+```
+
 ### git chat publish
-Push a any new messages to the remote repository.
+**IN PROGRESS** Push a any new messages to the remote repository.
 
 ### git chat read
-Read the messages in the current channel.
+**IN PROGRESS** Read the messages in the current channel.
 
 ### git chat get
-Fetch any new messages from the remote repository.
+**IN PROGRESS** Fetch any new messages from the remote repository.
 
 ## Extending git-chat
 git-chat follows a similar extension model to Git, where executables located on the PATH that are prefixed with `git-chat-` will be invoked when `git chat <extension name>` is run at the command line. This allows you to build custom plugins to git-chat, extending it to work for you!

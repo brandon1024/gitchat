@@ -63,12 +63,12 @@ TEST_DEFINE(run_command_from_dir_test)
 	cmd.dir = "/bin";
 	cmd.executable = "echo";
 	str_array_push(&cmd.env, "PATH=", NULL);
-	
+
 	TEST_START() {
 		int ret = run_command(&cmd);
 		assert_eq(0, ret);
 	}
-	
+
 	child_process_def_release(&cmd);
 	TEST_END();
 }
@@ -138,7 +138,7 @@ TEST_DEFINE(run_command_git_test)
 	child_process_def_stdout(&cmd, STDOUT_NULL);
 	cmd.git_cmd = 1;
 	argv_array_push(&cmd.args, "--version", NULL);
-	
+
 	TEST_START() {
 		int ret = run_command(&cmd);
 		assert_eq(0, ret);

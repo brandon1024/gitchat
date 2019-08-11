@@ -20,7 +20,7 @@ void init_gpgme_openpgp_engine(void)
 {
 	gpgme_error_t err;
 
-	LOG_DEBUG("Initializing GPGME with GPGME_PROTOCOL_OpenPGP engine");
+	LOG_INFO("Initializing GPGME with GPGME_PROTOCOL_OpenPGP engine");
 
 	const char *version = gpgme_check_version(NULL);
 	LOG_INFO("Using installed GPGME version %s", version);
@@ -62,15 +62,18 @@ void init_gpgme_openpgp_engine(void)
 	if (!engine_config_dir)
 		engine_config_dir = "unknown";
 
-	LOG_INFO("crypto engine version number: %s, engine protocol: %s, "
-		  "engine executable: %s, engine config directory: %s", engine_version,
-			 protocol_name, engine_executable, engine_config_dir);
+	LOG_DEBUG("gpgme crypto engine version number: %s", engine_version);
+	LOG_DEBUG("gpgme engine protocol: %s", protocol_name);
+	LOG_DEBUG("gpgme protocol implementation binary: %s", engine_executable);
+	LOG_DEBUG("gpgme config directory: %s", engine_config_dir);
 }
 
 int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 {
 	struct gpgme_context *ctx;
 	gpgme_error_t err;
+
+	LOG_INFO("Rebuilding gpg keyring under home directory '%s'", gpg_homedir);
 
 	err = gpgme_new(&ctx);
 	if (err)
@@ -102,6 +105,8 @@ int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 		strbuf_init(&file_path);
 		strbuf_attach_fmt(&file_path, "%s/%s", keys_dir, ent->d_name);
 
+		LOG_TRACE("Attempting to read gpg key file '%s'", file_path.buff);
+
 		if (lstat(file_path.buff, &st_key) && errno == ENOENT)
 			FATAL("unable to stat '%s'", file_path.buff);
 
@@ -112,13 +117,14 @@ int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 		struct str_array_entry *entry = str_array_insert_nodup(&key_files,
 				key_path, key_files.len);
 
-		// get key data
 		struct gpgme_data *key;
 		err = gpgme_data_new_from_file(&key, key_path, 1);
 		if (err) {
 			LOG_ERROR("Failed to read key file '%s'", key_path);
 			GPG_FATAL("GPGME failed to read key file", err);
 		}
+
+		LOG_TRACE("Successfully read file '%s' into gpg data buffer", key_path);
 
 		entry->data = key;
 	}
@@ -136,11 +142,15 @@ int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 			GPG_FATAL("GPGME failed to import key", err);
 		}
 
+		LOG_TRACE("Successfully imported gpg key '%s'", entry->string);
+
 		gpgme_data_release(entry->data);
 	}
 
 	str_array_release(&key_files);
 	gpgme_release(ctx);
+
+	LOG_INFO("Successfully imported %d gpg keys from %s", key_files.len, keys_dir);
 
 	return keys_imported;
 }
@@ -150,6 +160,9 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 {
 	struct gpgme_context *ctx;
 	gpgme_error_t err;
+
+	LOG_INFO("Encrypting plaintext message in ascii armor format");
+	LOG_DEBUG("GPG homedir path: %s", gpg_homedir);
 
 	err = gpgme_new(&ctx);
 	if (err)
@@ -167,10 +180,13 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	struct str_array keys;
 	str_array_init(&keys);
 
+	// use str_array to build fixed-length array from linked list of gpg keys
 	struct gpg_key_list_node *node = recipients->head;
 	while (node) {
 		struct str_array_entry *entry = str_array_insert_nodup(&keys, NULL, keys.len);
 		entry->data = node->key;
+
+		LOG_TRACE("Recipient gpg key fingerprint: ", node->key->fpr);
 
 		node = node->next;
 	}
@@ -180,6 +196,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	if (!keys_len)
 		BUG("no gpg keys given to encrypt_plaintext_message()");
 
+	// build gpg data buffers for the plaintext input and ciphertext output
 	struct gpgme_data *message_in;
 	struct gpgme_data *message_out;
 	err = gpgme_data_new_from_mem(&message_in, message->buff, message->len, 0);
@@ -190,6 +207,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	if (err)
 		GPG_FATAL("unable to create GPGME data buffer for encrypted ciphertext", err);
 
+	// encrypt plaintext, always trusting gpg keys, and do not use default recipient
 	err = gpgme_op_encrypt(ctx, keys_array, GPGME_ENCRYPT_ALWAYS_TRUST | GPGME_ENCRYPT_NO_ENCRYPT_TO,
 			message_in,  message_out);
 	if (err) {
@@ -212,6 +230,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 		GPG_FATAL("GPGME unable to encrypt message", err);
 	}
 
+	// read ciphertext into message_out strbuf
 	int ret = gpgme_data_seek (message_out, 0, SEEK_SET);
 	if (ret)
 		GPG_FATAL("failed to seek to beginning of gpgme data buffer", err);
@@ -226,15 +245,19 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	// free the array but leave the gpg keys intact; they are owned by the caller
 	free(keys_array);
 
-	gpgme_data_release (message_in);
-	gpgme_data_release (message_out);
+	gpgme_data_release(message_in);
+	gpgme_data_release(message_out);
 	gpgme_release(ctx);
+
+	LOG_INFO("Successfully encrypted message");
 }
 
 int get_gpg_keys_from_keyring(const char *gpg_homedir, struct gpg_key_list *keys)
 {
 	struct gpgme_context *ctx;
 	gpgme_error_t err;
+
+	LOG_INFO("Fetching gpg keys from keyring under home directory '%s'", gpg_homedir);
 
 	err = gpgme_new(&ctx);
 	if (err)
@@ -259,12 +282,16 @@ int get_gpg_keys_from_keyring(const char *gpg_homedir, struct gpg_key_list *keys
 	while (!(err = gpgme_op_keylist_next(ctx, &key))) {
 		gpg_key_list_push(keys, key);
 		keys_fetched++;
+
+		LOG_TRACE("Fetched gpg key with fingerprint: %s", key->fpr);
 	}
 
 	if (gpg_err_code(err) != GPG_ERR_EOF)
 		GPG_FATAL("failed to retrieve gpg keys from keyring", err);
 
 	gpgme_release(ctx);
+
+	LOG_INFO("Successfully fetched %d gpg keys", keys_fetched);
 
 	return keys_fetched;
 }

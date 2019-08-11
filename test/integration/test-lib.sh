@@ -119,3 +119,24 @@ reset_trash_dir () {
 	rm -rf -- ..?* .[!.]* *
 	return 0
 }
+
+setup_test_gpg () {
+	rm -rf "${TEST_TRASH_DIR}/.gpg_tmp"
+	mkdir "${TEST_TRASH_DIR}/.gpg_tmp"
+	chmod 700 "${TEST_TRASH_DIR}/.gpg_tmp"
+	export GNUPGHOME="${TEST_TRASH_DIR}/.gpg_tmp"
+	unset GPG_AGENT_INFO
+
+	private_key="${TEST_RESOURCES_DIR}/gpgkeys/test_user.gpg"
+	if [[ -n "${1+x}" ]]; then
+		private_key="${1}"
+	fi
+
+	gpg2 --batch --allow-secret-key-import --import "${private_key}"
+
+	for filename in "${TEST_TRASH_DIR}"/.keys/*.gpg; do
+		[[ -f "${filename}" ]] || continue
+
+		gpg2 --batch --import "${filename}"
+	done
+}

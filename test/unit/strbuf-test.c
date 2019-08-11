@@ -259,10 +259,10 @@ TEST_DEFINE(strbuf_split_simple_delim_test)
 		assert_eq_msg(4, ret, "strbuf should have split into 4 strings but was %d.", ret);
 		assert_eq_msg(4, str_a.len, "str_array should have a length of 4 but was %d", str_a.len);
 		
-		assert_string_eq(str_1, str_a.strings[0]);
-		assert_string_eq(str_2, str_a.strings[1]);
-		assert_string_eq(str_3, str_a.strings[2]);
-		assert_string_eq("", str_a.strings[3]);
+		assert_string_eq(str_1, str_a.entries[0].string);
+		assert_string_eq(str_2, str_a.entries[1].string);
+		assert_string_eq(str_3, str_a.entries[2].string);
+		assert_string_eq("", str_a.entries[3].string);
 	}
 
 	strbuf_release(&buf);
@@ -290,9 +290,9 @@ TEST_DEFINE(strbuf_split_multichar_delim_test)
 		assert_eq_msg(3, ret, "strbuf should have split into 3 strings but was %d.", ret);
 		assert_eq_msg(3, str_a.len, "str_array should have a length of 3 but was %d", str_a.len);
 
-		assert_string_eq("This is a more complex ", str_a.strings[0]);
-		assert_string_eq("ing testing ", str_a.strings[1]);
-		assert_string_eq("buf splitting with multichar delimiters.", str_a.strings[2]);
+		assert_string_eq("This is a more complex ", str_a.entries[0].string);
+		assert_string_eq("ing testing ", str_a.entries[1].string);
+		assert_string_eq("buf splitting with multichar delimiters.", str_a.entries[2].string);
 
 		assert_string_eq_msg(string, buf.buff, "strbuf_split should not modify the strbuf, but content did not match expected string.");
 	}
@@ -321,7 +321,7 @@ TEST_DEFINE(strbuf_split_no_delim_test)
 		int ret = strbuf_split(&buf, NULL, &str_a);
 		assert_eq_msg(1, ret, "strbuf should have inserted single string to str_array but inserted %d.", ret);
 		assert_eq_msg(1, str_a.len, "str_array should have a length of 1 but was %d", str_a.len);
-		assert_string_eq(string, str_a.strings[0]);
+		assert_string_eq(string, str_a.entries[0].string);
 
 		str_array_release(&str_a);
 		str_array_init(&str_a);
@@ -329,7 +329,7 @@ TEST_DEFINE(strbuf_split_no_delim_test)
 		ret = strbuf_split(&buf, "", &str_a);
 		assert_eq_msg(1, ret, "strbuf should have inserted single string to str_array but inserted %d.", ret);
 		assert_eq_msg(1, str_a.len, "str_array should have a length of 1 but was %d", str_a.len);
-		assert_string_eq(string, str_a.strings[0]);
+		assert_string_eq(string, str_a.entries[0].string);
 	}
 
 	str_array_release(&str_a);

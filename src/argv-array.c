@@ -62,28 +62,28 @@ char *argv_array_collapse_delim(struct argv_array *argv_a, const char *delim)
 	struct str_array str_a = argv_a->arr;
 	size_t len = 1;
 
-	if (!str_a.strings || !str_a.len)
+	if (!str_a.entries || !str_a.len)
 		return NULL;
 
 	if (str_a.len > 1)
 		len += (str_a.len - 1) * strlen(delim);
 
 	for (size_t i = 0; i < str_a.len; i++) {
-		if (str_a.strings[i])
-			len += strlen(str_a.strings[i]);
+		if (str_a.entries[i].string)
+			len += strlen(str_a.entries[i].string);
 	}
 
 	char *str = (char *)calloc(len, sizeof(char));
 	if (!str)
 		FATAL(MEM_ALLOC_FAILED);
 
-	strcat(str, str_a.strings[0]);
+	strcat(str, str_a.entries[0].string);
 	for (size_t i = 1; i < str_a.len; i++) {
-		if (!str_a.strings[i])
+		if (!str_a.entries[i].string)
 			continue;
 
 		strcat(str, delim);
-		strcat(str, str_a.strings[i]);
+		strcat(str, str_a.entries[i].string);
 	}
 
 	return str;

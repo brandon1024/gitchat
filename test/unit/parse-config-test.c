@@ -13,17 +13,17 @@ TEST_DEFINE(parse_config_valid)
 
 		/* ensure section names are valid */
 		assert_eq_msg(4, cd.sections.len, "Expected 4 sections in config, but got %zu.", cd.sections.len);
-		assert_string_eq("user", cd.sections.strings[0]);
-		assert_string_eq("core", cd.sections.strings[1]);
-		assert_string_eq("sendemail", cd.sections.strings[2]);
-		assert_string_eq("alias.alias", cd.sections.strings[3]);
+		assert_string_eq("user", cd.sections.entries[0].string);
+		assert_string_eq("core", cd.sections.entries[1].string);
+		assert_string_eq("sendemail", cd.sections.entries[2].string);
+		assert_string_eq("alias.alias", cd.sections.entries[3].string);
 		assert_eq_msg(38, cd.entries_len, "Expected 37 entries, but got %zu.", cd.entries_len);
 
 		/* ensure key-value parsed correctly with no section */
 		entry = cd.entries[10];
 		assert_nonnull(entry->section);
 		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.strings[2], entry->section, "The pointer to the section name in the entry should point to the correct string.");
+		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
 		assert_string_eq("smtpencryption", entry->key);
 		assert_string_eq("", entry->value);
 
@@ -31,21 +31,21 @@ TEST_DEFINE(parse_config_valid)
 		entry = cd.entries[11];
 		assert_nonnull(entry->section);
 		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.strings[2], entry->section, "The pointer to the section name in the entry should point to the correct string.");
+		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
 		assert_string_eq("smtpserver", entry->key);
 		assert_string_eq("smtp.gmail.com", entry->value);
 
 		entry = cd.entries[12];
 		assert_nonnull(entry->section);
 		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.strings[2], entry->section, "The pointer to the section name in the entry should point to the correct string.");
+		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
 		assert_string_eq("smtpuser", entry->key);
 		assert_string_eq("brandon1024.br@gmail.com", entry->value);
 
 		entry = cd.entries[13];
 		assert_nonnull(entry->section);
 		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.strings[2], entry->section, "The pointer to the section name in the entry should point to the correct string.");
+		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
 		assert_string_eq("smtppass", entry->key);
 		assert_string_eq("password", entry->value);
 
@@ -53,7 +53,7 @@ TEST_DEFINE(parse_config_valid)
 		entry = cd.entries[29];
 		assert_nonnull(entry->section);
 		assert_string_eq("alias.alias", entry->section);
-		assert_eq_msg(cd.sections.strings[3], entry->section, "The pointer to the section name in the entry should point to the correct string.");
+		assert_eq_msg(cd.sections.entries[3].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
 		assert_string_eq("bare", entry->key);
 		assert_string_eq("!sh -c 'git symbolic-ref HEAD refs/heads/$1 && git rm --cached -r . && git clean -xfd' -", entry->value);
 	}

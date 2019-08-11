@@ -7,7 +7,7 @@ TEST_DEFINE(argv_array_init_test)
 	argv_array_init(&argv_a);
 
 	TEST_START() {
-		assert_null(argv_a.arr.strings);
+		assert_null(argv_a.arr.entries);
 		assert_zero(argv_a.arr.len);
 		assert_zero(argv_a.arr.alloc);
 	}
@@ -24,7 +24,7 @@ TEST_DEFINE(argv_array_release_test)
 	argv_array_release(&argv_a);
 
 	TEST_START() {
-		assert_null_msg(argv_a.arr.strings, "argv_array_release() should reinitialize the structure");
+		assert_null_msg(argv_a.arr.entries, "argv_array_release() should reinitialize the structure");
 		assert_zero_msg(argv_a.arr.len, "argv_array_release() should reinitialize the structure");
 		assert_zero_msg(argv_a.arr.alloc, "argv_array_release() should reinitialize the structure");
 	}
@@ -49,8 +49,8 @@ TEST_DEFINE(argv_array_push_test)
 		assert_true_msg(argv_a.arr.alloc >= 2, "Pushing two elements to argv_array should alloc at least 2 elements.");
 		assert_eq_msg(2, argv_a.arr.len, "Expected argv_array length of 2, but was %zu.", argv_a.arr.len);
 
-		assert_string_eq("str1", argv_a.arr.strings[0]);
-		assert_string_eq("str2", argv_a.arr.strings[1]);
+		assert_string_eq("str1", argv_a.arr.entries[0].string);
+		assert_string_eq("str2", argv_a.arr.entries[1].string);
 
 		ret = argv_array_push(&argv_a, "str3", "str4", "str5", NULL);
 		assert_eq_msg(3, ret, "Pushing three elements to argv_array should return 3, but was %d.", ret);
@@ -60,8 +60,8 @@ TEST_DEFINE(argv_array_push_test)
 		assert_true(argv_a.arr.alloc >= 8);
 		assert_eq_msg(8, argv_a.arr.len, "Expected argv_array length of 8, but was %zu.", argv_a.arr.len);
 
-		assert_string_eq("str3", argv_a.arr.strings[2]);
-		assert_string_eq("str5", argv_a.arr.strings[4]);
+		assert_string_eq("str3", argv_a.arr.entries[2].string);
+		assert_string_eq("str5", argv_a.arr.entries[4].string);
 	}
 
 	argv_array_release(&argv_a);
@@ -99,7 +99,26 @@ TEST_DEFINE(argv_array_prepend_test)
 		argv_array_push(&argv_a, "str1", "str2", "str3", "str4", "str5", NULL);
 		int ret = argv_array_prepend(&argv_a, "str0", NULL);
 		assert_eq_msg(1, ret, "Prepending single string to argv_array should return 1, but got %d.", ret);
-		assert_string_eq("str0", argv_a.arr.strings[0]);
+		assert_string_eq("str0", argv_a.arr.entries[0].string);
+	}
+
+	argv_array_release(&argv_a);
+	TEST_END();
+}
+
+TEST_DEFINE(argv_array_use_str_array_functions_test)
+{
+	struct argv_array argv_a;
+	argv_array_init(&argv_a);
+
+	TEST_START() {
+		argv_array_push(&argv_a, "str1", "str2", "str3", "str4", "str5", NULL);
+
+		char *str1 = str_array_get((struct str_array *)&argv_a, 0);
+		assert_string_eq("str1", str1);
+
+		char *str5 = str_array_get((struct str_array *)&argv_a, 4);
+		assert_string_eq("str5", str5);
 	}
 
 	argv_array_release(&argv_a);
@@ -119,12 +138,13 @@ TEST_DEFINE(argv_array_detach_test)
 		assert_eq_msg(ret, len, "Detaching string list from string should set len to %d, but got %d.", ret, len);
 		assert_nonnull(strings);
 
-		assert_null_msg(argv_a.arr.strings, "argv_array_detach() should reinitialize the structure");
+		assert_null_msg(argv_a.arr.entries, "argv_array_detach() should reinitialize the structure");
 		assert_zero_msg(argv_a.arr.len, "argv_array_detach() should reinitialize the structure");
 		assert_zero_msg(argv_a.arr.alloc, "argv_array_detach() should reinitialize the structure");
 
 		assert_string_eq("str1", strings[0]);
 		assert_string_eq("str5", strings[4]);
+		assert_null(strings[5]);
 	}
 
 	if (strings) {
@@ -158,7 +178,7 @@ TEST_DEFINE(argv_array_collapse_test)
 		string = argv_array_collapse(&argv_a);
 		assert_nonnull(string);
 		assert_eq_msg(1, argv_a.arr.len, "Expected argv_array length to remain 1, but was %zu.", argv_a.arr.len);
-		assert_string_eq("str0", argv_a.arr.strings[0]);
+		assert_string_eq("str0", argv_a.arr.entries[0].string);
 		assert_string_eq("str0", string);
 
 		free(string);
@@ -167,7 +187,7 @@ TEST_DEFINE(argv_array_collapse_test)
 		string = argv_array_collapse(&argv_a);
 		assert_nonnull(string);
 		assert_eq_msg(6, argv_a.arr.len, "Expected argv_array length to remain 6, but was %zu.", argv_a.arr.len);
-		assert_string_eq("str0", argv_a.arr.strings[0]);
+		assert_string_eq("str0", argv_a.arr.entries[0].string);
 		assert_string_eq("str0 str1 str2 str3 str4 str5", string);
 	}
 
@@ -190,7 +210,7 @@ TEST_DEFINE(argv_array_collapse_delim_test)
 		string = argv_array_collapse_delim(&argv_a, "*");
 		assert_nonnull(string);
 		assert_eq_msg(1, argv_a.arr.len, "Expected argv_array length to remain 1, but was %zu.", argv_a.arr.len);
-		assert_string_eq("str0", argv_a.arr.strings[0]);
+		assert_string_eq("str0", argv_a.arr.entries[0].string);
 		assert_string_eq("str0", string);
 
 		free(string);
@@ -199,7 +219,7 @@ TEST_DEFINE(argv_array_collapse_delim_test)
 		string = argv_array_collapse_delim(&argv_a, "***");
 		assert_nonnull(string);
 		assert_eq_msg(6, argv_a.arr.len, "Expected argv_array length to remain 6, but was %zu.", argv_a.arr.len);
-		assert_string_eq("str0", argv_a.arr.strings[0]);
+		assert_string_eq("str0", argv_a.arr.entries[0].string);
 		assert_string_eq(string, "str0***str1***str2***str3***str4***str5");
 	}
 
@@ -216,6 +236,7 @@ int argv_array_test(struct test_runner_instance *instance)
 			{ "pushing to argv-array should correctly append strings", argv_array_push_test },
 			{ "popping from argv-array should correctly remove strings", argv_array_pop_test },
 			{ "prepending to argv-array should correctly prepend strings", argv_array_prepend_test },
+			{ "casting pointer of argv_array to str_array should allow use of str_array functions", argv_array_use_str_array_functions_test },
 			{ "detaching strings from argv-array should have correct", argv_array_detach_test },
 			{ "collapsing argv-array into string should match expected", argv_array_collapse_test },
 			{ "collapsing argv-array into delimited string should match expected", argv_array_collapse_delim_test },

@@ -12,11 +12,13 @@ addons:
   apt:
     packages:
       - cmake
+      - gpgme
       - gnupg2
       - valgrind
   homebrew:
     packages:
       - cmake
+      - gpgme
       - gnupg2
 
 before_script:

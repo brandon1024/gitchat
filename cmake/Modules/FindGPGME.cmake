@@ -136,11 +136,6 @@ ELSE ()
 				ENDIF ()
 			ENDFOREACH (_flavour)
 
-			SET(GPGME_INCLUDES ${GPGME_INCLUDES})
-			SET(GPGME_VANILLA_LIBRARIES ${GPGME_VANILLA_LIBRARIES})
-			SET(GPGME_PTHREAD_LIBRARIES ${GPGME_PTHREAD_LIBRARIES})
-			SET(GPGME_PTH_LIBRARIES ${GPGME_PTH_LIBRARIES})
-
 			IF (GPGME_VANILLA_FOUND OR GPGME_PTHREAD_FOUND OR GPGME_PTH_FOUND)
 				SET(GPGME_FOUND true)
 			ELSE ()
@@ -173,7 +168,7 @@ IF (GPGME_PTH_FOUND)
 	SET(_gpgme_flavours "${_gpgme_flavours} pth")
 ENDIF ()
 
-# determine the library in one of the found flavours, can be reused e.g. by FindQgpgme.cmake, Alex
+# determine the library in one of the found flavours can be reused
 FOREACH (_currentFlavour vanilla glib qt pth pthread)
 	IF (NOT GPGME_LIBRARY_DIR)
 		get_filename_component(GPGME_LIBRARY_DIR "${_gpgme_${_currentFlavour}_lib}" PATH)

@@ -143,6 +143,7 @@ if [[ ! -d "${TEST_RUNNER_PATH}/integration" ]]; then
 	exit 1
 fi
 
+export PATH="${TEST_RUNNER_PATH}/integration/bin:$PATH"
 if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	# When running integration tests under valgrind memcheck, we wrap the git-chat
 	# executable in valgrind.sh, which accepts the same arguments as git-chat.
@@ -161,13 +162,24 @@ if [[ -n "${TEST_VALGRIND+x}" ]]; then
 
 	rm -f "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
 	ln -s "${TEST_RUNNER_PATH}/integration/valgrind/valgrind.sh" "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
-	export PATH="${TEST_RUNNER_PATH}/integration/valgrind:$PATH"
-
-	debug "PATH: ${PATH}"
 elif [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 	export PATH="${TEST_GIT_CHAT_INSTALLED}:$PATH"
-	debug "PATH: ${PATH}"
 fi
+
+if ! type gpg2 >/dev/null 2>&1; then
+	# In certain environments, gpg2 does not exist. In that case create a symlink
+	# in the integration test bin/ directory to the gpg executable
+
+	if ! type gpg >/dev/null 2>&1; then
+		echo "Could not find gpg or gpg2 binaries; cannot execute test suite" 1>&2
+		exit 1
+	fi
+
+	rm -f "${TEST_RUNNER_PATH}/integration/bin/gpg2"
+	ln -s "$(which gpg)" "${TEST_RUNNER_PATH}/integration/bin/gpg2"
+fi
+
+debug "PATH: ${PATH}"
 
 if [[ -z "${TEST_TRASH_DIR+x}" ]]; then
 	TEST_TRASH_DIR="${TEST_RUNNER_PATH}/trash"

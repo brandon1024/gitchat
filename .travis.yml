@@ -1,26 +1,50 @@
 language: c
 
-os:
-  - linux
-  - osx
+matrix:
+  include:
+    - os: linux
+      dist: bionic
+      addons:
+        apt:
+          packages:
+            - libgpgme-dev
+            - gnupg2
+            - valgrind
+      env:
+        - MATRIX_EVAL="CC=gcc && CXX=g++"
+    - os: linux
+      dist: bionic
+      addons:
+        apt:
+          packages:
+            - libgpgme-dev
+            - gnupg2
+            - valgrind
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+    - os: osx
+      osx_image: xcode10.1
+      addons:
+        homebrew:
+          update: true
+          packages:
+            - gpgme
+            - gnupg2
+      env:
+        - MATRIX_EVAL="CC=gcc && CXX=g++"
+    - os: osx
+      osx_image: xcode10.1
+      addons:
+        homebrew:
+          update: true
+          packages:
+            - gpgme
+            - gnupg2
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
 
-compiler:
-  - clang
-  - gcc
-
-addons:
-  apt:
-    packages:
-      - cmake
-      - libgpgme11
-      - gnupg2
-      - valgrind
-  homebrew:
-    update: true
-    packages:
-      - cmake
-      - gpgme
-      - gnupg2
+before_install:
+  - eval "${MATRIX_EVAL}"
 
 before_script:
   - mkdir build

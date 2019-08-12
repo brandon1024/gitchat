@@ -42,10 +42,10 @@ FOREACH(INTEGRATION_TEST ${INTEGRATION_TESTS})
 	)
 ENDFOREACH()
 
-FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/test/integration/valgrind)
+FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/test/integration/bin)
 CONFIGURE_FILE(
-		"${PROJECT_SOURCE_DIR}/test/integration/valgrind/valgrind.sh"
-		"${PROJECT_BINARY_DIR}/test/integration/valgrind/valgrind.sh"
+		"${PROJECT_SOURCE_DIR}/test/integration/bin/valgrind.sh"
+		"${PROJECT_BINARY_DIR}/test/integration/bin/valgrind.sh"
 		COPYONLY
 )
 

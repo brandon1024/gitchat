@@ -122,8 +122,7 @@ reset_trash_dir () {
 
 setup_test_gpg () {
 	rm -rf "${TEST_TRASH_DIR}/.gpg_tmp"
-	mkdir "${TEST_TRASH_DIR}/.gpg_tmp"
-	chmod 700 "${TEST_TRASH_DIR}/.gpg_tmp"
+	mkdir -m 700 "${TEST_TRASH_DIR}/.gpg_tmp"
 	export GNUPGHOME="${TEST_TRASH_DIR}/.gpg_tmp"
 	unset GPG_AGENT_INFO
 

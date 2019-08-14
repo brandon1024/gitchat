@@ -143,7 +143,7 @@ if [[ ! -d "${TEST_RUNNER_PATH}/integration" ]]; then
 	exit 1
 fi
 
-export PATH="${TEST_RUNNER_PATH}/integration/bin:$PATH"
+export PATH="${TEST_RUNNER_PATH}/integration/bin:${PATH}"
 if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	# When running integration tests under valgrind memcheck, we wrap the git-chat
 	# executable in valgrind.sh, which accepts the same arguments as git-chat.
@@ -163,7 +163,7 @@ if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	rm -f "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
 	ln -s "${TEST_RUNNER_PATH}/integration/valgrind/valgrind.sh" "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
 elif [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
-	export PATH="${TEST_GIT_CHAT_INSTALLED}:$PATH"
+	export PATH="${TEST_GIT_CHAT_INSTALLED}:${PATH}"
 fi
 
 if ! type gpg2 >/dev/null 2>&1; then

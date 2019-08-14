@@ -18,6 +18,7 @@
 
 void copy_dir(char *path_from, char *path_to)
 {
+	int errsv = errno;
 	DIR *dir;
 	struct dirent *ent;
 
@@ -25,7 +26,7 @@ void copy_dir(char *path_from, char *path_to)
 	if (!dir)
 		FATAL("unable to open directory '%s'", path_from);
 
-	safe_create_dir(path_to, NULL);
+	safe_create_dir(path_to, NULL, 0777);
 	while ((ent = readdir(dir)) != NULL) {
 		struct stat st_from;
 
@@ -67,6 +68,7 @@ void copy_dir(char *path_from, char *path_to)
 	}
 
 	closedir(dir);
+	errno = errsv;
 }
 
 void copy_file(const char *dest, const char *src, int mode)
@@ -128,8 +130,9 @@ int get_cwd(struct strbuf *buff)
 	return 0;
 }
 
-void safe_create_dir(char *base_path, char *dir)
+void safe_create_dir(const char *base_path, char *dir, unsigned int mode)
 {
+	int errsv = errno;
 	struct strbuf buff;
 	strbuf_init(&buff);
 
@@ -138,10 +141,11 @@ void safe_create_dir(char *base_path, char *dir)
 	if (dir)
 		strbuf_attach_fmt(&buff, "/%s", dir);
 
-	if (mkdir(buff.buff, 0777) < 0) {
+	if (mkdir(buff.buff, mode) < 0) {
 		if (errno != EEXIST)
 			FATAL("unable to create directory '%s'", buff.buff);
 
+		errno = errsv;
 		LOG_WARN("Directory '%s' already exists", buff.buff);
 	} else {
 		LOG_TRACE("Created new directory '%s'", buff.buff);

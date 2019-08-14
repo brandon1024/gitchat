@@ -42,12 +42,8 @@ NORETURN void DIE(const char *fmt, ...)
 	va_list varargs;
 
 	va_start(varargs, fmt);
-	vfprintf(stderr, fmt, varargs);
-	fprintf(stderr, "\n");
+	print_message(stderr, "", fmt, varargs);
 	va_end(varargs);
-
-	if (errno > 0)
-		fprintf(stderr, "git-chat: %s\n", strerror(errno));
 
 	exit_routine(EXIT_FAILURE);
 }

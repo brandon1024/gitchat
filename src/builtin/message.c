@@ -27,9 +27,8 @@ static const struct option_description message_cmd_options[] = {
 		OPT_BOOL('a', "asym", "encrypt message using public-key (asymmetric) cryptography"),
 		OPT_LONG_STRING("recipient", "alias", "specify one or more recipients that may read the message"),
 
-		OPT_GROUP("symmetric (password) encryption"),
+		OPT_GROUP("symmetric (password-based) encryption"),
 		OPT_BOOL('s', "sym", "encrypt the message using private-key (symmetric) cryptography"),
-		OPT_LONG_STRING("password", "password", "provide the password necessary to decrypt the message"),
 
 		OPT_GROUP("configuring message"),
 		OPT_STRING('m', "message", "message", "provide the message contents"),

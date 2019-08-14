@@ -5,6 +5,7 @@
 #include <locale.h>
 
 #include "gpg-interface.h"
+#include "fs-utils.h"
 #include "utils.h"
 
 static struct gpg_key_list_node *gpg_key_list_push(struct gpg_key_list *list,
@@ -19,6 +20,7 @@ const char *get_gpgme_library_version()
 void init_gpgme_openpgp_engine(void)
 {
 	gpgme_error_t err;
+	int errsv = errno;
 
 	LOG_INFO("Initializing GPGME with GPGME_PROTOCOL_OpenPGP engine");
 
@@ -49,7 +51,7 @@ void init_gpgme_openpgp_engine(void)
 	const char *protocol_name = (char *) gpgme_get_protocol_name(GPGME_PROTOCOL_OpenPGP);
 	const char *engine_executable = enginfo->file_name;
 	const char *engine_config_dir = enginfo->home_dir;
-	const char *default_config_dif = gpgme_get_dirinfo("homedir");
+	const char *default_config_dir = gpgme_get_dirinfo("homedir");
 
 	if (!engine_version)
 		engine_version = "cannot be determined";
@@ -58,7 +60,7 @@ void init_gpgme_openpgp_engine(void)
 	if (!engine_executable)
 		engine_executable = "unknown";
 	if (!engine_config_dir)
-		engine_config_dir = default_config_dif;
+		engine_config_dir = default_config_dir;
 	if (!engine_config_dir)
 		engine_config_dir = "unknown";
 
@@ -66,12 +68,15 @@ void init_gpgme_openpgp_engine(void)
 	LOG_DEBUG("gpgme engine protocol: %s", protocol_name);
 	LOG_DEBUG("gpgme protocol implementation binary: %s", engine_executable);
 	LOG_DEBUG("gpgme config directory: %s", engine_config_dir);
+
+	errno = errsv;
 }
 
 int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 {
 	struct gpgme_context *ctx;
 	gpgme_error_t err;
+	int errsv = errno;
 
 	LOG_INFO("Rebuilding gpg keyring under home directory '%s'", gpg_homedir);
 
@@ -79,8 +84,7 @@ int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 	if (err)
 		GPG_FATAL("failed to create GPGME context", err);
 
-	if (mkdir(gpg_homedir, 0700) < 0 && errno != EEXIST)
-		FATAL("unable to create gpg home directory '%s'", gpg_homedir);
+	safe_create_dir(gpg_homedir, NULL, 0700);
 
 	err = gpgme_ctx_set_engine_info(ctx, GPGME_PROTOCOL_OpenPGP, NULL, gpg_homedir);
 	if (err)
@@ -152,6 +156,7 @@ int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 
 	LOG_INFO("Successfully imported %d gpg keys from %s", key_files.len, keys_dir);
 
+	errno = errsv;
 	return keys_imported;
 }
 
@@ -160,6 +165,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 {
 	struct gpgme_context *ctx;
 	gpgme_error_t err;
+	int errsv = errno;
 
 	LOG_INFO("Encrypting plaintext message in ascii armor format");
 	LOG_DEBUG("GPG homedir path: %s", gpg_homedir);
@@ -168,8 +174,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	if (err)
 		GPG_FATAL("failed to create GPGME context", err);
 
-	if (mkdir(gpg_homedir, 0700) < 0 && errno != EEXIST)
-		FATAL("unable to create gpg home directory '%s'", gpg_homedir);
+	safe_create_dir(gpg_homedir, NULL, 0700);
 
 	err = gpgme_ctx_set_engine_info(ctx, GPGME_PROTOCOL_OpenPGP, NULL, gpg_homedir);
 	if (err)
@@ -250,12 +255,14 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	gpgme_release(ctx);
 
 	LOG_INFO("Successfully encrypted message");
+	errno = errsv;
 }
 
 int get_gpg_keys_from_keyring(const char *gpg_homedir, struct gpg_key_list *keys)
 {
 	struct gpgme_context *ctx;
 	gpgme_error_t err;
+	int errsv = errno;
 
 	LOG_INFO("Fetching gpg keys from keyring under home directory '%s'", gpg_homedir);
 
@@ -263,8 +270,7 @@ int get_gpg_keys_from_keyring(const char *gpg_homedir, struct gpg_key_list *keys
 	if (err)
 		GPG_FATAL("failed to create GPGME context", err);
 
-	if (mkdir(gpg_homedir, 0700) < 0 && errno != EEXIST)
-		FATAL("unable to create gpg home directory '%s'", gpg_homedir);
+	safe_create_dir(gpg_homedir, NULL, 0700);
 
 	err = gpgme_ctx_set_engine_info(ctx, GPGME_PROTOCOL_OpenPGP, NULL, gpg_homedir);
 	if (err)
@@ -293,6 +299,7 @@ int get_gpg_keys_from_keyring(const char *gpg_homedir, struct gpg_key_list *keys
 
 	LOG_INFO("Successfully fetched %d gpg keys", keys_fetched);
 
+	errno = errsv;
 	return keys_fetched;
 }
 

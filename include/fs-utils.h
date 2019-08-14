@@ -55,7 +55,7 @@ int get_cwd(struct strbuf *buff);
  *
  * If safe_create_dir fails for any reason, the current process will be terminated.
  * */
-void safe_create_dir(char *base_path, char *dir);
+void safe_create_dir(const char *base_path, char *dir, unsigned int mode);
 
 /**
  * Search $PATH for a command.  This emulates the path search that

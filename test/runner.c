@@ -2,7 +2,6 @@
 
 #include "test-lib.h"
 #include "test-suite.h"
-#include "utils.h"
 
 static struct suite_test tests[] = {
 		{ "str-array", str_array_test },

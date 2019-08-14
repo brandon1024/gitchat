@@ -163,11 +163,11 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 		FATAL("unable to obtain the current working directory from getcwd()");
 
 	// create .keys directory
-	safe_create_dir(cwd_path_buf.buff, ".keys");
+	safe_create_dir(cwd_path_buf.buff, ".keys", 0777);
 	LOG_INFO("Created .keys directory");
 
 	// create .keys directory
-	safe_create_dir(cwd_path_buf.buff, ".git/chat-cache");
+	safe_create_dir(cwd_path_buf.buff, ".git/chat-cache", 0777);
 	LOG_INFO("Created .git/chat-cache directory");
 
 	//recursively copy from template dir into .git-chat

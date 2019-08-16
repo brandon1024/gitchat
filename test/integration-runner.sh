@@ -160,8 +160,8 @@ if [[ -n "${TEST_VALGRIND+x}" ]]; then
 		export VALGRIND_TARGET="$(which git-chat)"
 	fi
 
-	rm -f "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
-	ln -s "${TEST_RUNNER_PATH}/integration/valgrind/valgrind.sh" "${TEST_RUNNER_PATH}/integration/valgrind/git-chat"
+	rm -f "${TEST_RUNNER_PATH}/integration/bin/git-chat"
+	ln -s "${TEST_RUNNER_PATH}/integration/valgrind/valgrind.sh" "${TEST_RUNNER_PATH}/integration/bin/git-chat"
 elif [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 	export PATH="${TEST_GIT_CHAT_INSTALLED}:${PATH}"
 fi
@@ -223,7 +223,7 @@ for test_path in $TESTS; do
 		exit 1
 	fi
 
-	echo '***' "$(basename -- "${test_path}")" '***' >>"${TEST_RUNNER_PATH}/out.log"
+	echo '***' "$(basename -- "${test_path}")" '***' | tee -a "${TEST_RUNNER_PATH}/out.log"
 
 	if ! bash "${test_path}"; then
 		TEST_FAILURES=$((TEST_FAILURES + 1))

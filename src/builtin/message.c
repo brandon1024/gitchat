@@ -15,7 +15,7 @@
 
 static const struct usage_description message_cmd_usage[] = {
 		USAGE("git chat message [-a | --asym] [(--recipient <alias>...)]"),
-		USAGE("git chat message (-s | --symmetric)"),
+		USAGE("git chat message (-s | --symmetric) [--passphrase <passphrase>]"),
 		USAGE("git chat message (-m | --message) <message>"),
 		USAGE("git chat message (-f | --file) <filename>"),
 		USAGE("git chat message (-h | --help)"),
@@ -28,7 +28,8 @@ static const struct option_description message_cmd_options[] = {
 		OPT_LONG_STRING("recipient", "alias", "specify one or more recipients that may read the message"),
 
 		OPT_GROUP("symmetric (password-based) encryption"),
-		OPT_BOOL('s', "sym", "encrypt the message using private-key (symmetric) cryptography"),
+		OPT_BOOL('s', "sym", "encrypt the message using passphrase-based (symmetric) cryptography"),
+		OPT_LONG_STRING("passphrase", "passphrase", "skip the default pinentry method and provide passphrase as argument"),
 
 		OPT_GROUP("configuring message"),
 		OPT_STRING('m', "message", "message", "provide the message contents"),
@@ -37,13 +38,12 @@ static const struct option_description message_cmd_options[] = {
 		OPT_END()
 };
 
-static int create_asymmetric_message(struct str_array *recipients,
-		const char *message, const char *file);
-static int create_symmetric_message(const char *message, const char *file);
+static int create_message(struct str_array *recipients, const char *message,
+		const char *file, const char *passphrase, int asym);
+static int encrypt_message_asym(const char *gpg_homedir, struct str_array *recipients,
+		struct strbuf *message_in, struct strbuf *ciphertext_result);
 static void compose_message(struct strbuf *buff);
 static void read_message_from_file(const char *file_path, struct strbuf *buff);
-static int encrypt_message(const char *gpg_homedir, struct strbuf *message,
-		struct str_array *recipients, struct strbuf *message_output);
 static int filter_gpg_keylist_by_recipients(struct _gpgme_key *key, void *data);
 static int write_commit(struct strbuf *encrypted_message);
 static void show_message_usage(int err, const char *optional_message_format, ...);
@@ -55,6 +55,7 @@ int cmd_message(int argc, char *argv[])
 	struct str_array recipients;
 	const char *message = NULL;
 	const char *file = NULL;
+	const char *passphrase = NULL;
 
 	str_array_init(&recipients);
 
@@ -92,8 +93,20 @@ int cmd_message(int argc, char *argv[])
 			continue;
 		}
 
+		//passphrase
+		if (argument_matches_option(arg, message_cmd_options[5])) {
+			if (++arg_index >= argc) {
+				show_message_usage(1, "error: no passphrase provided with %s", arg);
+				str_array_release(&recipients);
+				return 1;
+			}
+
+			passphrase = argv[arg_index];
+			continue;
+		}
+
 		//message
-		if (argument_matches_option(arg, message_cmd_options[6])) {
+		if (argument_matches_option(arg, message_cmd_options[7])) {
 			if (++arg_index >= argc) {
 				show_message_usage(1, "error: no message provided with %s", arg);
 				str_array_release(&recipients);
@@ -105,9 +118,9 @@ int cmd_message(int argc, char *argv[])
 		}
 
 		//file
-		if (argument_matches_option(arg, message_cmd_options[7])) {
+		if (argument_matches_option(arg, message_cmd_options[8])) {
 			if (++arg_index >= argc) {
-				show_message_usage(1, "error: no password provided with %s", arg);
+				show_message_usage(1, "error: no file provided with %s", arg);
 				str_array_release(&recipients);
 				return 1;
 			}
@@ -116,7 +129,8 @@ int cmd_message(int argc, char *argv[])
 			continue;
 		}
 
-		if (argument_matches_option(arg, message_cmd_options[8])) {
+		//show help
+		if (argument_matches_option(arg, message_cmd_options[9])) {
 			show_message_usage(0, NULL);
 			str_array_release(&recipients);
 			return 0;
@@ -145,24 +159,34 @@ int cmd_message(int argc, char *argv[])
 		return 1;
 	}
 
-	int ret;
-	if (asym)
-		ret = create_asymmetric_message(&recipients, message, file);
-	else
-		ret = create_symmetric_message(message, file);
+	if (passphrase && asym) {
+		show_message_usage(1, "error: --passphrase doesn't make sense with asymmetric encryption");
+		str_array_release(&recipients);
+		return 1;
+	}
+
+	int ret = create_message(&recipients, message, file, passphrase, asym);
 
 	str_array_release(&recipients);
 	return ret;
 }
 
-static int create_asymmetric_message(struct str_array *recipients,
-		const char *message, const char *file)
+static int create_message(struct str_array *recipients, const char *message,
+		const char *file, const char *passphrase, const int asym)
 {
 	struct strbuf gpg_homedir;
-	struct strbuf keys_dir_path;
 
 	if (!is_inside_git_chat_space())
 		DIE("Where are you? It doesn't look like you're in the right directory.");
+
+	struct strbuf cwd_buff;
+	strbuf_init(&cwd_buff);
+	if (get_cwd(&cwd_buff))
+		FATAL("unable to obtain the current working directory from getcwd()");
+
+	strbuf_init(&gpg_homedir);
+	strbuf_attach_fmt(&gpg_homedir, "%s/.git/.gnupg", cwd_buff.buff);
+	LOG_INFO("gpg homedir %s", gpg_homedir.buff);
 
 	struct strbuf message_buff;
 	strbuf_init(&message_buff);
@@ -175,54 +199,85 @@ static int create_asymmetric_message(struct str_array *recipients,
 	else
 		strbuf_attach_str(&message_buff, message);
 
-	struct strbuf cwd_buff;
-	strbuf_init(&cwd_buff);
-	if (get_cwd(&cwd_buff))
-		FATAL("unable to obtain the current working directory from getcwd()");
+	struct strbuf ciphertext;
+	strbuf_init(&ciphertext);
+	if (asym) {
+		struct strbuf keys_dir_path;
+		strbuf_init(&keys_dir_path);
+		strbuf_attach_fmt(&keys_dir_path, "%s/.keys", cwd_buff.buff);
+		LOG_INFO("git-chat keys dir %s", keys_dir_path.buff);
 
-	strbuf_init(&gpg_homedir);
-	strbuf_init(&keys_dir_path);
+		// reimport the gpg keys into the keyring
+		rebuild_gpg_keyring(gpg_homedir.buff, keys_dir_path.buff);
+		strbuf_release(&keys_dir_path);
 
-	strbuf_attach_fmt(&gpg_homedir, "%s/.git/.gnupg", cwd_buff.buff);
-	strbuf_attach_fmt(&keys_dir_path, "%s/.keys", cwd_buff.buff);
-	LOG_INFO("gpg homedir %s", gpg_homedir.buff);
-	LOG_INFO("git-chat keys dir %s", keys_dir_path.buff);
-
-	strbuf_release(&cwd_buff);
-
-	// reimport the gpg keys into the keyring
-	rebuild_gpg_keyring(gpg_homedir.buff, keys_dir_path.buff);
-	strbuf_release(&keys_dir_path);
-
-	// encrypt the message into the encrypted_message buffer
-	struct strbuf encrypted_message;
-	strbuf_init(&encrypted_message);
-	if (encrypt_message(gpg_homedir.buff, &message_buff, recipients, &encrypted_message)) {
-		WARN("one or more recipients have no known GPG keys in the keyring.");
-
-		strbuf_release(&gpg_homedir);
-		strbuf_release(&message_buff);
-		strbuf_release(&encrypted_message);
-		return 1;
+		int ret = encrypt_message_asym(gpg_homedir.buff, recipients,
+				&message_buff, &ciphertext);
+		if (ret == 0)
+			DIE("no message recipients; no one will be able to read your message.");
+		if (ret < 0)
+			DIE("one or more message recipients have no public gpg key available.");
+	} else {
+		symmetric_encrypt_plaintext_message(gpg_homedir.buff, &message_buff,
+				&ciphertext, passphrase);
 	}
 
-	strbuf_release(&gpg_homedir);
-
 	memset(message_buff.buff, 0, message_buff.alloc);
-	strbuf_release(&message_buff);
 
-	// write the commit onto the tip of the branch
-	if (write_commit(&encrypted_message))
+	if (write_commit(&ciphertext))
 		FATAL("failed to write ciphertext as the commit message body");
 
-	strbuf_release(&encrypted_message);
+	strbuf_release(&message_buff);
+	strbuf_release(&ciphertext);
+	strbuf_release(&cwd_buff);
+	strbuf_release(&gpg_homedir);
 
 	return 0;
 }
 
-static int create_symmetric_message(const char *message, const char *file)
+/**
+ * Encrypt a plaintext message from a string buffer into destination buffer, in
+ * ASCII-armor format.
+ *
+ * If recipients is an empty list, then all gpg keys are used in encrypting the
+ * message. Otherwise, recipients are mapped to gpg keys using the
+ * filter_gpg_keylist_by_recipients() filter function. If one or more recipients
+ * do not have associated GPG keys, returns 1 and the message output buffer is left
+ * unmodified.
+ *
+ * Returns the number of recipients selected to decrypt the message, or -1 if
+ * some recipients in the given str_array do not exist (no public key in keyring).
+ * */
+static int encrypt_message_asym(const char *gpg_homedir, struct str_array *recipients,
+		struct strbuf *message_in, struct strbuf *ciphertext_result)
 {
-	return 1;
+	struct gpg_key_list gpg_keys;
+	int key_count = get_gpg_keys_from_keyring(gpg_homedir, &gpg_keys);
+
+	// filter unusable and secret gpg keys
+	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_unusable_keys, NULL);
+	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_secret_keys, NULL);
+
+	// if explicit recipients given, filter keys that are not to be recipients
+	if (recipients->len) {
+		key_count -= filter_gpg_keys_by_predicate(&gpg_keys,
+				filter_gpg_keylist_by_recipients, recipients);
+
+		// if there is not a 1-1 mapping of recipients to gpg keys, fail
+		if (key_count != recipients->len) {
+			LOG_ERROR("Some recipients defined cannot be mapped to GPG keys");
+
+			release_gpg_key_list(&gpg_keys);
+			return -1;
+		}
+	}
+
+	if (key_count)
+		asymmetric_encrypt_plaintext_message(gpg_homedir, message_in, ciphertext_result, &gpg_keys);
+
+	release_gpg_key_list(&gpg_keys);
+
+	return key_count;
 }
 
 /**
@@ -302,7 +357,7 @@ static void read_message_from_file(const char *file_path, struct strbuf *buff)
 	if (!read_stdin) {
 		fd = open(file_path, O_RDONLY);
 		if (fd < 0)
-			FATAL(FILE_OPEN_FAILED, file_path);
+			DIE(FILE_OPEN_FAILED, file_path);
 	} else
 		fprintf(stderr, "[INFO] Type your message below. Once complete, press ⌃D to exit.\n");
 
@@ -315,51 +370,6 @@ static void read_message_from_file(const char *file_path, struct strbuf *buff)
 
 	if (!read_stdin)
 		close(fd);
-}
-
-/**
- * Encrypt a plaintext message from a string buffer into destination buffer, in
- * ASCII-armor format.
- *
- * If recipients is an empty list, then all gpg keys are used in encrypting the
- * message. Otherwise, recipients are mapped to gpg keys using the
- * filter_gpg_keylist_by_recipients() filter function. If one or more recipients
- * do not have associated GPG keys, returns 1 and the message output buffer is left
- * unmodified.
- *
- * If the message was successfully encrypted into the output buffer, returns zero.
- * */
-static int encrypt_message(const char *gpg_homedir, struct strbuf *message,
-		struct str_array *recipients, struct strbuf *message_output)
-{
-	struct gpg_key_list gpg_keys;
-	int key_count = get_gpg_keys_from_keyring(gpg_homedir, &gpg_keys);
-
-	// filter unusable and secret gpg keys
-	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_unusable_keys, NULL);
-	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_secret_keys, NULL);
-
-	if (!key_count)
-		DIE("no message recipients; no one will be able to read your message.");
-
-	// if explicit recipients given, filter keys that are not to be recipients
-	if (recipients->len) {
-		key_count -= filter_gpg_keys_by_predicate(&gpg_keys,
-				filter_gpg_keylist_by_recipients, recipients);
-
-		// if there is not a 1-1 mapping of recipients to gpg keys, fail
-		if (key_count != recipients->len) {
-			LOG_ERROR("Some recipients defined cannot be mapped to GPG keys");
-
-			release_gpg_key_list(&gpg_keys);
-			return 1;
-		}
-	}
-
-	encrypt_plaintext_message(gpg_homedir, message, message_output, &gpg_keys);
-	release_gpg_key_list(&gpg_keys);
-
-	return 0;
 }
 
 /**
@@ -439,8 +449,7 @@ static int write_commit(struct strbuf *encrypted_message)
 
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	argv_array_push(&cmd.args, "show", "--format=%C(yellow)commit %h%Creset %d%nauthor: %aE",
-			"-s", "HEAD", NULL);
+	argv_array_push(&cmd.args, "cat-file", "-p", "HEAD", NULL);
 	status = run_command(&cmd);
 
 	child_process_def_release(&cmd);

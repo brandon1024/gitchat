@@ -24,7 +24,7 @@ assert_success 'integration tests must not be executed from within a git working
 	! git rev-parse --is-inside-work-tree
 '
 
-assert_success 'git-chat should install on the system PATH' '
+assert_success 'git-chat should exist on the PATH' '
 	which git-chat
 '
 

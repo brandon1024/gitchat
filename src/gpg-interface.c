@@ -10,6 +10,8 @@
 
 static struct gpg_key_list_node *gpg_key_list_push(struct gpg_key_list *list,
 		struct _gpgme_key *key);
+gpgme_error_t gpgme_passphrase_cb(void *hook, const char *uid_hint,
+		const char *passphrase_info, int prev_was_bad, int fd);
 NORETURN static void GPG_FATAL(const char *msg, gpgme_error_t err);
 
 const char *get_gpgme_library_version()
@@ -84,7 +86,7 @@ int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 	if (err)
 		GPG_FATAL("failed to create GPGME context", err);
 
-	safe_create_dir(gpg_homedir, NULL, 0700);
+	safe_create_dir(gpg_homedir, NULL, S_IRUSR | S_IWUSR | S_IXUSR);
 
 	err = gpgme_ctx_set_engine_info(ctx, GPGME_PROTOCOL_OpenPGP, NULL, gpg_homedir);
 	if (err)
@@ -160,7 +162,7 @@ int rebuild_gpg_keyring(const char *gpg_homedir, const char *keys_dir)
 	return keys_imported;
 }
 
-void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *message,
+void asymmetric_encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *message,
 		struct strbuf *output, struct gpg_key_list *recipients)
 {
 	struct gpgme_context *ctx;
@@ -174,7 +176,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	if (err)
 		GPG_FATAL("failed to create GPGME context", err);
 
-	safe_create_dir(gpg_homedir, NULL, 0700);
+	safe_create_dir(gpg_homedir, NULL, S_IRUSR | S_IWUSR | S_IXUSR);
 
 	err = gpgme_ctx_set_engine_info(ctx, GPGME_PROTOCOL_OpenPGP, NULL, gpg_homedir);
 	if (err)
@@ -191,7 +193,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 		struct str_array_entry *entry = str_array_insert_nodup(&keys, NULL, keys.len);
 		entry->data = node->key;
 
-		LOG_TRACE("Recipient gpg key fingerprint: ", node->key->fpr);
+		LOG_TRACE("Recipient gpg key fingerprint: %s", node->key->fpr);
 
 		node = node->next;
 	}
@@ -199,7 +201,7 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	size_t keys_len = 0;
 	struct _gpgme_key **keys_array = (struct _gpgme_key **)str_array_detach_data(&keys, &keys_len);
 	if (!keys_len)
-		BUG("no gpg keys given to encrypt_plaintext_message()");
+		BUG("no gpg keys given to asymmetric_encrypt_plaintext_message()");
 
 	// build gpg data buffers for the plaintext input and ciphertext output
 	struct gpgme_data *message_in;
@@ -258,6 +260,88 @@ void encrypt_plaintext_message(const char *gpg_homedir, const struct strbuf *mes
 	errno = errsv;
 }
 
+void symmetric_encrypt_plaintext_message(const char *gpg_homedir,
+		struct strbuf *message, struct strbuf *output, const char *passphrase)
+{
+	struct gpgme_context *ctx;
+	gpgme_error_t err;
+	int errsv = errno;
+
+	LOG_INFO("Encrypting plaintext message in ascii armor format");
+	LOG_DEBUG("GPG homedir path: %s", gpg_homedir);
+
+	err = gpgme_new(&ctx);
+	if (err)
+		GPG_FATAL("failed to create GPGME context", err);
+
+	safe_create_dir(gpg_homedir, NULL, S_IRUSR | S_IWUSR | S_IXUSR);
+
+	err = gpgme_ctx_set_engine_info(ctx, GPGME_PROTOCOL_OpenPGP, NULL, gpg_homedir);
+	if (err)
+		GPG_FATAL("failed to mutate GPGME engine homedir", err);
+
+	gpgme_set_armor(ctx, 1);
+
+	// if passphrase is defined, configure a passphrase callback to skip the
+	// default pinentry method
+	if (passphrase) {
+		gpgme_set_pinentry_mode(ctx, GPGME_PINENTRY_MODE_LOOPBACK);
+		gpgme_set_passphrase_cb(ctx, gpgme_passphrase_cb, (char *)passphrase);
+	}
+
+	// build gpg data buffers for the plaintext input and ciphertext output
+	struct gpgme_data *message_in;
+	struct gpgme_data *message_out;
+	err = gpgme_data_new_from_mem(&message_in, message->buff, message->len, 0);
+	if (err)
+		GPG_FATAL("unable to create GPGME memory data buffer from plaintext message", err);
+
+	err = gpgme_data_new(&message_out);
+	if (err)
+		GPG_FATAL("unable to create GPGME data buffer for encrypted ciphertext", err);
+
+	err = gpgme_op_encrypt(ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO,
+			message_in,  message_out);
+	if (err) {
+		if (gpgme_err_code(err) == GPG_ERR_INV_VALUE)
+			BUG("invalid pointer passed to gpgme_op_encrypt(...)");
+
+		if (gpgme_err_code(err) == GPG_ERR_UNUSABLE_PUBKEY) {
+			struct _gpgme_op_encrypt_result *result = gpgme_op_encrypt_result (ctx);
+
+			fprintf(stderr, "cannot encrypt message with invalid recipient:\n");
+
+			struct _gpgme_invalid_key *invalid_key = result->invalid_recipients;
+			while (invalid_key) {
+				fprintf(stderr, "\t%s - Reason: %s\n", invalid_key->fpr, gpgme_strerror(invalid_key->reason));
+
+				invalid_key = invalid_key->next;
+			}
+		}
+
+		GPG_FATAL("GPGME unable to encrypt message", err);
+	}
+
+	// read ciphertext into message_out strbuf
+	int ret = gpgme_data_seek (message_out, 0, SEEK_SET);
+	if (ret)
+		GPG_FATAL("failed to seek to beginning of gpgme data buffer", err);
+
+	char temporary_buffer[1024];
+	while ((ret = gpgme_data_read(message_out, temporary_buffer, 1024)) > 0)
+		strbuf_attach(output, temporary_buffer, 1024);
+
+	if (ret < 0)
+		GPG_FATAL("failed to read from gpgme data buffer", err);
+
+	gpgme_data_release(message_in);
+	gpgme_data_release(message_out);
+	gpgme_release(ctx);
+
+	LOG_INFO("Successfully encrypted message");
+	errno = errsv;
+}
+
 int get_gpg_keys_from_keyring(const char *gpg_homedir, struct gpg_key_list *keys)
 {
 	struct gpgme_context *ctx;
@@ -270,7 +354,7 @@ int get_gpg_keys_from_keyring(const char *gpg_homedir, struct gpg_key_list *keys
 	if (err)
 		GPG_FATAL("failed to create GPGME context", err);
 
-	safe_create_dir(gpg_homedir, NULL, 0700);
+	safe_create_dir(gpg_homedir, NULL, S_IRUSR | S_IWUSR | S_IXUSR);
 
 	err = gpgme_ctx_set_engine_info(ctx, GPGME_PROTOCOL_OpenPGP, NULL, gpg_homedir);
 	if (err)
@@ -402,6 +486,31 @@ static struct gpg_key_list_node *gpg_key_list_push(struct gpg_key_list *list,
 	list->tail = node;
 
 	return node;
+}
+
+/**
+ * Passphrase entry callback to bypass default gpg pinentry method. Accepts a
+ * passphrase via the `hook` argument, and write to the given file descriptor
+ * `fd`, as described in the gpgme documentation.
+ * */
+gpgme_error_t gpgme_passphrase_cb(void *hook, const char *uid_hint,
+		const char *passphrase_info, int prev_was_bad, int fd)
+{
+	(void) uid_hint;
+	(void) passphrase_info;
+
+	const char *passphrase = (const char *) hook;
+
+	if (prev_was_bad)
+		return gpg_error(GPG_ERR_CANCELED);
+
+	ssize_t bytes_written = recoverable_write(fd, passphrase, strlen(passphrase));
+	bytes_written += recoverable_write(fd, "\n", 1);
+
+	if (bytes_written != (strlen(passphrase) + 1))
+		return gpg_error(GPG_ERR_CANCELED);
+
+	return 0;
 }
 
 /**

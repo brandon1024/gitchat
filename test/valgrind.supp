@@ -1,0 +1,37 @@
+# git-chat suppressions for valgrind
+#
+# When testing git-chat with Valgrind memcheck, this suppression file can be used
+# to filter known unsafe memory usages in dependent libraries.
+#
+# Only when absolutely necessary should suppressions be added to this file. Please
+# add a description in the form of a comment if adding a new suppression for
+# git-chat itself. This is not necessary for suppresions for external libraries.
+#
+# When executing the integration test suite with valgrind, you can instruct valgrind
+# to use this suppression file via the VALGRIND_TOOL_OPTIONS environment variable:
+#
+# VALGRIND_TOOL_OPTIONS="--suppressions=/path/to/valgrind.supp" \
+#	./integration-runner.sh --git-chat-installed ~/bin --test 't004*' --valgrind
+
+{
+	gpgme-static-get-engine-info
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:gpgme_get_engine_info
+}
+{
+	gpgme-static-set-engine-info
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:_gpgme_set_engine_info
+	fun:gpgme_set_engine_info
+}
+{
+	gpgme-static-set-locale
+	Memcheck:Leak
+	fun:malloc
+	fun:strdup
+	fun:gpgme_set_locale
+}

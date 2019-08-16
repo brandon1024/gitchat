@@ -26,10 +26,12 @@ void copy_dir(char *path_from, char *path_to)
 	if (!dir)
 		FATAL("unable to open directory '%s'", path_from);
 
-	safe_create_dir(path_to, NULL, 0777);
-	while ((ent = readdir(dir)) != NULL) {
-		struct stat st_from;
+	struct stat st_from;
+	if (lstat(path_from, &st_from) && errno == ENOENT)
+		FATAL("unable to stat directory '%s'", path_from);
 
+	safe_create_dir(path_to, NULL, st_from.st_mode);
+	while ((ent = readdir(dir)) != NULL) {
 		if (!strcmp(".", ent->d_name) || !strcmp("..", ent->d_name))
 			continue;
 

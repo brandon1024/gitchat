@@ -285,7 +285,10 @@ void symmetric_encrypt_plaintext_message(const char *gpg_homedir,
 	// if passphrase is defined, configure a passphrase callback to skip the
 	// default pinentry method
 	if (passphrase) {
-		gpgme_set_pinentry_mode(ctx, GPGME_PINENTRY_MODE_LOOPBACK);
+		err = gpgme_set_pinentry_mode(ctx, GPGME_PINENTRY_MODE_LOOPBACK);
+		if (err)
+			GPG_FATAL("Unable to set gpg pinentry mode to GPGME_PINENTRY_MODE_LOOPBACK", err);
+
 		gpgme_set_passphrase_cb(ctx, gpgme_passphrase_cb, (char *)passphrase);
 	}
 

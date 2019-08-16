@@ -108,7 +108,7 @@ Create a new message in the current channel. The message is encrypted with GPG. 
 
 ```
 usage: git chat message [-a | --asym] [(--recipient <alias>...)]
-   or: git chat message (-s | --symmetric) [--password <password>]
+   or: git chat message (-s | --sym) [--passphrase <passphrase>]
    or: git chat message (-m | --message) <message>
    or: git chat message (-f | --file) <filename>
    or: git chat message (-h | --help)
@@ -118,10 +118,10 @@ asymmetric (public-key) encryption:
     --recipient <alias>
                         specify one or more recipients that may read the message
 
-symmetric (password) encryption:
-    -s, --sym           encrypt the message using private-key (symmetric) cryptography
-    --password <password>
-                        provide the password necessary to decrypt the message
+symmetric (password-based) encryption:
+    -s, --sym           encrypt the message using passphrase-based (symmetric) cryptography
+    --passphrase <passphrase>
+                        skip the default pinentry method and provide passphrase as argument
 
 configuring message:
     -m, --message <message>

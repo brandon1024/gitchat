@@ -15,7 +15,7 @@
 
 static const struct usage_description message_cmd_usage[] = {
 		USAGE("git chat message [-a | --asym] [(--recipient <alias>...)]"),
-		USAGE("git chat message (-s | --symmetric) [--passphrase <passphrase>]"),
+		USAGE("git chat message (-s | --sym) [--passphrase <passphrase>]"),
 		USAGE("git chat message (-m | --message) <message>"),
 		USAGE("git chat message (-f | --file) <filename>"),
 		USAGE("git chat message (-h | --help)"),

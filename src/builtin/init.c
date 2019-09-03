@@ -6,8 +6,8 @@
 #include <sys/stat.h>
 
 #include "run-command.h"
+#include "parse-options.h"
 #include "parse-config.h"
-#include "usage.h"
 #include "fs-utils.h"
 #include "utils.h"
 
@@ -15,77 +15,44 @@
 #define DEFAULT_GIT_CHAT_TEMPLATES_DIR "/usr/local/share/git-chat/templates"
 #endif //DEFAULT_GIT_CHAT_TEMPLATES_DIR
 
-static const struct usage_description init_cmd_usage[] = {
+static const struct usage_string init_cmd_usage[] = {
 		USAGE("git chat init [(-n | --name) <name>] [(-d | --description) <desc>]"),
 		USAGE("git chat init [-q | --quiet]"),
 		USAGE("git chat init (-h | --help)"),
 		USAGE_END()
 };
 
-static const struct option_description init_cmd_options[] = {
-		OPT_STRING('n', "name", "name", "specify a name for the master channel"),
-		OPT_STRING('d', "description", "desc", "specify a description for the space"),
-		OPT_BOOL('q', "quiet", "only print error and warning messages"),
-		OPT_BOOL('h', "help", "show usage and exit"),
-		OPT_END()
-};
+static int init(const char *, const char *, int );
+static void update_config(char *, const char *, const char *);
+static void update_space_description(char *, const char *);
+static void initialize_channel_root(char *);
+int get_author_identity(struct strbuf *);
 
-/* Function Prototypes */
-static int init(const char *channel_name, const char *space_desc, int quiet);
-static void update_config(char *base, const char *channel_name, const char *author);
-static void update_space_description(char *base, const char *description);
-static void initialize_channel_root(char *base);
-int get_author_identity(struct strbuf *result);
-static void show_init_usage(int err, const char *optional_message_format, ...);
 
-/* Public Functions */
 int cmd_init(int argc, char *argv[])
 {
 	char *channel_name = NULL;
 	char *room_desc = NULL;
 	int opt_quiet = 0;
+	int show_help = 0;
 
-	for (size_t arg_index = 0; arg_index < argc; arg_index++) {
-		char *arg = argv[arg_index];
+	const struct command_option init_cmd_options[] = {
+			OPT_STRING('n', "name", "name", "specify a name for the master channel", &channel_name),
+			OPT_STRING('d', "description", "desc", "specify a description for the space", &room_desc),
+			OPT_BOOL('q', "quiet", "only print error and warning messages", &opt_quiet),
+			OPT_BOOL('h', "help", "show usage and exit", &show_help),
+			OPT_END()
+	};
 
-		if (!is_valid_argument(arg, init_cmd_options)) {
-			show_init_usage(1, "error: unknown option '%s'", arg);
-			return 1;
-		}
+	argc = parse_options(argc, argv, init_cmd_options, 1, 1);
+	if (argc > 0) {
+		show_usage_with_options(init_cmd_usage, init_cmd_options, 1, "error: unknown option '%s'", argv[0]);
+		return 1;
+	}
 
-		//room name
-		if (argument_matches_option(arg, init_cmd_options[0])) {
-			if (++arg_index >= argc) {
-				show_init_usage(1, "error: no channel name provided with %s", arg);
-				return 1;
-			}
-
-			channel_name = argv[arg_index];
-			continue;
-		}
-
-		//room description
-		if (argument_matches_option(arg, init_cmd_options[1])) {
-			if (++arg_index >= argc) {
-				show_init_usage(1, "error: no room description provided with %s", arg);
-				return 1;
-			}
-
-			room_desc = argv[arg_index];
-			continue;
-		}
-
-		//quiet
-		if (argument_matches_option(arg, init_cmd_options[2])) {
-			opt_quiet = 1;
-			continue;
-		}
-
-		//show help
-		if (argument_matches_option(arg, init_cmd_options[3])) {
-			show_init_usage(0, NULL);
-			return 0;
-		}
+	if (show_help) {
+		show_usage_with_options(init_cmd_usage, init_cmd_options, 0, NULL);
+		return 0;
 	}
 
 	return init(channel_name, room_desc, opt_quiet);
@@ -398,15 +365,4 @@ int get_author_identity(struct strbuf *result)
 	strbuf_release(&cmd_out);
 
 	return 1;
-}
-
-static void show_init_usage(int err, const char *optional_message_format, ...)
-{
-	va_list varargs;
-	va_start(varargs, optional_message_format);
-
-	variadic_show_usage_with_options(init_cmd_usage, init_cmd_options,
-			optional_message_format, varargs, err);
-
-	va_end(varargs);
 }

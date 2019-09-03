@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -8,13 +7,13 @@
 #include "run-command.h"
 #include "gpg-interface.h"
 #include "fs-utils.h"
-#include "usage.h"
+#include "parse-options.h"
 #include "utils.h"
 
 #define BUFF_LEN 1024
 
-static const struct usage_description message_cmd_usage[] = {
-		USAGE("git chat message [-a | --asym] [(--recipient <alias>...)]"),
+static const struct usage_string message_cmd_usage[] = {
+		USAGE("git chat message [-a | --asym] [(--recipient <alias>)...]"),
 		USAGE("git chat message (-s | --sym) [--passphrase <passphrase>]"),
 		USAGE("git chat message (-m | --message) <message>"),
 		USAGE("git chat message (-f | --file) <filename>"),
@@ -22,123 +21,54 @@ static const struct usage_description message_cmd_usage[] = {
 		USAGE_END()
 };
 
-static const struct option_description message_cmd_options[] = {
-		OPT_GROUP("asymmetric (public-key) encryption"),
-		OPT_BOOL('a', "asym", "encrypt message using public-key (asymmetric) cryptography"),
-		OPT_LONG_STRING("recipient", "alias", "specify one or more recipients that may read the message"),
-
-		OPT_GROUP("symmetric (password-based) encryption"),
-		OPT_BOOL('s', "sym", "encrypt the message using passphrase-based (symmetric) cryptography"),
-		OPT_LONG_STRING("passphrase", "passphrase", "skip the default pinentry method and provide passphrase as argument"),
-
-		OPT_GROUP("configuring message"),
-		OPT_STRING('m', "message", "message", "provide the message contents"),
-		OPT_STRING('f', "file", "filename", "read message contents from file"),
-		OPT_BOOL('h', "help", "show usage and exit"),
-		OPT_END()
-};
-
-static int create_message(struct str_array *recipients, const char *message,
-		const char *file, const char *passphrase, int asym);
-static int encrypt_message_asym(const char *gpg_homedir, struct str_array *recipients,
-		struct strbuf *message_in, struct strbuf *ciphertext_result);
-static void compose_message(struct strbuf *buff);
-static void read_message_from_file(const char *file_path, struct strbuf *buff);
-static int filter_gpg_keylist_by_recipients(struct _gpgme_key *key, void *data);
-static int write_commit(struct strbuf *encrypted_message);
-static void show_message_usage(int err, const char *optional_message_format, ...);
+static int create_message(struct str_array *, const char *, const char *, const char *, int);
+static int encrypt_message_asym(const char *, struct str_array *, struct strbuf *, struct strbuf *);
+static void compose_message(struct strbuf *);
+static void read_message_from_file(const char *, struct strbuf *);
+static int filter_gpg_keylist_by_recipients(struct _gpgme_key *, void *);
+static int write_commit(struct strbuf *);
 
 
 int cmd_message(int argc, char *argv[])
 {
 	int asym = 0, sym = 0;
+	int show_help = 0;
 	struct str_array recipients;
 	const char *message = NULL;
 	const char *file = NULL;
 	const char *passphrase = NULL;
 
+	const struct command_option message_cmd_options[] = {
+			OPT_GROUP("asymmetric (public-key) encryption"),
+			OPT_BOOL('a', "asym", "encrypt message using public-key (asymmetric) cryptography", &asym),
+			OPT_LONG_STRING_LIST("recipient", "alias", "specify one or more recipients that may read the message", &recipients),
+
+			OPT_GROUP("symmetric (password-based) encryption"),
+			OPT_BOOL('s', "sym", "encrypt the message using passphrase-based (symmetric) cryptography", &sym),
+			OPT_LONG_STRING("passphrase", "passphrase", "skip the default pinentry method and provide passphrase as argument", &passphrase),
+
+			OPT_GROUP("configuring message"),
+			OPT_STRING('m', "message", "message", "provide the message contents", &message),
+			OPT_STRING('f', "file", "filename", "read message contents from file", &file),
+			OPT_BOOL('h', "help", "show usage and exit", &show_help),
+			OPT_END()
+	};
+
 	str_array_init(&recipients);
+	argc = parse_options(argc, argv, message_cmd_options, 1, 1);
+	if (argc > 0) {
+		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: unknown option '%s'", argv[0]);
+		str_array_release(&recipients);
+		return 1;
+	}
 
-	for (size_t arg_index = 0; arg_index < argc; arg_index++) {
-		char *arg = argv[arg_index];
-
-		if (!is_valid_argument(arg, message_cmd_options)) {
-			show_message_usage(1, "error: unknown option '%s'", arg);
-			return 1;
-		}
-
-		//asym
-		if (argument_matches_option(arg, message_cmd_options[1])) {
-			asym = 1;
-			continue;
-		}
-
-		//recipients
-		if (argument_matches_option(arg, message_cmd_options[2])) {
-			while ((arg_index + 1) < argc) {
-				arg = argv[arg_index + 1];
-				if (arg[0] == '-')
-					break;
-
-				str_array_push(&recipients, arg, NULL);
-				arg_index++;
-			}
-
-			continue;
-		}
-
-		//sym
-		if (argument_matches_option(arg, message_cmd_options[4])) {
-			sym = 1;
-			continue;
-		}
-
-		//passphrase
-		if (argument_matches_option(arg, message_cmd_options[5])) {
-			if (++arg_index >= argc) {
-				show_message_usage(1, "error: no passphrase provided with %s", arg);
-				str_array_release(&recipients);
-				return 1;
-			}
-
-			passphrase = argv[arg_index];
-			continue;
-		}
-
-		//message
-		if (argument_matches_option(arg, message_cmd_options[7])) {
-			if (++arg_index >= argc) {
-				show_message_usage(1, "error: no message provided with %s", arg);
-				str_array_release(&recipients);
-				return 1;
-			}
-
-			message = argv[arg_index];
-			continue;
-		}
-
-		//file
-		if (argument_matches_option(arg, message_cmd_options[8])) {
-			if (++arg_index >= argc) {
-				show_message_usage(1, "error: no file provided with %s", arg);
-				str_array_release(&recipients);
-				return 1;
-			}
-
-			file = argv[arg_index];
-			continue;
-		}
-
-		//show help
-		if (argument_matches_option(arg, message_cmd_options[9])) {
-			show_message_usage(0, NULL);
-			str_array_release(&recipients);
-			return 0;
-		}
+	if (show_help) {
+		show_usage_with_options(message_cmd_usage, message_cmd_options, 0, NULL);
+		return 0;
 	}
 
 	if (sym && asym) {
-		show_message_usage(1, "error: cannot combine --sym and --asym");
+		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: cannot combine --sym and --asym");
 		str_array_release(&recipients);
 		return 1;
 	}
@@ -148,19 +78,19 @@ int cmd_message(int argc, char *argv[])
 		asym = 1;
 
 	if (sym && recipients.len) {
-		show_message_usage(1, "error: --recipient doesn't make any sense with --sym");
+		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: --recipient doesn't make any sense with --sym");
 		str_array_release(&recipients);
 		return 1;
 	}
 
 	if (message && file) {
-		show_message_usage(1, "error: mixing --message and --file is not supported");
+		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: mixing --message and --file is not supported");
 		str_array_release(&recipients);
 		return 1;
 	}
 
 	if (passphrase && asym) {
-		show_message_usage(1, "error: --passphrase doesn't make sense with asymmetric encryption");
+		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: --passphrase doesn't make sense with asymmetric encryption");
 		str_array_release(&recipients);
 		return 1;
 	}
@@ -455,15 +385,4 @@ static int write_commit(struct strbuf *encrypted_message)
 	child_process_def_release(&cmd);
 
 	return status;
-}
-
-static void show_message_usage(int err, const char *optional_message_format, ...)
-{
-	va_list varargs;
-	va_start(varargs, optional_message_format);
-
-	variadic_show_usage_with_options(message_cmd_usage, message_cmd_options,
-			optional_message_format, varargs, err);
-
-	va_end(varargs);
 }

@@ -8,8 +8,8 @@ static struct suite_test tests[] = {
 		{ "argv-array", argv_array_test },
 		{ "strbuf", strbuf_test },
 		{ "parse-config", parse_config_test },
-		{ "usage", usage_test },
 		{ "run-command", run_command_test },
+		{ "parse-options", parse_options_test },
 		{ NULL, NULL }
 };
 

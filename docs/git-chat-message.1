@@ -6,7 +6,7 @@ git-chat-message \- Encrypt plaintext messages and commit them to the git histor
 .SH SYNOPSIS
 .sp
 .nf
-\fIgit-chat-message\fR [\-a | \-\-asym] [(\-\-recipient <alias>...)]
+\fIgit-chat-message\fR [\-a | \-\-asym] [(\-\-recipient <alias>)...]
 \fIgit-chat-message\fR (\-s | \-\-sym) [\-\-passphrase <passphrase>]
 \fIgit-chat-message\fR (\-m | \-\-message) <message>
 \fIgit-chat-message\fR (\-f | \-\-file) <filename>
@@ -42,8 +42,8 @@ Messages encrypted with symmetric encryption may only be decrypted using a commo
 Encrypt the message using public-key cryptography. This is the default and preferred encryption mode. By default, all public gpg keys in the \fI.keys\fR directory are used as message recipients.
 
 .TP
-\-\-recipient <key uid>...
-Specify one or more recipients of the encrypted message. The arguments provided must map to a existing and valid GPG public key in the keyring. Recipients provided can match any of:
+\-\-recipient <key uid>
+Specify one recipient of the encrypted message. This option may be used multiple times to specify multiple recipients. The arguments provided must map to a existing and valid GPG public key in the keyring. Recipients provided can match any of:
 .RS
 .IP \[bu]
 primary key fingerprint

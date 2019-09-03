@@ -107,25 +107,25 @@ assert_success 'missing argument to --message should fail' '
 	setup_test_gpg
 ' '
 	! git chat message -m 2>err &&
-	grep "no message provided with -m" err &&
+	grep "error: unknown option" err &&
 	! git chat message --message 2>err &&
-	grep "no message provided with --message" err
+	grep "error: unknown option" err
 '
 
 assert_success 'missing argument to --file should fail' '
 	setup_test_gpg
 ' '
 	! git chat message -f 2>err &&
-	grep "no file provided with -f" err &&
+	grep "error: unknown option" err &&
 	! git chat message --file 2>err &&
-	grep "no file provided with --file" err
+	grep "error: unknown option" err
 '
 
 assert_success 'missing argument to --passphrase should fail' '
 	setup_test_gpg
 ' '
 	! git chat message --passphrase 2>err &&
-	grep "no passphrase provided with --passphrase" err
+	grep "error: unknown option" err
 '
 
 assert_success 'passing inexistent file to --file should fail' '

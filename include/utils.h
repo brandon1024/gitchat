@@ -1,6 +1,7 @@
 #ifndef GIT_CHAT_UTILS_H
 #define GIT_CHAT_UTILS_H
 
+#include <sys/types.h>
 #include "logging.h"
 
 #define NORETURN __attribute__((noreturn))

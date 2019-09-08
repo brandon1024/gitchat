@@ -22,16 +22,16 @@ struct test_runner_instance {
 
 static void print_test_heading(const char *test_name)
 {
-	printf("*** %s ***\n", test_name);
+	fprintf(stderr, "*** %s ***\n", test_name);
 }
 
 static void print_test_suite_summary(int passed, int failed)
 {
-	printf("\n\nTest Execution Summary:\n");
-	printf("Executed: %d\n", passed + failed);
-	printf("Passed: %d\n", passed);
-	printf((failed ? ANSI_COLOR_RED : ANSI_COLOR_GREEN));
-	printf("Failed: %d\n" ANSI_COLOR_RESET, failed);
+	fprintf(stderr, "\n\nTest Execution Summary:\n");
+	fprintf(stderr, "Executed: %d\n", passed + failed);
+	fprintf(stderr, "Passed: %d\n", passed);
+	fprintf(stderr, (failed ? ANSI_COLOR_RED : ANSI_COLOR_GREEN));
+	fprintf(stderr, "Failed: %d\n" ANSI_COLOR_RESET, failed);
 }
 
 static void print_test_summary(const char *test_name, int ret)
@@ -39,20 +39,20 @@ static void print_test_summary(const char *test_name, int ret)
 	time_t rawtime;
 	struct tm *timeinfo;
 
-	printf(ret ? ANSI_COLOR_RED : ANSI_COLOR_GREEN);
+	fprintf(stderr, ret ? ANSI_COLOR_RED : ANSI_COLOR_GREEN);
 
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
-	printf("[%.2d:%.2d:%.2d] ",
+	fprintf(stderr, "[%.2d:%.2d:%.2d] ",
 		   timeinfo->tm_hour,
 		   timeinfo->tm_min,
 		   timeinfo->tm_sec);
 
-	printf("%s ", test_name);
+	fprintf(stderr, "%s ", test_name);
 	int len = 96 - (int)strlen(test_name);
 	for (int i = 0; len > 0 && i < len; i++)
-		printf(".");
-	printf(" %s\n" ANSI_COLOR_RESET, ret ? "fail" : "ok");
+		fprintf(stderr, ".");
+	fprintf(stderr, " %s\n" ANSI_COLOR_RESET, ret ? "fail" : "ok");
 }
 
 int execute_suite(struct suite_test tests[], int verbose, int immediate)
@@ -112,18 +112,23 @@ int execute_tests(struct test_runner_instance *instance, struct unit_test *tests
 void print_assertion_failure_message(const char *file_path, int line_number,
 		const char *func_name, const char *fmt, ...)
 {
+	int err = errno;
+
 	const char *filename = strrchr(file_path, '/');
 	if (filename && *(filename + 1))
 		filename++;
 	else if (!filename)
 		filename = file_path;
 
-	printf(ANSI_COLOR_RED "Assertion failed: %s:%d in %s()\n\t", filename, line_number, func_name);
+	fprintf(stderr, ANSI_COLOR_RED "Assertion failed: %s:%d in %s\n\t", filename, line_number, func_name);
 
 	va_list varargs;
 	va_start(varargs, fmt);
-	vprintf(fmt, varargs);
+	vfprintf(stderr, fmt, varargs);
 	va_end(varargs);
 
-	printf("\n\n" ANSI_COLOR_RESET);
+	fprintf(stderr, "\n");
+
+	if (errno > 0)
+		fprintf(stderr, "\nerror: %s\n\n" ANSI_COLOR_RESET, strerror(err));
 }

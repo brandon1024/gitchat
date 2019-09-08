@@ -254,8 +254,8 @@ TEST_DEFINE(str_array_push_test)
 		assert_string_eq("str5", str_array_get(&str_a, 4));
 
 		struct str_array_entry last_entry = str_a.entries[str_a.len];
-		assert_null(last_entry.string)
-		assert_null(last_entry.data)
+		assert_null(last_entry.string);
+		assert_null(last_entry.data);
 	}
 
 	str_array_release(&str_a);
@@ -440,7 +440,7 @@ TEST_DEFINE(str_array_detach_test)
 
 		assert_string_eq("str1", strings[0]);
 		assert_string_eq("str5", strings[4]);
-		assert_null(strings[5])
+		assert_null(strings[5]);
 	}
 
 	if (strings) {

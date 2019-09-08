@@ -1,209 +1,304 @@
 #include "test-lib.h"
 #include "parse-config.h"
 
+TEST_DEFINE(initialize_config_file_data_struct)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		config_file_data_init(&cd);
+		assert_null_msg(cd.head, "empty config_file_data should have a NULL head");
+		assert_null_msg(cd.tail, "empty config_file_data should have a NULL tail");
+	}
+
+	TEST_END();
+}
+
 TEST_DEFINE(parse_config_valid)
 {
-	struct conf_data cd;
+	struct config_file_data cd;
 
 	TEST_START() {
 		char *conf_path = "resources/good_1.config";
-		struct conf_data_entry *entry;
+		struct config_entry *entry = NULL;
 		int ret = parse_config(&cd, conf_path);
 		assert_zero_msg(ret, "parse_config() should return zero on good config.");
 
-		/* ensure section names are valid */
-		assert_eq_msg(4, cd.sections.len, "Expected 4 sections in config, but got %zu.", cd.sections.len);
-		assert_string_eq("user", cd.sections.entries[0].string);
-		assert_string_eq("core", cd.sections.entries[1].string);
-		assert_string_eq("sendemail", cd.sections.entries[2].string);
-		assert_string_eq("alias.alias", cd.sections.entries[3].string);
-		assert_eq_msg(38, cd.entries_len, "Expected 37 entries, but got %zu.", cd.entries_len);
+		const char *key = "current";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("yellow bold", config_file_data_get_entry_value(entry));
 
-		/* ensure key-value parsed correctly with no section */
-		entry = cd.entries[10];
-		assert_nonnull(entry->section);
-		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
-		assert_string_eq("smtpencryption", entry->key);
-		assert_string_eq("", entry->value);
+		key = "remote";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("", config_file_data_get_entry_value(entry));
 
-		/* ensure key-value parsed correctly with varying whitespace formats */
-		entry = cd.entries[11];
-		assert_nonnull(entry->section);
-		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
-		assert_string_eq("smtpserver", entry->key);
-		assert_string_eq("smtp.gmail.com", entry->value);
+		key = "hi";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("", config_file_data_get_entry_value(entry));
 
-		entry = cd.entries[12];
-		assert_nonnull(entry->section);
-		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
-		assert_string_eq("smtpuser", entry->key);
-		assert_string_eq("brandon1024.br@gmail.com", entry->value);
+		key = "sendemail.smtpencryption";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("", config_file_data_get_entry_value(entry));
 
-		entry = cd.entries[13];
-		assert_nonnull(entry->section);
-		assert_string_eq("sendemail", entry->section);
-		assert_eq_msg(cd.sections.entries[2].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
-		assert_string_eq("smtppass", entry->key);
-		assert_string_eq("password", entry->value);
-
-		/* ensure long values parses correctly */
-		entry = cd.entries[29];
-		assert_nonnull(entry->section);
-		assert_string_eq("alias.alias", entry->section);
-		assert_eq_msg(cd.sections.entries[3].string, entry->section, "The pointer to the section name in the entry should point to the correct string.");
-		assert_string_eq("bare", entry->key);
-		assert_string_eq("!sh -c 'git symbolic-ref HEAD refs/heads/$1 && git rm --cached -r . && git clean -xfd' -", entry->value);
+		key = "alias.alias.theirs";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("!f() { git checkout --theirs $@ && git add $@; }; f", config_file_data_get_entry_value(entry));
 	}
 
-	release_config_resources(&cd);
+	config_file_data_release(&cd);
 	TEST_END();
 }
 
-TEST_DEFINE(parse_config_invalid_conf_path)
+TEST_DEFINE(insert_entry_into_config_data)
 {
-	struct conf_data cd;
+	struct config_file_data cd;
 
 	TEST_START() {
-		char *config_path = "resources/conf_does_not_exit.config";
-		int ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero when config file does not exist.");
+		char *conf_path = "resources/good_1.config";
+		struct config_entry *entry = NULL;
+		int ret = parse_config(&cd, conf_path);
+		assert_zero_msg(ret, "parse_config() should return zero on good config.");
+
+		const char *key = "my.new.key";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_null_msg(entry, "found unexpected entry with key '%s'", key);
+
+		const char *value = "my value!";
+		config_file_data_insert_entry(&cd, key, value);
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "entry with key '%s' was not inserted", key);
+		assert_string_eq(value, config_file_data_get_entry_value(entry));
 	}
 
-	release_config_resources(&cd);
+	config_file_data_release(&cd);
 	TEST_END();
 }
 
-TEST_DEFINE(parse_config_invalid_section)
+TEST_DEFINE(delete_entry_from_config_data)
 {
-	struct conf_data cd;
+	struct config_file_data cd;
 
 	TEST_START() {
-		char *config_path = "resources/bad_section_1.config";
-		int ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid section syntax.");
+		char *conf_path = "resources/good_1.config";
+		struct config_entry *entry = NULL;
+		int ret = parse_config(&cd, conf_path);
+		assert_zero_msg(ret, "parse_config() should return zero on good config.");
 
-		config_path = "resources/bad_section_2.config";
-		ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid section syntax.");
+		const char *key = "sendemail.smtpuser";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("brandon1024.br@gmail.com", config_file_data_get_entry_value(entry));
 
-		config_path = "resources/bad_section_3.config";
-		ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid section syntax.");
+		config_file_data_delete_entry(&cd, entry);
+		entry = config_file_data_find_entry(&cd, key);
+		assert_null_msg(entry, "entry with key '%s' was not deleted", key);
 	}
 
-	release_config_resources(&cd);
+	config_file_data_release(&cd);
 	TEST_END();
 }
 
-TEST_DEFINE(parse_config_invalid_key_value)
+TEST_DEFINE(find_entry_in_config_data)
 {
-	struct conf_data cd;
+	struct config_file_data cd;
 
 	TEST_START() {
-		char *config_path = "resources/bad_key_1.config";
-		int ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid key syntax.");
+		char *conf_path = "resources/good_1.config";
+		struct config_entry *entry = NULL;
+		int ret = parse_config(&cd, conf_path);
+		assert_zero_msg(ret, "parse_config() should return zero on good config.");
 
-		config_path = "resources/bad_key_2.config";
-		ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid key syntax.");
+		const char *key = "sendemail.smtpserver";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("smtp.gmail.com", config_file_data_get_entry_value(entry));
 
-		config_path = "resources/bad_key_3.config";
-		ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid key syntax.");
-
-		config_path = "resources/bad_key_4.config";
-		ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid key syntax.");
-
-		config_path = "resources/bad_key_5.config";
-		ret = parse_config(&cd, config_path);
-		assert_nonzero_msg(ret, "parse_config() should return non-zero with config file with invalid key syntax.");
+		key = "unknown.key";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_null_msg(entry, "entry with key '%s' should not exist", key);
 	}
 
-	release_config_resources(&cd);
+	config_file_data_release(&cd);
 	TEST_END();
 }
 
-TEST_DEFINE(conf_data_sort_test)
+TEST_DEFINE(set_config_entry_value)
 {
-	struct conf_data cd;
+	struct config_file_data cd;
 
 	TEST_START() {
-		char *config_path = "resources/good_2.config";
-		int ret = parse_config(&cd, config_path);
-		assert_zero_msg(ret, "parse_config() should return zero with valid config.");
-		assert_eq_msg(6, cd.entries_len, "parse_config() returned incorrect number of entries.");
+		char *conf_path = "resources/good_1.config";
+		struct config_entry *entry = NULL;
+		int ret = parse_config(&cd, conf_path);
+		assert_zero_msg(ret, "parse_config() should return zero on good config.");
 
-		//check order before sort
-		assert_string_eq("user", cd.entries[0]->section);
-		assert_string_eq("name", cd.entries[0]->key);
-		assert_string_eq("user", cd.entries[1]->section);
-		assert_string_eq("email", cd.entries[1]->key);
-		assert_string_eq("user", cd.entries[2]->section);
-		assert_string_eq("username", cd.entries[2]->key);
-		assert_string_eq("core", cd.entries[3]->section);
-		assert_string_eq("editor", cd.entries[3]->key);
-		assert_string_eq("core", cd.entries[4]->section);
-		assert_string_eq("whitespace", cd.entries[4]->key);
-		assert_string_eq("core", cd.entries[5]->section);
-		assert_string_eq("excludesfile", cd.entries[5]->key);
+		const char *key = "sendemail.smtpserver";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("smtp.gmail.com", config_file_data_get_entry_value(entry));
 
-		conf_data_sort(&cd);
-
-		//check order after sort
-		assert_string_eq("core", cd.entries[0]->section);
-		assert_string_eq("editor", cd.entries[0]->key);
-		assert_string_eq("core", cd.entries[1]->section);
-		assert_string_eq("excludesfile", cd.entries[1]->key);
-		assert_string_eq("core", cd.entries[2]->section);
-		assert_string_eq("whitespace", cd.entries[2]->key);
-
-		assert_string_eq("user", cd.entries[3]->section);
-		assert_string_eq("email", cd.entries[3]->key);
-		assert_string_eq("user", cd.entries[4]->section);
-		assert_string_eq("name", cd.entries[4]->key);
-		assert_string_eq("user", cd.entries[5]->section);
-		assert_string_eq("username", cd.entries[5]->key);
+		const char *value = "my new vlaue";
+		config_file_data_set_entry_value(entry, value);
+		assert_string_eq(value, config_file_data_get_entry_value(entry));
 	}
 
-	release_config_resources(&cd);
+	config_file_data_release(&cd);
 
 	TEST_END();
 }
 
-TEST_DEFINE(conf_data_find_entry_test) {
-	struct conf_data cd;
-	struct conf_data_entry *entry;
+TEST_DEFINE(get_config_entry_key)
+{
+	struct config_file_data cd;
 
 	TEST_START() {
-		char *config_path = "resources/good_1.config";
-		int ret = parse_config(&cd, config_path);
-		assert_zero_msg(ret, "parse_config() should return zero with valid config.");
+		char *conf_path = "resources/good_2.config";
+		struct config_entry *entry = NULL;
+		int ret = parse_config(&cd, conf_path);
+		assert_zero_msg(ret, "parse_config() should return zero on good config.");
 
-		//without section
-		entry = conf_data_find_entry(&cd, NULL, "remote");
-		assert_nonnull_msg(entry, "conf_data_find_entry() did not find an entry with key 'remote'");
-		assert_null(entry->section);
-		assert_string_eq("remote", entry->key);
-		assert_string_eq("", entry->value);
-
-		//with section
-		entry = conf_data_find_entry(&cd, "core", "editor");
-		assert_nonnull_msg(entry, "conf_data_find_entry() did not find an entry with section 'core' and key 'editor'");
-		assert_string_eq("core", entry->section);
-		assert_string_eq("editor", entry->key);
-		assert_string_eq("vim", entry->value);
-
-		//inexistent entry
-		assert_null(conf_data_find_entry(&cd, "core", "hello"));
-		assert_null(conf_data_find_entry(&cd, NULL, "hello"));
+		const char *key = "core.whitespace";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq(key, config_file_data_get_entry_key(entry));
 	}
 
-	release_config_resources(&cd);
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(get_config_entry_value)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/good_2.config";
+		struct config_entry *entry = NULL;
+		int ret = parse_config(&cd, conf_path);
+		assert_zero_msg(ret, "parse_config() should return zero on good config.");
+
+		const char *key = "core.excludesfile";
+		entry = config_file_data_find_entry(&cd, key);
+		assert_nonnull_msg(entry, "could not find entry with key '%s'", key);
+		assert_string_eq("~/.gitignore", config_file_data_get_entry_value(entry));
+	}
+
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(parse_config_invalid_empty_key)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/bad_key_1.config";
+		int ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret > 0, "parse_config() should return positive status on invalid config (parse error) but was %d.", ret);
+	}
+
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(parse_config_invalid_key_character)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/bad_key_2.config";
+		int ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret > 0, "parse_config() should return positive status on invalid config (parse error) but was %d.", ret);
+	}
+
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(parse_config_invalid_key_with_space)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/bad_key_3.config";
+		int ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret > 0, "parse_config() should return positive status on invalid config (parse error) but was %d.", ret);
+	}
+
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(parse_config_invalid_line_no_eq_symbol)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/bad_key_4.config";
+		int ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret > 0, "parse_config() should return positive status on invalid config (parse error) but was %d.", ret);
+	}
+
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(parse_config_invalid_section_trailing_characters)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/bad_section_1.config";
+		int ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret > 0, "parse_config() should return positive status on invalid config (parse error) but was %d.", ret);
+	}
+
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(parse_config_invalid_section_character)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/bad_section_2.config";
+		int ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret > 0, "parse_config() should return positive status on invalid config (parse error) but was %d.", ret);
+
+		conf_path = "resources/bad_section_3.config";
+		ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret > 0, "parse_config() should return positive status on invalid config (parse error) but was %d.", ret);
+	}
+
+	config_file_data_release(&cd);
+
+	TEST_END();
+}
+
+TEST_DEFINE(parse_config_read_error)
+{
+	struct config_file_data cd;
+
+	TEST_START() {
+		char *conf_path = "resources/unknown.config";
+		int ret = parse_config(&cd, conf_path);
+		assert_true_msg(ret < 0, "parse_config() should return negative status on read error but was %d.", ret);
+	}
+
+	config_file_data_release(&cd);
 
 	TEST_END();
 }
@@ -211,12 +306,21 @@ TEST_DEFINE(conf_data_find_entry_test) {
 int parse_config_test(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
+			{ "initializing empty config_file_data should have NULL entry head and tail", initialize_config_file_data_struct },
 			{ "parse-config should correctly parse a valid config", parse_config_valid },
-			{ "parse-config should fail with invalid config file path", parse_config_invalid_conf_path },
-			{ "parse-config should fail with invalid section names", parse_config_invalid_section },
-			{ "parse-config should fail with invalid key-value pairs", parse_config_invalid_key_value },
-			{ "conf_data_sort should correctly sort the conf_data", conf_data_sort_test },
-			{ "conf_data_find_entry should correctly find the entry with the given section and key", conf_data_find_entry_test },
+			{ "inserting entry into config data should insert correctly", insert_entry_into_config_data },
+			{ "deleting entry from config data should no longer appear in list of entries", delete_entry_from_config_data },
+			{ "searching for entries in a config_file_data should return expected entries", find_entry_in_config_data },
+			{ "set config entry value should duplicate string and persist", set_config_entry_value },
+			{ "get entry key from entry structure should return expected value", get_config_entry_key },
+			{ "get entry value from entry structure should return expected value", get_config_entry_value },
+			{ "parse_config with invalid empty key should return non-zero", parse_config_invalid_empty_key },
+			{ "parse_config with invalid key character should return non-zero", parse_config_invalid_key_character },
+			{ "parse_config with invalid space in key should return non-zero", parse_config_invalid_key_with_space },
+			{ "parse_config with invalid line (no = symbol) should return non-zero", parse_config_invalid_line_no_eq_symbol },
+			{ "parse_config with invalid section (trailing chars) should return non-zero", parse_config_invalid_section_trailing_characters },
+			{ "parse_config with invalid section (invalid chars) should return non-zero", parse_config_invalid_section_character },
+			{ "parse_config with unknown file (read error) should return non-zero", parse_config_read_error },
 			{ NULL, NULL }
 	};
 

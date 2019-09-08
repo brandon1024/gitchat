@@ -104,4 +104,14 @@ char *strbuf_detach(struct strbuf *buff);
 int strbuf_split(const struct strbuf *buff, const char *delim,
 		struct str_array *result);
 
+/**
+ * Clear all content stored under the given strbuf. The strbuf is not resized,
+ * and can be reused for other purposes.
+ *
+ * This function is particularly useful for reusing memory that was previously
+ * allocated for another purpose to avoid the overhead associated with allocating
+ * and freeing memory.
+ * */
+void strbuf_clear(struct strbuf *buff);
+
 #endif //GIT_CHAT_STRBUF_H

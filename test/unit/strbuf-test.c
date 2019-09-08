@@ -430,6 +430,28 @@ TEST_DEFINE(strbuf_remove_length_larger_than_buffer_length_test)
 	TEST_END();
 }
 
+TEST_DEFINE(strbuf_clear_test)
+{
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	TEST_START() {
+		strbuf_attach_str(&buf, "hello");
+		strbuf_attach_str(&buf, "world");
+		assert_eq(10, buf.len);
+		size_t allocated = buf.alloc;
+
+		strbuf_clear(&buf);
+		assert_zero(buf.len);
+		assert_eq(allocated, buf.alloc);
+		assert_string_eq("", buf.buff);
+	}
+
+	strbuf_release(&buf);
+
+	TEST_END();
+}
+
 int strbuf_test(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
@@ -448,6 +470,7 @@ int strbuf_test(struct test_runner_instance *instance)
 			{ "removing data from beginning of strbuf should shift all bytes to the left", strbuf_remove_from_beginning_test },
 			{ "removing data from within the strbuf should remove inner portion correctly", strbuf_remove_from_within_test },
 			{ "removing data from strbuf with length larger than buffer should simply remove remaining bytes", strbuf_remove_length_larger_than_buffer_length_test },
+			{ "clearing content of a strbuf should not resize buffer but clear content", strbuf_clear_test },
 			{ NULL, NULL }
 	};
 

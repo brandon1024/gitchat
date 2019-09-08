@@ -182,40 +182,34 @@ static void update_config(char *base, const char *channel_name, const char *auth
 	strbuf_init(&config_path);
 	strbuf_attach_fmt(&config_path, "%s/config", base);
 
-	struct conf_data conf;
+	struct config_file_data conf;
 	int ret = parse_config(&conf, config_path.buff);
 	if (ret < 0)
 		DIE("unable to update '%s'; cannot access file", config_path);
-	else if (ret > 0)
+	if (ret > 0)
 		DIE("unable to update '%s'; file contains syntax errors", config_path);
 
 	if (channel_name) {
-		struct conf_data_entry *entry = conf_data_find_entry(&conf, "channel.master", "name");
+		struct config_entry *entry = config_file_data_find_entry(&conf, "channel.master.name");
 		if (!entry)
 			DIE("unexpected config template with missing key 'channel.master.name'");
 
 		//overwrite updated config file
-		free(entry->value);
-		entry->value = strdup(channel_name);
-		if (!entry->value)
-			FATAL(MEM_ALLOC_FAILED);
+		config_file_data_set_entry_value(entry, channel_name);
 	}
 
 	if (author) {
-		struct conf_data_entry *entry = conf_data_find_entry(&conf, "channel.master", "createdby");
+		struct config_entry *entry = config_file_data_find_entry(&conf, "channel.master.createdby");
 		if (!entry)
 			DIE("unexpected config template with missing key 'channel.master.createdby'");
 
 		//overwrite updated config file
-		free(entry->value);
-		entry->value = strdup(author);
-		if (!entry->value)
-			FATAL(MEM_ALLOC_FAILED);
+		config_file_data_set_entry_value(entry, author);
 	}
 
 	write_config(&conf, config_path.buff);
 	strbuf_release(&config_path);
-	release_config_resources(&conf);
+	config_file_data_release(&conf);
 
 	LOG_INFO("Updated master channel configuration");
 }

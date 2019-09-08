@@ -104,23 +104,25 @@
  * */
 
 #include <stdlib.h>
+
 #include "str-array.h"
 
-struct conf_data_entry {
-	char *section;
-	char *key;
-	char *value;
-};
-
-struct conf_data {
-	struct str_array sections;
-	struct conf_data_entry **entries;
-	size_t entries_len;
-	size_t entries_alloc;
+struct config_entry;
+struct config_file_data {
+	struct config_entry *head;
+	struct config_entry *tail;
 };
 
 /**
- * Parse the config file, and represent its contents in struct conf_data.
+ * Initialize a config_file_data structure for use.
+ * */
+void config_file_data_init(struct config_file_data *conf);
+
+/**
+ * Parse the config file, and represent its contents in struct config_file_data.
+ *
+ * Note that this function will initialize the config_file_data structure before
+ * use.
  *
  * `conf_path` must be a null-terminated string.
  *
@@ -129,35 +131,56 @@ struct conf_data {
  * - <0 if the file could not be read (file not found, insufficient permissions)
  * - >0 if the file could not be parsed due to a syntax error
  * */
-int parse_config(struct conf_data *conf, const char *conf_path);
+int parse_config(struct config_file_data *conf, const char *conf_path);
 
 /**
- * Write a struct conf_data to a file.
+ * Write a struct config_file_data to a file. `conf_path` must be a
+ * null-terminated string. If a file at the path 'conf_path' already exists, it
+ * is overwritten.
  *
- * `conf_path` must be a null-terminated string.
- *
- * If a file at the path 'conf_path' already exists, it is overwritten.
+ * Returns:
+ * - 0 if the config was written successfully
+ * - < 0 if unable to open the destination file for writing
+ * - > 0 non-zero if the config failed validation.
  * */
-void write_config(struct conf_data *conf, const char *conf_path);
+int write_config(struct config_file_data *conf, const char *conf_path);
 
 /**
- * Query a struct conf_data with a given secion and key, returning a pointer to
- * to struct conf_data_entry if found, or NULL if does not exist.
- *
- * `section` and `key` must be null-terminated strings.
+ * Release any resources under a config_file_data structure.
  * */
-struct conf_data_entry *conf_data_find_entry(struct conf_data *conf,
-		char *section, char *key);
+void config_file_data_release(struct config_file_data *conf);
 
 /**
- * Sort a struct conf_data in strcmp() order, first sorting sections then sorting
- * keys.
+ * Insert a new config entry into the config_file_data, returning the new entry or NULL
+ * if the key is invalid.
  * */
-void conf_data_sort(struct conf_data *conf);
+struct config_entry *config_file_data_insert_entry(struct config_file_data *conf, const char *key, const char *value);
 
 /**
- * Release any resources under a struct conf_data.
+ * Delete a config entry from the config_file_data. All resources under the entry are released.
  * */
-void release_config_resources(struct conf_data *conf);
+void config_file_data_delete_entry(struct config_file_data *conf, struct config_entry *entry);
+
+/**
+ * Attempt to find a config entry with a given key. If no such entry exists,
+ * returns NULL.
+ * */
+struct config_entry *config_file_data_find_entry(struct config_file_data *conf, const char *key);
+
+/**
+ * Get the value for a config entry. The string returned should not be mutated.
+ * */
+char *config_file_data_get_entry_value(struct config_entry *entry);
+
+/**
+ * Set the value for a config entry. The previous entry value is free()d, and the
+ * new value is duplicated.
+ * */
+void config_file_data_set_entry_value(struct config_entry *entry, const char *value);
+
+/**
+ * Get the key for a config entry. The string returned should not be mutated.
+ * */
+char *config_file_data_get_entry_key(struct config_entry *entry);
 
 #endif //GIT_CHAT_PARSE_CONFIG_H

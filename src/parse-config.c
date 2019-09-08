@@ -11,23 +11,41 @@
 #include "strbuf.h"
 #include "utils.h"
 
-#define BUFF_LEN 64
-#define BUFF_SLOP 8
+#define BUFF_LEN 1024
 
-static char *read_line(FILE *fp);
-static char *extract_section_name(char *line_str);
-static int validate_section_name(char *section_name);
-static int extract_key_value_pair(char *line_str, char **key, char **value);
-static int conf_entry_comparator(const void *a, const void *b);
+struct config_entry {
+	struct config_entry *next;
+	struct config_entry *prev;
+	char *key;
+	char *value;
+};
 
-int parse_config(struct conf_data *conf, const char *conf_path)
+static char *read_line(FILE *);
+static char *extract_section_name(char *);
+static struct config_entry *create_config_data_entry(const char *, const char *);
+static void config_file_data_insert_existing_entry(struct config_file_data *,
+		struct config_entry *);
+static void release_config_data_entry(struct config_entry *);
+static void sort_config_file_data_entries(struct config_file_data *);
+static int has_duplicate_entries(struct config_file_data *, int);
+static void config_file_data_remove_entry(struct config_file_data *,
+		struct config_entry *);
+static int is_valid_key(const char *);
+
+void config_file_data_init(struct config_file_data *conf)
+{
+	*conf = (struct config_file_data){
+			.head = NULL,
+			.tail = NULL
+	};
+}
+
+int parse_config(struct config_file_data *conf, const char *conf_path)
 {
 	struct stat sb;
 	FILE *fp;
-	char *current_section = NULL, *line;
 
-	*conf = (struct conf_data){ .entries = NULL, .entries_len = 0, .entries_alloc = 0 };
-	str_array_init(&conf->sections);
+	config_file_data_init(conf);
 
 	if (stat(conf_path, &sb) == -1) {
 		LOG_ERROR("Unable to stat file '%s'; %s", conf_path, strerror(errno));
@@ -40,158 +58,184 @@ int parse_config(struct conf_data *conf, const char *conf_path)
 		return -1;
 	}
 
+	char *line;
+	char *current_section = NULL;
 	while ((line = read_line(fp))) {
 		char *section = extract_section_name(line);
 		if (section) {
-			if (validate_section_name(section)) {
-				LOG_WARN("Invalid section name '%s'", section);
-
-				free(section);
-				free(line);
-				release_config_resources(conf);
-				fclose(fp);
-				return 1;
-			}
-
-			str_array_push(&conf->sections, section, NULL);
-			current_section = str_array_get(&conf->sections, conf->sections.len - 1);
+			free(current_section);
+			current_section = section;
 		} else {
-			char *key = NULL;
-			char *value = NULL;
-			if (extract_key_value_pair(line, &key, &value)) {
-				LOG_WARN("Could not parse line for key-value: '%s'", line);
+			struct config_entry *entry = create_config_data_entry(current_section, line);
+			if (!entry) {
+				LOG_WARN("Invalid config line '%s' or section '%s'", line, current_section);
 
-				free(section);
+				free(current_section);
 				free(line);
-				release_config_resources(conf);
 				fclose(fp);
+				config_file_data_release(conf);
 				return 1;
 			}
 
-			// Ensure that no entries match keys
-			for (size_t i = 0; i < conf->entries_len; i++) {
-				struct conf_data_entry *entry = conf->entries[i];
-				if (!current_section ^ !entry->section)
-					continue;
-
-				if (current_section && strcmp(current_section, entry->section) != 0)
-					continue;
-
-				if (!strcmp(key, conf->entries[i]->key)) {
-					LOG_WARN("Duplicate keys found: '%s'", key);
-
-					free(section);
-					free(line);
-					free(key);
-					free(value);
-					release_config_resources(conf);
-					fclose(fp);
-					return 1;
-				}
-			}
-
-			if ((conf->entries_len + 2) >= conf->entries_alloc) {
-				conf->entries_alloc += BUFF_SLOP;
-				conf->entries = (struct conf_data_entry **)realloc(conf->entries,
-						sizeof(struct conf_data_entry *) * conf->entries_alloc);
-				if (!conf->entries)
-					FATAL(MEM_ALLOC_FAILED);
-			}
-
-			struct conf_data_entry *alloc_entry =
-					(struct conf_data_entry *)malloc(sizeof(struct conf_data_entry));
-			if (!alloc_entry)
-				FATAL(MEM_ALLOC_FAILED);
-
-			struct conf_data_entry entry = {current_section, key, value};
-			conf->entries[conf->entries_len] = alloc_entry;
-			*conf->entries[conf->entries_len++] = entry;
-			conf->entries[conf->entries_len] = NULL;
+			config_file_data_insert_existing_entry(conf, entry);
 		}
 
-		free(section);
 		free(line);
 	}
 
+	free(current_section);
 	fclose(fp);
+
 	return 0;
 }
 
-void write_config(struct conf_data *conf, const char *conf_path)
+int write_config(struct config_file_data *conf, const char *conf_path)
 {
+	// sort the list of entries (in strcmp() order)
+	sort_config_file_data_entries(conf);
+
+	/*
+	 * Check for duplicate keys. No need to validate keys here, since all other
+	 * functions that create entries must check for valid keys.
+	 * */
+	if (has_duplicate_entries(conf, 1))
+		return 1;
+
 	int conf_fd = open(conf_path, O_TRUNC | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 	if (conf_fd < 0)
-		FATAL(FILE_OPEN_FAILED, conf_path);
+		return -1;
 
-	conf_data_sort(conf);
+	struct strbuf temporary;
+	strbuf_init(&temporary);
 
-	//write to file
-	char *current_section = NULL;
-	for (size_t index = 0; index < conf->entries_len; index++) {
-		struct conf_data_entry *entry = conf->entries[index];
-		struct strbuf tmp_buf;
-		strbuf_init(&tmp_buf);
+	struct strbuf current_section;
+	strbuf_init(&current_section);
 
-		if (!current_section || strcmp(current_section, entry->section) != 0) {
-			current_section = entry->section;
+	struct config_entry *entry = conf->head;
+	while (entry) {
+		char *entry_key = entry->key;
+		char *section_token = strrchr(entry_key, '.');
 
-			strbuf_attach_fmt(&tmp_buf, "[%s]\n", current_section);
+		if (section_token && strncmp(entry_key, current_section.buff, (section_token - entry_key)) != 0) {
+			strbuf_clear(&current_section);
+			strbuf_attach(&current_section, entry_key, (section_token - entry_key));
 
-			if (recoverable_write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
+			strbuf_clear(&temporary);
+			strbuf_attach_fmt(&temporary, "\n[%s]\n", current_section.buff);
+
+			if (recoverable_write(conf_fd, temporary.buff, temporary.len) != temporary.len)
 				FATAL(FILE_WRITE_FAILED, conf_path);
-
-			strbuf_release(&tmp_buf);
-			strbuf_init(&tmp_buf);
 		}
 
-		strbuf_attach_fmt(&tmp_buf, "\t%s = %s\n", entry->key, entry->value);
+		strbuf_clear(&temporary);
+		if (section_token)
+			strbuf_attach_fmt(&temporary, "\t%s = ", (section_token + 1));
+		else
+			strbuf_attach_fmt(&temporary, "%s = ", entry->key);
 
-		if (recoverable_write(conf_fd, tmp_buf.buff, tmp_buf.len) != tmp_buf.len)
+		int has_lead_trail_space = 0;
+		if (isspace(*entry->value))
+			has_lead_trail_space = 1;
+		if (*entry->value && isspace(*(entry->value + strlen(entry->value) - 1)))
+			has_lead_trail_space = 1;
+
+		if (has_lead_trail_space)
+			strbuf_attach_fmt(&temporary, "\"%s\"\n", entry->value);
+		else
+			strbuf_attach_fmt(&temporary, "%s\n", entry->value);
+
+		if (recoverable_write(conf_fd, temporary.buff, temporary.len) != temporary.len)
 			FATAL(FILE_WRITE_FAILED, conf_path);
 
-		strbuf_release(&tmp_buf);
+		entry = entry->next;
 	}
 
+	strbuf_release(&current_section);
+	strbuf_release(&temporary);
 	close(conf_fd);
+
+	return 0;
 }
 
-struct conf_data_entry *conf_data_find_entry(struct conf_data *conf,
-		char *section, char *key)
+void config_file_data_release(struct config_file_data *conf)
 {
-	for (size_t i = 0; i < conf->entries_len; i++) {
-		struct conf_data_entry *current_entry = conf->entries[i];
+	struct config_entry *entry = conf->head;
+	while (entry) {
+		struct config_entry *next = entry->next;
 
-		// if true, entry cannot possibly match
-		if (!section ^ !current_entry->section)
-			continue;
+		release_config_data_entry(entry);
+		entry = next;
+	}
 
-		if (!section && !current_entry->section) {
-			if (!strcmp(key, current_entry->key))
-				return current_entry;
-		} else if (!strcmp(section, current_entry->section) && !strcmp(key, current_entry->key))
-			return current_entry;
+	conf->head = NULL;
+	conf->tail = NULL;
+}
+
+struct config_entry *config_file_data_insert_entry(struct config_file_data *conf,
+		const char *key, const char *value)
+{
+	if (!is_valid_key(key))
+		return NULL;
+
+	struct config_entry *entry = (struct config_entry *)malloc(sizeof(struct config_entry));
+	if (!entry)
+		FATAL(MEM_ALLOC_FAILED);
+
+	char *new_key = strdup(key);
+	if (!new_key)
+		FATAL(MEM_ALLOC_FAILED);
+
+	char *new_value = strdup(value);
+	if (!new_value)
+		FATAL(MEM_ALLOC_FAILED);
+
+	*entry = (struct config_entry){
+			.key = new_key,
+			.value = new_value,
+			.next = NULL,
+			.prev = NULL
+	};
+
+	config_file_data_insert_existing_entry(conf, entry);
+
+	return entry;
+}
+
+void config_file_data_delete_entry(struct config_file_data *conf, struct config_entry *entry)
+{
+	config_file_data_remove_entry(conf, entry);
+	release_config_data_entry(entry);
+}
+
+struct config_entry *config_file_data_find_entry(struct config_file_data *conf, const char *key)
+{
+	struct config_entry *entry = conf->head;
+	while (entry) {
+		if (!strcmp(entry->key, key))
+			return entry;
+
+		entry = entry->next;
 	}
 
 	return NULL;
 }
 
-void conf_data_sort(struct conf_data *conf)
+char *config_file_data_get_entry_value(struct config_entry *entry)
 {
-	qsort(conf->entries, conf->entries_len, sizeof(struct conf_data_entry *),
-		  conf_entry_comparator);
+	return entry->value;
 }
 
-void release_config_resources(struct conf_data *conf)
+void config_file_data_set_entry_value(struct config_entry *entry, const char *value)
 {
-	for (size_t i = 0; i < conf->entries_len; i++) {
-		free(conf->entries[i]->key);
-		free(conf->entries[i]->value);
-		free(conf->entries[i]);
-	}
+	free(entry->value);
+	entry->value = strdup(value);
+	if (!entry->value)
+		FATAL(MEM_ALLOC_FAILED);
+}
 
-	str_array_release(&conf->sections);
-	free(conf->entries);
-	*conf = (struct conf_data){ .entries = NULL, .entries_len = 0, .entries_alloc = 0 };
+char *config_file_data_get_entry_key(struct config_entry *entry)
+{
+	return entry->key;
 }
 
 /**
@@ -204,7 +248,6 @@ void release_config_resources(struct conf_data *conf)
 static char *read_line(FILE *fp)
 {
 	char buffer[BUFF_LEN];
-	size_t len = 0;
 	struct strbuf buf;
 
 	strbuf_init(&buf);
@@ -216,46 +259,22 @@ static char *read_line(FILE *fp)
 			return NULL;
 		}
 
-		len = strlen(buffer);
-		eos = buffer + len - 1;
-
+		eos = buffer + strlen(buffer) - 1;
 		if (*eos == '\n' || feof(fp)) {
-			strbuf_attach(&buf, buffer, (buffer - eos));
+			strbuf_attach(&buf, buffer, (eos - buffer));
+			strbuf_trim(&buf);
 
-			char *ptr = buf.buff;
-			while (*ptr && isspace(*ptr))
-				ptr++;
-
-			if (!*ptr) {
-				strbuf_release(&buf);
-				strbuf_init(&buf);
+			if (!buf.len)
 				eos = NULL;
-			}
 		} else {
 			strbuf_attach(&buf, buffer, BUFF_LEN);
 			eos = NULL;
 		}
 	} while (!eos);
 
-	char *new_str = strbuf_detach(&buf);
-	char *line_start = new_str;
-	while (*line_start && isspace(*line_start))
-		line_start++;
+	strbuf_trim(&buf);
 
-	char *line_end = memchr(new_str, 0, strlen(new_str) + 1);
-	while ((line_end - 1) > line_start && isspace(*(line_end - 1)))
-		line_end--;
-
-	char *resized_str = (char *)calloc((line_end - line_start + 1), sizeof(char));
-	if (!resized_str)
-		FATAL(MEM_ALLOC_FAILED);
-
-	len = line_end - line_start;
-	strncpy(resized_str, line_start, len);
-
-	free(new_str);
-
-	return resized_str;
+	return strbuf_detach(&buf);
 }
 
 /**
@@ -279,7 +298,7 @@ static char *extract_section_name(char *line_str)
 	if (!end)
 		return NULL;
 
-	/* start and end must only be preceded/succeeded by whitespace */
+	// start and end must only be preceded/succeeded by whitespace
 	char *curr = start - 1;
 	while (curr >= line_str) {
 		if (isspace(*curr))
@@ -316,117 +335,225 @@ static char *extract_section_name(char *line_str)
 }
 
 /**
- * Simple validation function which determines if a section name is formatted
- * correctly, returning 0 if the section name is valid, and non-zero otherwise.
+ * Create a config data entry from a line extracted from the configuration file and the associated
+ * section that the line belongs to.
  *
- * See parse-config.h for more details on allowed section names.
+ * If the line failed to parse for any reason, the function will return a null pointer.
+ * Otherwise, returns a newly allocated config_entry.
  * */
-static int validate_section_name(char *section_name)
+static struct config_entry *create_config_data_entry(const char *section, const char *line_str)
 {
-	if (!section_name)
-		return -1;
+	// Verify existence of `=`
+	char *eq_char = strchr(line_str, '=');
+	if (!eq_char)
+		return NULL;
 
-	size_t len = strlen(section_name);
-	char *curr = section_name;
+	struct strbuf key;
+	strbuf_init(&key);
 
-	while (curr < (section_name + len)) {
-		if (!isalnum(*curr) && *curr != '_' && *curr != '.')
-			return 1;
+	if (section)
+		strbuf_attach_fmt(&key, "%s.", section);
 
-		curr++;
+	strbuf_attach(&key, line_str, (eq_char - line_str));
+	strbuf_trim(&key);
+
+	if (!is_valid_key(key.buff)) {
+		strbuf_release(&key);
+		return NULL;
+	}
+
+	struct strbuf value_buff;
+	strbuf_init(&value_buff);
+	strbuf_attach_str(&value_buff, eq_char + 1);
+	strbuf_trim(&value_buff);
+
+	// if the value is quoted, unquote
+	size_t value_len = value_buff.len;
+	char *value = strbuf_detach(&value_buff);
+	if ((*value == '\'' && *(value + value_len - 1) == '\'') ||
+		(*value == '"' && *(value + value_len - 1) == '"')) {
+		memmove(value, value + 1, --value_len);
+		value[value_len--] = 0;
+		value[value_len] = 0;
+	}
+
+	// create the entry
+	struct config_entry *entry = (struct config_entry *)malloc(sizeof(struct config_entry));
+	if (!entry)
+		FATAL(MEM_ALLOC_FAILED);
+
+	*entry = (struct config_entry){
+			.key = strbuf_detach(&key),
+			.value = value,
+			.next = NULL,
+			.prev = NULL
+	};
+
+	return entry;
+}
+
+/**
+ * Insert a config_entry that has already been allocated into the config_file_data
+ * linked list of config entries.
+ * */
+static void config_file_data_insert_existing_entry(struct config_file_data *conf,
+		struct config_entry *entry)
+{
+	if (!conf->tail) {
+		entry->next = NULL;
+		entry->prev = NULL;
+
+		conf->head = entry;
+		conf->tail = entry;
+	} else {
+		entry->prev = conf->tail;
+		entry->next = NULL;
+
+		conf->tail->next = entry;
+		conf->tail = entry;
+	}
+}
+
+/**
+ * Release any resources under a config_data_entry structure.
+ * */
+static void release_config_data_entry(struct config_entry *entry)
+{
+	free(entry->key);
+	free(entry->value);
+	free(entry);
+}
+
+/**
+ * Sort all entries in the config_file_data in strcmp() order.
+ * */
+static void sort_config_file_data_entries(struct config_file_data *conf)
+{
+	struct config_file_data tmp_conf;
+	config_file_data_init(&tmp_conf);
+
+	while (conf->head) {
+		struct config_entry *current = conf->head;
+		struct config_entry *smallest = current;
+
+		// find next smallest in strcmp() order
+		while (current) {
+			if (!strchr(current->key, '.') && strchr(smallest->key, '.') != NULL)
+				smallest = current;
+			if (strchr(current->key, '.') != NULL && !strchr(smallest->key, '.')) {
+				current = current->next;
+				continue;
+			}
+
+			if (!strcmp(current->key, smallest->key)) {
+				if (strcmp(current->value, smallest->value) < 0)
+					smallest = current;
+			} else if (strcmp(current->key, smallest->key) < 0) {
+				smallest = current;
+			}
+
+			current = current->next;
+		}
+
+		// remove from existing config data
+		config_file_data_remove_entry(conf, smallest);
+
+		// append to new (temporary) config data
+		config_file_data_insert_existing_entry(&tmp_conf, smallest);
+	}
+
+	conf->head = tmp_conf.head;
+	conf->tail = tmp_conf.tail;
+}
+
+/**
+ * Check if the config_file_data structure has any entries with duplicate keys.
+ * */
+static int has_duplicate_entries(struct config_file_data *conf, int is_sorted)
+{
+	struct config_entry *current = conf->head;
+	while (current) {
+		if (is_sorted) {
+			/*
+			 * Since we assume this is a sorted list, if current and next are not
+			 * equal, then we can assume that there are no duplicates for
+			 * in the list for current, so skip to the next.
+			 */
+			if (current->next && !strcmp(current->key, current->next->key))
+				return 1;
+		} else {
+			struct config_entry *next = conf->head;
+			while (next) {
+				if (!strcmp(current->key, next->key))
+					return 1;
+
+				next = next->next;
+			}
+		}
+
+		current = current->next;
 	}
 
 	return 0;
 }
 
 /**
- * Attempt to extract a key value pair from a line taken from a config file.
- *
- * Allocates the memory necessary for the key and value string, and sets `key`
- * and `value` arguments with pointers to those strings.
- *
- * If the key or value cannot be extracted from the line string, returns
- * non-zero. Otherwise, returns zero.
+ * Remove an entry from a conf_file_data without releasing the entry resources.
  * */
-static int extract_key_value_pair(char *line_str, char **key, char **value)
+static void config_file_data_remove_entry(struct config_file_data *conf, struct config_entry *entry)
 {
-	char *key_start, *key_end, *val_start, *val_end;
+	if (conf->head == NULL || conf->tail == NULL)
+		return;
 
-	*key = NULL;
-	*value = NULL;
+	if (conf->head == entry || conf->tail == entry) {
+		if (conf->head == entry)
+			conf->head = entry->next;
 
-	// Verify existence of `=`
-	key_start = strchr(line_str, '=');
-	if (!key_start)
-		return -1;
-
-	// Extract key from line
-	key_start = line_str;
-	while (*key_start && isspace(*key_start))
-		key_start++;
-
-	if (!*key_start || *key_start == '=') {
-		LOG_TRACE("Unexpectedly reached end of string while parsing config line; '%s'", line_str);
-		return -1;
+		if (conf->tail == entry)
+			conf->tail = entry->prev;
 	}
 
-	key_end = strchr(line_str, '=');
-	if (!key_end)
-		BUG("unexpected NULL from strchr()");
+	if (entry->next)
+		entry->next->prev = entry->prev;
 
-	while ((key_end-1) > key_start && isspace(*(key_end-1)))
-		key_end--;
+	if (entry->prev)
+		entry->prev->next = entry->next;
 
-	if (key_start == key_end) {
-		LOG_TRACE("Config line missing key; '%s'", line_str);
-		return -1;
-	}
-
-	for (char *s = key_start; s < key_end; s++) {
-		if (!isalnum(*s) && *s != '.' && *s != '_') {
-			LOG_TRACE("Disallowed character found in key; '%s'", line_str);
-			return -1;
-		}
-	}
-
-	// Extract value from line
-	val_start = strchr(line_str, '=');
-	if (!val_start)
-		BUG("unexpected NULL from strchr()");
-
-	do
-		val_start++;
-	while (*val_start && isspace(*val_start));
-
-	val_end = line_str + strlen(line_str);
-	while ((val_end - 1) > val_start && isspace(*val_end - 1))
-		val_end--;
-
-	if ((*val_start == *(val_end - 1)) && (*val_start == '"' || *val_start == '\'')) {
-		val_start++;
-		val_end = val_end - 1 < val_start ? val_start : val_end - 1;
-	}
-
-	*key = strndup(key_start, (key_end - key_start));
-	*value = strndup(val_start, (val_end - val_start));
-
-	return 0;
+	entry->next = NULL;
+	entry->prev = NULL;
 }
 
-static int conf_entry_comparator(const void *a, const void *b)
+/**
+ * Check that a given key string is valid, returning zero of valid and non-zero
+ * if invalid.
+ *
+ * A valid key may:
+ * - be alphanumeric charaacters, including '.' and '_'
+ * - each '.' must be separated by another character
+ * */
+static int is_valid_key(const char *key)
 {
-	struct conf_data_entry *entry_a = *(struct conf_data_entry **)a;
-	struct conf_data_entry *entry_b = *(struct conf_data_entry **)b;
+	if (!strlen(key))
+		return 0;
 
-	if (!entry_a->section ^ !entry_b->section)
-		return entry_a->section != NULL;
+	if (*key == '.')
+		return 0;
 
-	if (!entry_a->section && !entry_b->section)
-		return strcmp(entry_a->key, entry_b->key);
+	// check to see if each '.' is separated by an alphanumeric char
+	const char *c = key;
+	while ((c = strchr(c, '.'))) {
+		c++;
+		if (!isalnum(*c) && *c != '_')
+			return 0;
+	}
 
-	int cmp = strcmp(entry_a->section, entry_b->section);
-	if (!strcmp(entry_a->section, entry_b->section))
-		return strcmp(entry_a->key, entry_b->key);
+	// check to see if key has any non-alphanumeric character, (excluding '.' and '_')
+	c = key;
+	while (*c) {
+		if (!isalnum(*c) && *c != '.' && *c != '_')
+			return 0;
+		c++;
+	}
 
-	return cmp;
+	return 1;
 }

@@ -146,6 +146,19 @@ int parse_config(struct config_file_data *conf, const char *conf_path);
 int write_config(struct config_file_data *conf, const char *conf_path);
 
 /**
+ * Check whether a file at the given path is a valid configuration file that
+ * can be parsed by the application, optionally checking that all the keys are
+ * recognized by the application.
+ *
+ * If the config file cannot be parsed, returns -1. If the config file is
+ * invalid (has duplicate or invalid keys), returns 1. Otherwise returns zero.
+ *
+ * If recognized_keys_only is non-zero, returns 2 if the config file contains
+ * unrecognized keys.
+ * */
+int is_config_invalid(const char *conf_path, int recognized_keys_only);
+
+/**
  * Release any resources under a config_file_data structure.
  * */
 void config_file_data_release(struct config_file_data *conf);
@@ -182,5 +195,15 @@ void config_file_data_set_entry_value(struct config_entry *entry, const char *va
  * Get the key for a config entry. The string returned should not be mutated.
  * */
 char *config_file_data_get_entry_key(struct config_entry *entry);
+
+/**
+ * Check that a given key string is valid, returning zero of valid and non-zero
+ * if invalid.
+ *
+ * A valid key may:
+ * - be alphanumeric characters, including '.' and '_'
+ * - each '.' must be separated by another character
+ * */
+int is_valid_key(const char *key);
 
 #endif //GIT_CHAT_PARSE_CONFIG_H

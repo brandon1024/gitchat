@@ -18,6 +18,7 @@ static const struct usage_string main_cmd_usage[] = {
 
 static struct cmd_builtin builtins[] = {
 		{ "channel", cmd_channel },
+		{ "config", cmd_config },
 		{ "init", cmd_init },
 		{ "message", cmd_message },
 		{ "publish", cmd_publish },

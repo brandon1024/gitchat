@@ -140,6 +140,26 @@ configuring message:
 ### git chat get
 **IN PROGRESS** Fetch any new messages from the remote repository.
 
+### git chat config
+```
+usage: git chat config [--get] <key>
+   or: git chat config --get-or-default <key>
+   or: git chat config --set <key> <value>
+   or: git chat config --unset <key>
+   or: git chat config (--is-valid-key <key>) | --is-valid-config
+   or: git chat config (-e | --edit)
+   or: git chat config (-h | --help)
+
+    --get               get config value with the given key
+    --get-or-default    get config value with the given key, or default value if not present
+    --set               create or mutate config value
+    --unset             delete config value with the given key
+    --is-valid-key      exit with 0 if the key is valid
+    --is-valid-config   exit with 0 if the config is valid
+    -e, --edit          open an editor to edit the config file
+    -h, --help          show usage and exit
+```
+
 ## Extending git-chat
 git-chat follows a similar extension model to Git, where executables located on the PATH that are prefixed with `git-chat-` will be invoked when `git chat <extension name>` is run at the command line. This allows you to build custom plugins to git-chat, extending it to work for you!
 

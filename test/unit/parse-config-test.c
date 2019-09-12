@@ -1,5 +1,6 @@
 #include "test-lib.h"
 #include "parse-config.h"
+#include "config-defaults.h"
 
 TEST_DEFINE(initialize_config_file_data_struct)
 {
@@ -303,6 +304,51 @@ TEST_DEFINE(parse_config_read_error)
 	TEST_END();
 }
 
+TEST_DEFINE(is_config_valid_test)
+{
+	TEST_START() {
+		assert_eq(-1, is_config_invalid("resources/unknown.config", 0));
+		assert_eq(-1, is_config_invalid("resources/unknown.config", 1));
+
+		const char *invalid_configs[] = {
+				"resources/bad_key_1.config",
+				"resources/bad_key_2.config",
+				"resources/bad_key_3.config",
+				"resources/bad_key_4.config",
+				"resources/bad_section_1.config",
+				"resources/bad_section_2.config",
+				"resources/bad_section_3.config",
+				NULL
+		};
+
+		const char **conf = invalid_configs;
+		while (*conf) {
+			int is_invalid = is_config_invalid(*conf, 0);
+			assert_eq(1, is_invalid);
+			conf++;
+		}
+
+		const char *valid_configs[] = {
+				"resources/good_1.config",
+				"resources/good_2.config",
+				"resources/good_3.config",
+				NULL
+		};
+
+		conf = valid_configs;
+		while (*conf) {
+			assert_zero(is_config_invalid(*conf, 0));
+			conf++;
+		}
+
+		assert_eq(2, is_config_invalid(valid_configs[0], 1));
+		assert_eq(2, is_config_invalid(valid_configs[1], 1));
+		assert_zero(is_config_invalid(valid_configs[2], 1));
+	}
+
+	TEST_END();
+}
+
 int parse_config_test(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
@@ -321,6 +367,7 @@ int parse_config_test(struct test_runner_instance *instance)
 			{ "parse_config with invalid section (trailing chars) should return non-zero", parse_config_invalid_section_trailing_characters },
 			{ "parse_config with invalid section (invalid chars) should return non-zero", parse_config_invalid_section_character },
 			{ "parse_config with unknown file (read error) should return non-zero", parse_config_read_error },
+			{ "is_config_valid should correctly identify invalid config files", is_config_valid_test },
 			{ NULL, NULL }
 	};
 

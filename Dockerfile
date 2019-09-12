@@ -37,4 +37,7 @@ RUN apt-get update && apt-get install -y \
 	vim \
 	wget
 
+RUN git config --global --add user.name "Test User" && \
+	git config --global --add user.email "testusr@integration.com"
+
 CMD ["/bin/bash"]

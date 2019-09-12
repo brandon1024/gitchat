@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 
 #include "parse-config.h"
+#include "config-defaults.h"
 #include "strbuf.h"
 #include "utils.h"
 
@@ -30,7 +31,6 @@ static void sort_config_file_data_entries(struct config_file_data *);
 static int has_duplicate_entries(struct config_file_data *, int);
 static void config_file_data_remove_entry(struct config_file_data *,
 		struct config_entry *);
-static int is_valid_key(const char *);
 
 void config_file_data_init(struct config_file_data *conf)
 {
@@ -91,7 +91,7 @@ int parse_config(struct config_file_data *conf, const char *conf_path)
 
 int write_config(struct config_file_data *conf, const char *conf_path)
 {
-	// sort the list of entries (in strcmp() order)
+	// sort the list of entries
 	sort_config_file_data_entries(conf);
 
 	/*
@@ -121,7 +121,7 @@ int write_config(struct config_file_data *conf, const char *conf_path)
 			strbuf_attach(&current_section, entry_key, (section_token - entry_key));
 
 			strbuf_clear(&temporary);
-			strbuf_attach_fmt(&temporary, "\n[%s]\n", current_section.buff);
+			strbuf_attach_fmt(&temporary, "[%s]\n", current_section.buff);
 
 			if (recoverable_write(conf_fd, temporary.buff, temporary.len) != temporary.len)
 				FATAL(FILE_WRITE_FAILED, conf_path);
@@ -154,6 +154,34 @@ int write_config(struct config_file_data *conf, const char *conf_path)
 	strbuf_release(&temporary);
 	close(conf_fd);
 
+	return 0;
+}
+
+int is_config_invalid(const char *conf_path, int recognized_keys_only)
+{
+	struct config_file_data conf;
+	int status = parse_config(&conf, conf_path);
+	if (status != 0)
+		return status;
+
+	if (has_duplicate_entries(&conf, 0)) {
+		config_file_data_release(&conf);
+		return 1;
+	}
+
+	if (recognized_keys_only) {
+		struct config_entry *entry = conf.head;
+		while (entry) {
+			if (!is_valid_key(entry->key) || !is_recognized_config_key(entry->key)) {
+				config_file_data_release(&conf);
+				return 2;
+			}
+
+			entry = entry->next;
+		}
+	}
+
+	config_file_data_release(&conf);
 	return 0;
 }
 
@@ -227,6 +255,9 @@ char *config_file_data_get_entry_value(struct config_entry *entry)
 
 void config_file_data_set_entry_value(struct config_entry *entry, const char *value)
 {
+	if (!value)
+		BUG("config_file_data_set_entry_value() value must be nonnull");
+
 	free(entry->value);
 	entry->value = strdup(value);
 	if (!entry->value)
@@ -237,6 +268,42 @@ char *config_file_data_get_entry_key(struct config_entry *entry)
 {
 	return entry->key;
 }
+
+/**
+ * Check that a given key string is valid, returning zero of valid and non-zero
+ * if invalid.
+ *
+ * A valid key may:
+ * - be alphanumeric characters, including '.' and '_'
+ * - each '.' must be separated by another character
+ * */
+int is_valid_key(const char *key)
+{
+	if (!strlen(key))
+		return 0;
+
+	if (*key == '.')
+		return 0;
+
+	// check to see if each '.' is separated by an alphanumeric char
+	const char *c = key;
+	while ((c = strchr(c, '.'))) {
+		c++;
+		if (!isalnum(*c) && *c != '_')
+			return 0;
+	}
+
+	// check to see if key has any non-alphanumeric character, (excluding '.' and '_')
+	c = key;
+	while (*c) {
+		if (!isalnum(*c) && *c != '.' && *c != '_')
+			return 0;
+		c++;
+	}
+
+	return 1;
+}
+
 
 /**
  * Read an entire line from the file into memory, and return a pointer to it.
@@ -484,7 +551,7 @@ static int has_duplicate_entries(struct config_file_data *conf, int is_sorted)
 		} else {
 			struct config_entry *next = conf->head;
 			while (next) {
-				if (!strcmp(current->key, next->key))
+				if (next != current && !strcmp(current->key, next->key))
 					return 1;
 
 				next = next->next;
@@ -521,39 +588,4 @@ static void config_file_data_remove_entry(struct config_file_data *conf, struct 
 
 	entry->next = NULL;
 	entry->prev = NULL;
-}
-
-/**
- * Check that a given key string is valid, returning zero of valid and non-zero
- * if invalid.
- *
- * A valid key may:
- * - be alphanumeric charaacters, including '.' and '_'
- * - each '.' must be separated by another character
- * */
-static int is_valid_key(const char *key)
-{
-	if (!strlen(key))
-		return 0;
-
-	if (*key == '.')
-		return 0;
-
-	// check to see if each '.' is separated by an alphanumeric char
-	const char *c = key;
-	while ((c = strchr(c, '.'))) {
-		c++;
-		if (!isalnum(*c) && *c != '_')
-			return 0;
-	}
-
-	// check to see if key has any non-alphanumeric character, (excluding '.' and '_')
-	c = key;
-	while (*c) {
-		if (!isalnum(*c) && *c != '.' && *c != '_')
-			return 0;
-		c++;
-	}
-
-	return 1;
 }

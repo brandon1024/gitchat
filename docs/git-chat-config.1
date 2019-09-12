@@ -1,0 +1,183 @@
+.TH git-chat-config 1 "@CMAKE_COMPILATION_DATE@" "git-chat @CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@" "git-chat manual"
+
+.SH NAME
+git-chat-config \- Configure the current channel
+
+.SH SYNOPSIS
+.sp
+.nf
+\fIgit chat config\fR [\-\-get] <key>
+\fIgit chat config\fR \-\-get\-or\-default <key>
+\fIgit chat config\fR \-\-set <key> <value>
+\fIgit chat config\fR \-\-unset <key>
+\fIgit chat config\fR (\-\-is\-valid\-key <key>) | \-\-is\-valid\-config
+\fIgit chat config\fR (\-e | \-\-edit)
+\fIgit chat config\fR (\-h | \-\-help)
+
+
+.SH DESCRIPTION
+Configure the properties of a git-chat channel by manipulating its \fI/git-chat/config\fR.
+
+This command can be used to query, add, replace and remove configuration keys from the channel config file. This command can also be used for validating the syntax of the config file, and to verify that all config keys are recognized by git-chat.
+
+
+.SH OPTIONS
+.TP
+\-\-get <key>
+Get the value for a given config key in the git-chat config file. If no config exists with the given key, the terminates with an exit status of 1.
+
+.TP
+\-\-get\-or\-default <key>
+Get the value for a given config key in the git-chat config file, or a default value if the key is recognized by git-chat. Terminates with a non-zero status if the key does not exist and the provided key is not recognized by git-chat.
+
+.TP
+\-\-set <key> <value>
+Create, or update, a config key in the git-chat config file, and assign it the given value. Exits with a non-zero status if the key could not be set for any reason.
+
+.TP
+\-\-unset <key>
+Remove a key from the git-chat config file. Exits with a zero status if the key was successfully removed, and non-zero if the key does not exist or could not be removed.
+
+.TP
+\-\-is\-valid\-key <key>
+Exit with a zero status if the given key is recognized by git-chat, and non-zero otherwise.
+
+.TP
+\-\-is\-valid\-config
+Validate the git-chat config file for the current channel for syntax errors. If invalid, exits with a non-zero status.
+
+.TP
+\-e, \-\-edit
+Open the git-chat config file in Vim.
+
+.TP
+\-h, \-\-help
+Print a simple synopsis and exit.
+
+
+.SH CONFIG FILE FORMAT
+The config file has a format similar to INI or TOML, but simplified. It consists of key-value pairs organized in sections. For example:
+
+.PP
+.in +4n
+.EX
+[ section_a ]
+    key_1 = value
+    key_2 = valueb
+[ section_b ]
+    key_1 = 123
+    key_a = 321
+.EE
+.in
+.PP
+
+.SP
+.SS Whitespace Rules
+.SP
+Leading and trailing whitespace is ignored. So, the following two examples are equivalent:
+
+.PP
+.in +4n
+.EX
+[ section_a ]
+    key_1 = value
+    key_2 = valueb
+
+[ section_b ]
+key_1 = 123
+key_a = 321
+.EE
+.in
+.PP
+
+Furthermore, whitespace between the key name and `=`, and between `=` and the value is ignored. So, these statements are equivalent:
+
+.PP
+.in +4n
+.EX
+key_1 = 123
+key_1=	123
+key_1=123
+.EE
+.in
+.PP
+
+Trailing whitespace in config values are also ignored. If the value for the key must contain leading or trailing whitespace, it can be quoted with single or double quotes. Config values must not wrap multiple lines.
+
+.SP
+.SS Sections
+.SP
+Key-value pairs can be defined outside of a section, but must appear before any section declaration:
+
+.PP
+.in +4n
+.EX
+key_3 = valuec
+[ section_a ]
+    key_1 = value
+    key_2 = valueb
+.EE
+.in
+.PP
+
+Although sections cannot be nested, section names can have a period `.`, which can be used to help indicate that the section is be represented as a subsection:
+
+.PP
+.in +4n
+.EX
+[ section ]
+    key_1 = value
+[ section.subsection ]
+    key_2 = value
+.EE
+.in
+.PP
+
+Section and key names may only contain alphanumeric characters, underscores `_`, and periods `.`. Use of disallowed characters may result in undesired or undefined behavior.
+Duplicate section names are allowed, but duplicate addresses will result in undefined behavior. For instance, the following is disallowed because the address `section_a.key_1` is defined twice:
+
+.PP
+.in +4n
+.EX
+[ section_a ]
+    key_1 = value
+    key_2 = valueb
+[ section_a ]
+    key_1 = 123
+    key_a = 321
+.EE
+.in
+.PP
+
+.SP
+.SS Key-Value Pairs
+.SP
+Key-value pairs take the form `<key> = <value>`. Values in the config file are addressed using the dot ".", as shown below:
+
+.PP
+.in +4n
+.EX
+[ section_a ]
+    key_1 = value
+    key_2 = valueb
+[ section_b ]
+    key_a = 123
+    key_b = 321
+
+section_a.key_1
+section_b.key_a
+.EE
+.in
+.PP
+
+
+.SH SEE ALSO
+\fBgit-chat-init\fR(1)
+
+
+.SH REPORTING BUGS
+@DOCS_REPORTING_BUGS_SECTION@
+
+
+.SH AUTHOR
+@DOCS_AUTHORS_SECTION@

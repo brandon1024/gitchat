@@ -234,7 +234,7 @@ static void compose_message(struct strbuf *buff)
 	const char *msg_compose_file = path_buff.buff;
 
 	// clear the contents of GC_EDITMSG
-	int fd = open(msg_compose_file, O_WRONLY | O_TRUNC);
+	int fd = open(msg_compose_file, O_WRONLY | O_TRUNC | O_CREAT);
 	if (fd < 0)
 		FATAL(FILE_OPEN_FAILED, msg_compose_file);
 	close(fd);

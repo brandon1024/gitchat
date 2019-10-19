@@ -338,6 +338,98 @@ TEST_DEFINE(strbuf_split_no_delim_test)
 	TEST_END();
 }
 
+TEST_DEFINE(strbuf_remove_beyond_buffer_length_test)
+{
+	struct strbuf sb;
+	strbuf_init(&sb);
+
+	TEST_START() {
+		const char *buffer = "expected buffer!";
+		strbuf_attach_str(&sb, buffer);
+
+		size_t len = sb.len;
+		size_t alloc = sb.alloc;
+		strbuf_remove(&sb, sb.len, sb.len);
+
+		assert_eq(len, sb.len);
+		assert_eq(alloc, sb.alloc);
+		assert_string_eq(buffer, sb.buff);
+	}
+
+	strbuf_release(&sb);
+
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_remove_from_beginning_test)
+{
+	struct strbuf sb;
+	strbuf_init(&sb);
+
+	TEST_START() {
+		char buffer[] = "expected buffer!";
+		strbuf_attach_str(&sb, buffer);
+
+		size_t len = sb.len;
+		size_t alloc = sb.alloc;
+		strbuf_remove(&sb, 0, 8);
+
+		assert_eq(len - 8, sb.len);
+		assert_eq(alloc, sb.alloc);
+		assert_string_eq(" buffer!", sb.buff);
+	}
+
+	strbuf_release(&sb);
+
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_remove_from_within_test)
+{
+	struct strbuf sb;
+	strbuf_init(&sb);
+
+	TEST_START() {
+		char buffer[] = "expected string buffer!";
+		strbuf_attach_str(&sb, buffer);
+
+		size_t len = sb.len;
+		size_t alloc = sb.alloc;
+		strbuf_remove(&sb, 9, 6);
+
+		assert_eq(len - 6, sb.len);
+		assert_eq(alloc, sb.alloc);
+		assert_string_eq("expected  buffer!", sb.buff);
+	}
+
+	strbuf_release(&sb);
+
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_remove_length_larger_than_buffer_length_test)
+{
+	struct strbuf sb;
+	strbuf_init(&sb);
+
+	TEST_START() {
+		char buffer[] = "expected string buffer!";
+		strbuf_attach_str(&sb, buffer);
+
+		size_t alloc = sb.alloc;
+		strbuf_remove(&sb, 9, 100);
+
+		assert_eq(9, sb.len);
+		assert_eq(alloc, sb.alloc);
+		assert_eq(0, sb.buff[9]);
+		assert_string_eq("expected ", sb.buff);
+	}
+
+	strbuf_release(&sb);
+
+	TEST_END();
+}
+
 int strbuf_test(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
@@ -352,6 +444,10 @@ int strbuf_test(struct test_runner_instance *instance)
 			{ "splitting a strbuf on a simple delimiter should split as expected", strbuf_split_simple_delim_test },
 			{ "splitting a strbuf on a multi-character delimiter should split as expected", strbuf_split_multichar_delim_test },
 			{ "splitting a strbuf without a delimiter should push entire string to str_array", strbuf_split_no_delim_test },
+			{ "removing data from beyond the strbuf buffer length should have no effect", strbuf_remove_beyond_buffer_length_test },
+			{ "removing data from beginning of strbuf should shift all bytes to the left", strbuf_remove_from_beginning_test },
+			{ "removing data from within the strbuf should remove inner portion correctly", strbuf_remove_from_within_test },
+			{ "removing data from strbuf with length larger than buffer should simply remove remaining bytes", strbuf_remove_length_larger_than_buffer_length_test },
 			{ NULL, NULL }
 	};
 

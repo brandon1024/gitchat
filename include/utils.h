@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include "logging.h"
 
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #define NORETURN __attribute__((noreturn))
 
 /**

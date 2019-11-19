@@ -86,14 +86,16 @@ TEST_DEFINE(parse_options_short_int_test)
 	long int_val_1 = 0;
 	long int_val_2 = 0;
 	long int_val_3 = 0;
+	long int_val_4 = 0;
 	options[1].arg_value = &bool_val_1;
 	options[38].arg_value = &int_val_1;
 	options[48].arg_value = &int_val_2;
 	options[49].arg_value = &int_val_3;
+	options[22].arg_value = &int_val_4;
 
 	TEST_START() {
-		int argc = 6;
-		char *argv[] = {"-qN", "+12", "-A", "-13", "-B", "12a"};
+		int argc = 7;
+		char *argv[] = {"-qN", "+12", "-A", "-13", "-o15", "-B", "12a"};
 
 		int new_argc = parse_options(argc, argv, options, 0, 1);
 		assert_eq(2, new_argc);
@@ -102,6 +104,7 @@ TEST_DEFINE(parse_options_short_int_test)
 		assert_eq(12, int_val_1);
 		assert_eq(-13, int_val_2);
 		assert_eq(0, int_val_3);
+		assert_eq(15, int_val_4);
 		assert_string_eq("-B", argv[0]);
 		assert_string_eq("12a", argv[1]);
 

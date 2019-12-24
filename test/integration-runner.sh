@@ -149,8 +149,8 @@ if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	# executable in valgrind.sh, which accepts the same arguments as git-chat.
 	# Then, we symlink git-chat to valgrind.sh, and put it on the PATH.
 
-	if [[ ! -d "${TEST_RUNNER_PATH}/integration/valgrind" ]]; then
-		echo "Valgrind tooling does not exist: ${TEST_RUNNER_PATH}/integration/valgrind" 1>&2
+	if [[ ! -f "${TEST_RUNNER_PATH}/integration/bin/valgrind.sh" ]]; then
+		echo "Valgrind tooling does not exist: ${TEST_RUNNER_PATH}/integration/bin/valgrind.sh" 1>&2
 		exit 1
 	fi
 
@@ -161,7 +161,7 @@ if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	fi
 
 	rm -f "${TEST_RUNNER_PATH}/integration/bin/git-chat"
-	ln -s "${TEST_RUNNER_PATH}/integration/valgrind/valgrind.sh" "${TEST_RUNNER_PATH}/integration/bin/git-chat"
+	ln -s "${TEST_RUNNER_PATH}/integration/bin/valgrind.sh" "${TEST_RUNNER_PATH}/integration/bin/git-chat"
 elif [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 	export PATH="${TEST_GIT_CHAT_INSTALLED}:${PATH}"
 fi

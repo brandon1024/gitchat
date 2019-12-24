@@ -16,19 +16,39 @@
 void copy_dir(char *path_from, char *path_to);
 
 /**
- * Copy a file from the src location to the dest location. The source and destination
- * file paths must be full paths to the file to be copied.
- *
- * `dest` and `src` must be null-terminated strings.
+ * Copy a file from the src location to the dest location. `dest` and `src` must
+ * be null-terminated strings.
  *
  * The new file will assume the given mode.
  *
- * If copy_file fails for any reason, the current process will be terminated.
+ * If the src file cannot be opened for reading, -1 is returned.
+ * If the destination file cannot be opened for writing, -1 is returned.
+ *
+ * If reading/writing could not be completed due to an unexpected error, returns
+ * the total number of bytes written so far.
+ *
+ * If successful, returns the total number of bytes written.
  * */
-void copy_file(const char *dest, const char *src, int mode);
+ssize_t copy_file(const char *dest, const char *src, mode_t mode);
 
 /**
- * Read a symbolic link for the target path, and store the path in the given str_buf.
+ * Copy a file from the src location to the dest location. `dest_fd` and `src_fd`
+ * must be open file descriptors.
+ *
+ * The new file will assume the given mode.
+ *
+ * If the src file cannot be opened for reading, -1 is returned.
+ * If the destination file cannot be opened for writing, -1 is returned.
+ *
+ * If reading/writing could not be completed due to an unexpected error, returns
+ * the total number of bytes written so far.
+ *
+ * If successful, returns the total number of bytes written.
+ * */
+ssize_t copy_file_fd(int dest_fd, int src_fd);
+
+/**
+ * Read a symbolic link for the target path, and store the path in the given strbuf.
  *
  * The 'size' parameter is the stat.st_size from the result of a call to lstat()
  * on the link. This is used to help determine the size of the buffer to use.
@@ -38,7 +58,7 @@ void copy_file(const char *dest, const char *src, int mode);
  * Returns 0 if the target of the symbolic link was successfully read into the
  * string buffer, and 1 otherwise.
  * */
-int get_symlink_target(char *symlink_path, struct strbuf *result, size_t size);
+int get_symlink_target(const char *symlink_path, struct strbuf *result, size_t size);
 
 /**
  * Populate an empty string buffer with the current working directory.

@@ -14,7 +14,7 @@
 #define PATH_MAX 4096
 #endif
 
-#define BUFF_LEN 1024
+#define BUFF_LEN 4096
 
 void copy_dir(char *path_from, char *path_to)
 {
@@ -52,6 +52,10 @@ void copy_dir(char *path_from, char *path_to)
 			//read the target of the symbolic link, then attempt to symlink.
 			struct strbuf target;
 			strbuf_init(&target);
+
+			// note: the st_size of a symbolic link is the length of the
+			// pathname it contains, without a terminating null byte. That's why
+			// we pass st_from.st_size to get_symlink_target().
 			if (get_symlink_target(new_path_from.buff, &target, st_from.st_size))
 				FATAL("unable to read symlink target for '%s'", new_path_from.buff);
 
@@ -60,7 +64,15 @@ void copy_dir(char *path_from, char *path_to)
 
 			strbuf_release(&target);
 		} else if (S_ISREG(st_from.st_mode)) {
-			copy_file(new_path_to.buff, new_path_from.buff, st_from.st_mode);
+			ssize_t bytes_written = copy_file(new_path_to.buff,
+					new_path_from.buff, st_from.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+
+			if (bytes_written < 0)
+				FATAL("cannot copy from '%s' to '%s'; unable to open for src "
+					"or dest file",new_path_from.buff, new_path_to.buff);
+			if (bytes_written != st_from.st_size)
+				FATAL("cannot copy from '%s' to '%s'; successfully copied %lu of %lu bytes",
+						bytes_written, st_from.st_size);
 		} else
 			DIE("cannot copy from '%s' to '%s'; unexpected file",
 				new_path_from.buff, new_path_to.buff);
@@ -73,33 +85,47 @@ void copy_dir(char *path_from, char *path_to)
 	errno = errsv;
 }
 
-void copy_file(const char *dest, const char *src, int mode)
+ssize_t copy_file(const char *dest, const char *src, mode_t mode)
 {
+	if (!strcmp(src, dest))
+		return -1;
+
 	int in_fd, out_fd;
-	ssize_t bytes_read;
-	char buffer[BUFF_LEN];
+	if ((in_fd = open(src, O_RDONLY)) < 0)
+		return -1;
+	if ((out_fd = open(dest, O_WRONLY | O_CREAT | O_EXCL, mode)) < 0)
+		return -1;
 
-	if (!(in_fd = open(src, O_RDONLY)))
-		FATAL(FILE_OPEN_FAILED, src);
-
-	if (!(out_fd = open(dest, O_WRONLY | O_CREAT | O_EXCL, mode)))
-		FATAL(FILE_OPEN_FAILED, dest);
-
-	while ((bytes_read = recoverable_read(in_fd, buffer, BUFF_LEN)) > 0) {
-		if (recoverable_write(out_fd, buffer, bytes_read) != bytes_read)
-			FATAL(FILE_WRITE_FAILED, dest);
-	}
-
-	if (bytes_read < 0)
-		FATAL("unexpected error while reading from file '%s'", src);
+	ssize_t bytes_written = copy_file_fd(out_fd, in_fd);
+	close(in_fd);
+	close(out_fd);
 
 	LOG_TRACE("File copied from '%s' to '%s'", src, dest);
 
-	close(in_fd);
-	close(out_fd);
+	return bytes_written;
 }
 
-int get_symlink_target(char *symlink_path, struct strbuf *result, size_t size)
+ssize_t copy_file_fd(int dest_fd, int src_fd)
+{
+	if (src_fd == dest_fd)
+		return -1;
+
+	char buffer[BUFF_LEN];
+	ssize_t bytes_written = 0;
+
+	ssize_t bytes_read;
+	while ((bytes_read = recoverable_read(src_fd, buffer, BUFF_LEN)) > 0) {
+		// if write failed, return bytes_written
+		if (recoverable_write(dest_fd, buffer, bytes_read) != bytes_read)
+			return bytes_written;
+
+		bytes_written += bytes_read;
+	}
+
+	return bytes_written;
+}
+
+int get_symlink_target(const char *symlink_path, struct strbuf *result, size_t size)
 {
 	if (size < 64)
 		size = 64;

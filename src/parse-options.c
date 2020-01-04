@@ -299,34 +299,46 @@ void show_options(const struct command_option opts[], int err)
 		}
 
 		printed_chars += fprintf(fp, "    ");
-		if (opt.type == OPTION_BOOL_T) {
-			if (opt.s_flag)
-				printed_chars += fprintf(fp, "-%c", opt.s_flag);
+		switch(opt.type) {
+			case OPTION_BOOL_T:
+				if (opt.s_flag)
+					printed_chars += fprintf(fp, "-%c", opt.s_flag);
 
-			if (opt.s_flag && opt.l_flag)
-				printed_chars += fprintf(fp, ", --%s", opt.l_flag);
-			else if (opt.l_flag)
-				printed_chars += fprintf(fp, "--%s", opt.l_flag);
-		} else if (opt.type == OPTION_INT_T) {
-			if (opt.s_flag)
-				printed_chars += fprintf(fp, "-%c=<n>", opt.s_flag);
+				if (opt.s_flag && opt.l_flag)
+					printed_chars += fprintf(fp, ", --%s", opt.l_flag);
+				else if (opt.l_flag)
+					printed_chars += fprintf(fp, "--%s", opt.l_flag);
+				break;
+			case OPTION_INT_T:
+				if (opt.s_flag)
+					printed_chars += fprintf(fp, "-%c=<n>", opt.s_flag);
 
-			if (opt.s_flag && opt.l_flag)
-				printed_chars += fprintf(fp, ", --%s=<n>", opt.l_flag);
-			else if (opt.l_flag)
-				printed_chars += fprintf(fp, "--%s=<n>", opt.l_flag);
-		} else if (opt.type == OPTION_STRING_T) {
-			if (opt.s_flag)
-				printed_chars += fprintf(fp, "-%c", opt.s_flag);
+				if (opt.s_flag && opt.l_flag)
+					printed_chars += fprintf(fp, ", --%s=<n>", opt.l_flag);
+				else if (opt.l_flag)
+					printed_chars += fprintf(fp, "--%s=<n>", opt.l_flag);
+				break;
+			case OPTION_STRING_T:
+				/* fall through */
+			case OPTION_STRING_LIST_T:
+				if (opt.s_flag)
+					printed_chars += fprintf(fp, "-%c", opt.s_flag);
 
-			if (opt.s_flag && opt.l_flag)
-				printed_chars += fprintf(fp, ", --%s", opt.l_flag);
-			else if (opt.l_flag)
-				printed_chars += fprintf(fp, "--%s", opt.l_flag);
+				if (opt.s_flag && opt.l_flag)
+					printed_chars += fprintf(fp, ", --%s", opt.l_flag);
+				else if (opt.l_flag)
+					printed_chars += fprintf(fp, "--%s", opt.l_flag);
 
-			printed_chars += fprintf(fp, " <%s>", opt.str_name);
-		} else if (opt.type == OPTION_COMMAND_T) {
-			printed_chars += fprintf(fp, "%s", opt.str_name);
+				printed_chars += fprintf(fp, " <%s>", opt.str_name);
+				break;
+			case OPTION_COMMAND_T:
+				printed_chars += fprintf(fp, "%s", opt.str_name);
+				break;
+			case OPTION_GROUP_T:
+			case OPTION_END:
+				break;
+			default:
+				BUG("unknown enum for option type");
 		}
 
 		if (printed_chars >= (USAGE_OPTIONS_WIDTH - USAGE_OPTIONS_GAP))

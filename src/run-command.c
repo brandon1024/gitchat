@@ -225,7 +225,6 @@ int start_command(struct child_process_def *cmd)
 		 * and argv must be NULL terminated.
 		 */
 		argv_array_prepend(&args, executable_path, NULL);
-		char **argv = argv_array_detach(&args, NULL);
 
 		/*
 		 * Prepare execve() environment. argp must be NULL terminated.
@@ -236,18 +235,21 @@ int start_command(struct child_process_def *cmd)
 		 * Attempt to exec using the command and arguments. In the event execve()
 		 * failed with ENOEXEC, try to interpret the command using 'sh -c'.
 		 */
-		if (!cmd->use_shell)
+		if (!cmd->use_shell) {
+			char **argv = argv_array_detach(&args, NULL);
 			execve(argv[0], argv, argp);
+		}
 
 		if (cmd->use_shell || errno == ENOEXEC) {
 			if (errno == ENOEXEC)
 				LOG_WARN("execve() failed to execute '%s'; attempting to run through 'sh -c'", cmd->executable);
 
-			char *collapsed_arguments = argv_array_collapse(&args);
+			char *collapsed_args = argv_array_collapse(&args);
 			argv_array_release(&args);
+
 			argv_array_init(&args);
-			argv_array_push(&args, "/bin/sh", "-c", collapsed_arguments, NULL);
-			argv = argv_array_detach(&args, NULL);
+			argv_array_push(&args, "/bin/sh", "-c", collapsed_args, NULL);
+			char **argv = argv_array_detach(&args, NULL);
 
 			execve(argv[0], argv, argp);
 		}

@@ -64,10 +64,20 @@ void strbuf_attach_chr(struct strbuf *buff, char chr)
 
 void strbuf_attach_fmt(struct strbuf *buff, const char *fmt, ...)
 {
+	va_list varargs;
+	va_start(varargs, fmt);
+
+	strbuf_attach_vfmt(buff, fmt, varargs);
+
+	va_end(varargs);
+}
+
+void strbuf_attach_vfmt(struct strbuf *buff, const char *fmt, va_list varargs)
+{
 	struct strbuf tmp;
 	strbuf_init(&tmp);
 
-	va_list varargs;
+	va_list varargs_cpy;
 
 	size_t size = strlen(fmt);
 	size = size > 64 ? size : 64;
@@ -76,12 +86,12 @@ void strbuf_attach_fmt(struct strbuf *buff, const char *fmt, ...)
 		ssize_t len;
 		strbuf_grow(&tmp, size);
 
-		va_start(varargs, fmt);
-		len = vsnprintf(tmp.buff, size, fmt, varargs);
+		va_copy(varargs_cpy, varargs);
+		len = vsnprintf(tmp.buff, size, fmt, varargs_cpy);
 		if (len < 0)
 			FATAL("Unexpected error from vsnprintf()");
 
-		va_end(varargs);
+		va_end(varargs_cpy);
 
 		if (len < size) {
 			tmp.len = len;

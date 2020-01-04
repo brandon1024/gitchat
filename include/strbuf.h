@@ -60,11 +60,20 @@ void strbuf_attach_chr(struct strbuf *buff, char ch);
 /**
  * Attach a formatted string to the strbuf.
  *
- * The formatted string is constructed using snprintf(), potentially requiring
- * everal passes to allocate a buffer sufficiently large to hold the formatting
+ * The formatted string is constructed using vsnprintf(), potentially requiring
+ * several passes to allocate a buffer sufficiently large to hold the formatting
  * string.
  * */
 void strbuf_attach_fmt(struct strbuf *buff, const char *fmt, ...);
+
+/**
+ * Variadic alternative to attaching formatted strings to a strbuf.
+ *
+ * The formatted string is constructed using vsnprintf(), potentially requiring
+ * several passes to allocate a buffer sufficiently large to hold the formatting
+ * string.
+ * */
+void strbuf_attach_vfmt(struct strbuf *buff, const char *fmt, va_list varargs);
 
 /**
  * Trim leading and trailing whitespace from an strbuf, returning the number of

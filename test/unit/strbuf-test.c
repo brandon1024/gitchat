@@ -131,9 +131,9 @@ TEST_DEFINE(strbuf_attach_fmt_test)
 
 		char string[128];
 		memset(string, 'A', 128);
-		string[127] = 0;
 		string[0] = '%';
 		string[1] = 's';
+		string[127] = 0;
 
 		strbuf_attach_fmt(&buf, string, "HITHERE");
 		assert_eq(132, buf.len);

@@ -16,7 +16,6 @@
 
 extern char **environ;
 
-static inline void set_cloexec(int fd);
 static void merge_env(struct str_array *deltaenv, struct str_array *result);
 static NORETURN void child_exit_routine(int status);
 
@@ -294,19 +293,6 @@ int finish_command(struct child_process_def *cmd)
 	cmd->pid = -1;
 
 	return child_ret_status;
-}
-
-/**
- * Configure the given file descriptor with the FD_CLOEXEC, the close-on-exec,
- * flag, which ensures the file descriptor will automatically be closed after
- * a successful execve(2). If the execve(2) fails, the file descriptor is left
- * open. If left unset, the file descriptor will remain open across an execve(2).
- * */
-static inline void set_cloexec(int fd)
-{
-	int flags = fcntl(fd, F_GETFD);
-	if (flags < 0 || fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)
-		FATAL("fcntl() failed unexpectedly.");
 }
 
 /**

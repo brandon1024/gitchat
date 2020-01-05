@@ -99,4 +99,12 @@ char *find_in_path(const char *file);
  * */
 int is_executable(const char *name);
 
+/**
+ * Configure the given file descriptor with the FD_CLOEXEC, the close-on-exec,
+ * flag, which ensures the file descriptor will automatically be closed after
+ * a successful execve(2). If the execve(2) fails, the file descriptor is left
+ * open. If left unset, the file descriptor will remain open across an execve(2).
+ * */
+void set_cloexec(int fd);
+
 #endif //GIT_CHAT_FS_UTILS_H

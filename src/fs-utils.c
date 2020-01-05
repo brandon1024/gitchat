@@ -228,3 +228,10 @@ int is_executable(const char *name)
 
 	return not_executable ? 0 : st.st_mode & S_IXUSR;
 }
+
+void set_cloexec(int fd)
+{
+	int flags = fcntl(fd, F_GETFD);
+	if (flags < 0 || fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)
+		FATAL("fcntl() failed unexpectedly.");
+}

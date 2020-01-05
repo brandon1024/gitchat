@@ -393,6 +393,72 @@ TEST_DEFINE(str_array_sort_test)
 	TEST_END();
 }
 
+TEST_DEFINE(str_array_reverse_empty)
+{
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		// no need to assert much here; valgrind should pick up any memory weirdness
+		str_array_sort(&str_a);
+		assert_null(str_a.entries);
+		assert_zero(str_a.len);
+	}
+
+	str_array_release(&str_a);
+	TEST_END();
+}
+
+TEST_DEFINE(str_array_reverse_odd)
+{
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		str_array_push(&str_a, "1", NULL);
+		str_array_reverse(&str_a);
+		assert_string_eq("1", str_array_get(&str_a, 0));
+
+		str_array_clear(&str_a);
+
+		str_array_push(&str_a, "1", "2", "3", "4", "5", NULL);
+		str_array_reverse(&str_a);
+		assert_string_eq("5", str_array_get(&str_a, 0));
+		assert_string_eq("4", str_array_get(&str_a, 1));
+		assert_string_eq("3", str_array_get(&str_a, 2));
+		assert_string_eq("2", str_array_get(&str_a, 3));
+		assert_string_eq("1", str_array_get(&str_a, 4));
+	}
+
+	str_array_release(&str_a);
+	TEST_END();
+}
+
+TEST_DEFINE(str_array_reverse_even)
+{
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		str_array_push(&str_a, "1", "2", NULL);
+		str_array_reverse(&str_a);
+		assert_string_eq("2", str_array_get(&str_a, 0));
+		assert_string_eq("1", str_array_get(&str_a, 1));
+
+		str_array_clear(&str_a);
+
+		str_array_push(&str_a, "1", "2", "3", "4", NULL);
+		str_array_reverse(&str_a);
+		assert_string_eq("4", str_array_get(&str_a, 0));
+		assert_string_eq("3", str_array_get(&str_a, 1));
+		assert_string_eq("2", str_array_get(&str_a, 2));
+		assert_string_eq("1", str_array_get(&str_a, 3));
+	}
+
+	str_array_release(&str_a);
+	TEST_END();
+}
+
 TEST_DEFINE(str_array_remove_test)
 {
 	struct str_array str_a;
@@ -538,6 +604,9 @@ int str_array_test(struct test_runner_instance *instance)
 			{ "inserting element in str-array should shift elements correctly", str_array_insert_test },
 			{ "inserting element in str-array should insert without duplication", str_array_insert_nodup_test },
 			{ "sorting element in str-array should sort by strcmp() order", str_array_sort_test },
+			{ "reversing an str-array with no elements should do nothing", str_array_reverse_empty },
+			{ "reversing an str-array with an odd number of elements should reverse correctly", str_array_reverse_odd },
+			{ "reversing an str-array with an even number of elements should reverse correctly", str_array_reverse_even },
 			{ "removing element from str-array should shift elements correctly", str_array_remove_test },
 			{ "detaching strings from str-array should correctly detach", str_array_detach_test },
 			{ "detaching data from str-array should correctly detach data", str_array_detach_data_test },

@@ -168,6 +168,11 @@ struct str_array_entry *str_array_insert_nodup(struct str_array *str_a, char *st
 void str_array_sort(struct str_array *str_a);
 
 /**
+ * Reverse the order of entries in the str_array.
+ * */
+void str_array_reverse(struct str_array *str_a);
+
+/**
  * Remove a string from a given position in the str_array.
  *
  * All subsequent entries in the array are shifted to the left to fill the gap.

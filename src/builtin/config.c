@@ -4,6 +4,7 @@
 #include "parse-config.h"
 #include "config-defaults.h"
 #include "run-command.h"
+#include "working-tree.h"
 #include "fs-utils.h"
 #include "utils.h"
 

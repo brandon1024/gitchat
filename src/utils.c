@@ -4,7 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/stat.h>
 
 #include "utils.h"
 #include "run-command.h"
@@ -94,38 +93,6 @@ void set_exit_routine(NORETURN void (*new_exit_routine)(int))
 static NORETURN void default_exit_routine(int status)
 {
 	exit(status);
-}
-
-int is_inside_git_chat_space()
-{
-	int errsv = errno;
-
-	struct stat sb;
-	if (stat(".git-chat", &sb) == -1 || !S_ISDIR(sb.st_mode)) {
-		LOG_DEBUG("Cannot stat .git-chat directory; %s", strerror(errno));
-		errno = errsv;
-		return 0;
-	}
-
-	if (stat(".git", &sb) == -1 || !S_ISDIR(sb.st_mode)) {
-		LOG_DEBUG("Cannot stat .git directory; %s", strerror(errno));
-		errno = errsv;
-		return 0;
-	}
-
-	struct child_process_def cmd;
-	child_process_def_init(&cmd);
-	cmd.git_cmd = 1;
-	cmd.std_fd_info = STDIN_NULL | STDOUT_NULL | STDERR_NULL;
-	argv_array_push(&cmd.args, "rev-parse", "--is-inside-work-tree", NULL);
-
-	//if 'git rev-parse --is-inside-work-tree' return with a zero exit status,
-	//its safe enough to assume we are in a git-chat space.
-	int status = run_command(&cmd);
-	child_process_def_release(&cmd);
-
-	errno = errsv;
-	return status == 0;
 }
 
 ssize_t recoverable_read(int fd, void *buf, size_t len)

@@ -6,6 +6,7 @@
 #include "str-array.h"
 #include "run-command.h"
 #include "gpg-interface.h"
+#include "working-tree.h"
 #include "fs-utils.h"
 #include "parse-options.h"
 #include "utils.h"
@@ -22,7 +23,8 @@ static const struct usage_string message_cmd_usage[] = {
 };
 
 static int create_message(struct str_array *, const char *, const char *, const char *, int);
-static int encrypt_message_asym(const char *, struct str_array *, struct strbuf *, struct strbuf *);
+static int encrypt_message_asym(struct gpgme_context *, struct str_array *,
+		struct strbuf *, struct strbuf *);
 static void compose_message(struct strbuf *);
 static void read_message_from_file(const char *, struct strbuf *);
 static int filter_gpg_keylist_by_recipients(struct _gpgme_key *, void *);
@@ -104,19 +106,16 @@ int cmd_message(int argc, char *argv[])
 static int create_message(struct str_array *recipients, const char *message,
 		const char *file, const char *passphrase, const int asym)
 {
-	struct strbuf gpg_homedir;
-
 	if (!is_inside_git_chat_space())
 		DIE("Where are you? It doesn't look like you're in the right directory.");
 
-	struct strbuf cwd_buff;
-	strbuf_init(&cwd_buff);
-	if (get_cwd(&cwd_buff))
-		FATAL("unable to obtain the current working directory from getcwd()");
-
+	struct strbuf gpg_homedir;
 	strbuf_init(&gpg_homedir);
-	strbuf_attach_fmt(&gpg_homedir, "%s/.git/.gnupg", cwd_buff.buff);
-	LOG_INFO("gpg homedir %s", gpg_homedir.buff);
+	if (get_gpg_homedir(&gpg_homedir))
+		FATAL("local GPG home directory does not exist or cannot be used for some reason");
+
+	struct gpgme_context *ctx;
+	gpgme_context_init(&ctx, gpg_homedir.buff);
 
 	struct strbuf message_buff;
 	strbuf_init(&message_buff);
@@ -134,23 +133,24 @@ static int create_message(struct str_array *recipients, const char *message,
 	if (asym) {
 		struct strbuf keys_dir_path;
 		strbuf_init(&keys_dir_path);
-		strbuf_attach_fmt(&keys_dir_path, "%s/.keys", cwd_buff.buff);
-		LOG_INFO("git-chat keys dir %s", keys_dir_path.buff);
+		if (get_keys_dir(&keys_dir_path))
+			FATAL(".keys directory does not exist or cannot be used for some reason");
 
 		// reimport the gpg keys into the keyring
-		rebuild_gpg_keyring(gpg_homedir.buff, keys_dir_path.buff);
+		rebuild_gpg_keyring(ctx, keys_dir_path.buff);
 		strbuf_release(&keys_dir_path);
 
-		int ret = encrypt_message_asym(gpg_homedir.buff, recipients,
-				&message_buff, &ciphertext);
+		int ret = encrypt_message_asym(ctx, recipients, &message_buff, &ciphertext);
 		if (ret == 0)
 			DIE("no message recipients; no one will be able to read your message.");
 		if (ret < 0)
 			DIE("one or more message recipients have no public gpg key available.");
 	} else {
-		symmetric_encrypt_plaintext_message(gpg_homedir.buff, &message_buff,
-				&ciphertext, passphrase);
+		symmetric_encrypt_plaintext_message(ctx, &message_buff, &ciphertext, passphrase);
 	}
+
+	gpg_context_release(&ctx);
+	strbuf_release(&gpg_homedir);
 
 	memset(message_buff.buff, 0, message_buff.alloc);
 
@@ -159,8 +159,6 @@ static int create_message(struct str_array *recipients, const char *message,
 
 	strbuf_release(&message_buff);
 	strbuf_release(&ciphertext);
-	strbuf_release(&cwd_buff);
-	strbuf_release(&gpg_homedir);
 
 	return 0;
 }
@@ -178,11 +176,11 @@ static int create_message(struct str_array *recipients, const char *message,
  * Returns the number of recipients selected to decrypt the message, or -1 if
  * some recipients in the given str_array do not exist (no public key in keyring).
  * */
-static int encrypt_message_asym(const char *gpg_homedir, struct str_array *recipients,
+static int encrypt_message_asym(struct gpgme_context *ctx, struct str_array *recipients,
 		struct strbuf *message_in, struct strbuf *ciphertext_result)
 {
 	struct gpg_key_list gpg_keys;
-	int key_count = get_gpg_keys_from_keyring(gpg_homedir, &gpg_keys);
+	int key_count = get_gpg_keys_from_keyring(ctx, &gpg_keys);
 
 	// filter unusable and secret gpg keys
 	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_unusable_keys, NULL);
@@ -203,7 +201,7 @@ static int encrypt_message_asym(const char *gpg_homedir, struct str_array *recip
 	}
 
 	if (key_count)
-		asymmetric_encrypt_plaintext_message(gpg_homedir, message_in, ciphertext_result, &gpg_keys);
+		asymmetric_encrypt_plaintext_message(ctx, message_in, ciphertext_result, &gpg_keys);
 
 	release_gpg_key_list(&gpg_keys);
 
@@ -218,6 +216,9 @@ static int encrypt_message_asym(const char *gpg_homedir, struct str_array *recip
  * The file is first truncated to zero bytes, then vim is opened to write to the file.
  * Once vim exits, the file is read into the given buffer, and then the file is truncated
  * once more.
+ *
+ * This is inherently insecure, and when we start to harden git-chat, this functionality
+ * could be removed.
  * */
 static void compose_message(struct strbuf *buff)
 {
@@ -269,6 +270,8 @@ static void compose_message(struct strbuf *buff)
 	fd = open(msg_compose_file, O_WRONLY | O_TRUNC);
 	if (fd < 0)
 		FATAL(FILE_OPEN_FAILED, msg_compose_file);
+
+	unlink(msg_compose_file);
 
 	close(fd);
 	strbuf_release(&path_buff);

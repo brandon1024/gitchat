@@ -5,9 +5,6 @@
 
 #define BUFF_SLOP 8
 
-static void **str_array_detach_internal(struct str_array *str_a, size_t *len, int data);
-
-
 void str_array_init(struct str_array *str_a)
 {
 	*str_a = (struct str_array){ NULL, 0, 0, 0 };
@@ -153,6 +150,16 @@ void str_array_sort(struct str_array *str_a)
 		  entry_comparator);
 }
 
+void str_array_reverse(struct str_array *str_a)
+{
+	struct str_array_entry tmp;
+	for (size_t i = 0; i < (str_a->len / 2); i++) {
+		tmp = str_a->entries[i];
+		str_a->entries[i] = str_a->entries[str_a->len - 1 - i];
+		str_a->entries[str_a->len - 1 - i] = tmp;
+	}
+}
+
 char *str_array_remove(struct str_array *str_a, size_t pos)
 {
 	if (pos >= str_a->len)
@@ -183,6 +190,8 @@ void str_array_clear(struct str_array *str_a)
 
 	str_a->len = 0;
 }
+
+static void **str_array_detach_internal(struct str_array *, size_t *, int);
 
 char **str_array_detach(struct str_array *str_a, size_t *len)
 {

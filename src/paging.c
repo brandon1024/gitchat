@@ -10,7 +10,10 @@
 #include "utils.h"
 
 static struct child_process_def cmd;
+static int stdout_cpy = -1;
+static int stderr_cpy = -1;
 
+static void pager_stop_internal(int);
 static int get_pager(struct strbuf *);
 static void register_sigchld_handler(void (*handler)(int));
 static void sigchld_handler(int);
@@ -21,6 +24,12 @@ void pager_start()
 		DIE("output stream is not a TTY; cannot display paged content");
 	if (!isatty(STDERR_FILENO))
 		WARN("error stream is not a TTY; content might not be displayed correctly");
+
+	// make copies of STDOUT and STDERR, which will be restored later.
+	if ((stdout_cpy = dup(STDOUT_FILENO)) < 0)
+		FATAL("failed to duplicate stdout fd using dup()");
+	if ((stderr_cpy = dup(STDERR_FILENO)) < 0)
+		FATAL("failed to duplicate stderr fd using dup()");
 
 	struct strbuf pager_executable;
 	strbuf_init(&pager_executable);
@@ -53,26 +62,39 @@ void pager_start()
 
 void pager_stop()
 {
+	pager_stop_internal(0);
+}
+
+void pager_kill()
+{
+	pager_stop_internal(1);
+}
+
+static void pager_stop_internal(int force)
+{
 	register_sigchld_handler(SIG_DFL);
 
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
 	close(cmd.in_fd[1]);
 
-	finish_command(&cmd);
+	if (force && kill(cmd.pid, SIGKILL))
+		FATAL("failed to kill process with pid %d", cmd.pid);
+
+	int status;
+	if (!force && (status = finish_command(&cmd)))
+		DIE("pager exited with status %d", status);
+
 	child_process_def_release(&cmd);
 
-	int stdin_fd = open("/proc/self/fd/1", O_WRONLY);
-	if (stdin_fd < 0)
-		FATAL("unable to open /proc/self/fd/1");
-	if (dup2(stdin_fd, STDOUT_FILENO) < 0)
-		FATAL("dup2() failed unexpectedly.");
-
-	int stdout_fd = open("/proc/self/fd/2", O_WRONLY);
-	if (stdout_fd < 0)
-		FATAL("unable to open /proc/self/fd/2");
-	if (dup2(stdout_fd, STDERR_FILENO) < 0)
-		FATAL("dup2() failed unexpectedly.");
+	if (dup2(stdout_cpy, STDOUT_FILENO) < 0)
+		FATAL("failed to restore stdout with dup2().");
+	if (dup2(stderr_cpy, STDERR_FILENO) < 0)
+		FATAL("failed to restore stderr with dup2().");
+	close(stdout_cpy);
+	close(stderr_cpy);
+	set_cloexec(STDOUT_FILENO);
+	set_cloexec(STDERR_FILENO);
 }
 
 /**

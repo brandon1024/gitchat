@@ -57,4 +57,10 @@ void pager_start();
  * */
 void pager_stop();
 
+/**
+ * Forceably kill the running pager. Useful if git-chat encounters an exceptional
+ * state and needs to terminate.
+ * */
+void pager_kill();
+
 #endif //GIT_CHAT_PAGING_H

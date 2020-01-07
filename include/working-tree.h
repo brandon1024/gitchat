@@ -15,8 +15,8 @@
 int is_inside_git_chat_space();
 
 /**
- * If the cwd is a git-chat space, get the absolute path to the local GPG
- * home directory, typically localted under .git/.gnupg.
+ * Get the absolute path to the local GPG home directory, typically located
+ * under $cwd/.git/.gnupg.
  *
  * Returns 0 if the path was successfully written to the given buffer, and non-zero
  * if the path could not be obtained for some reason.
@@ -24,11 +24,28 @@ int is_inside_git_chat_space();
 int get_gpg_homedir(struct strbuf *path);
 
 /**
- * If the cwd is a git-chat space, get the absolute path to the .keys directory.
+ * Get the absolute path to the .keys directory, located under $cwd/.git-chat directory.
  *
  * Returns 0 if the path was successfully written to the given buffer, and non-zero
  * if the path could not be obtained for some reason.
  * */
 int get_keys_dir(struct strbuf *path);
+
+/**
+ * Get the absolute path to the .git-chat directory, located under $cwd directory.
+ *
+ * Returns 0 if the path was successfully written to the given buffer, and non-zero
+ * if the path could not be obtained for some reason.
+ * */
+int get_git_chat_dir(struct strbuf *path);
+
+/**
+ * Get the absolute path to the .chat-cache directory, located under $cwd/.git
+ * directory.
+ *
+ * Returns 0 if the path was successfully written to the given buffer, and non-zero
+ * if the path could not be obtained for some reason.
+ * */
+int get_chat_cache_dir(struct strbuf *path);
 
 #endif //GIT_CHAT_WORKING_TREE_H

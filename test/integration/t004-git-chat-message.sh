@@ -14,16 +14,17 @@ assert_success 'git chat message without any recipients or keys should fail' '
 	reset_trash_dir &&
 	git chat init &&
 	setup_test_gpg &&
-	[ -z "$(ls -A .keys/)" ]
+	[ -z "$(ls -A .git-chat/keys)" ]
 ' '
 	! git chat message -m "hello world" 2>err &&
 	grep "no message recipients" err
 '
 
 assert_success 'git chat message with unknown recipient should fail' '
-	cp $TEST_RESOURCES_DIR/gpgkeys/*.pub.gpg .keys &&
+	cp $TEST_RESOURCES_DIR/gpgkeys/*.pub.gpg .git-chat/keys &&
 	setup_test_gpg
 ' '
+	git chat message -m "hello world" --recipient alice.jones@example.com &&
 	! git chat message -m "hello world" --recipient unknown@unknown.ca 2>err &&
 	grep "one or more message recipients have no public gpg key available" err
 '
@@ -33,7 +34,7 @@ assert_success 'author of encrypted message should not be able to decrypt messag
 ' '
 	git chat message -m "hello world" --recipient alice.jones@example.com &&
 	git show -s --format="%B" HEAD >commit_msg &&
-	! gpg2 --no-default-keyring --keyring "$(pwd)/.git/chat-cache/keyring.gpg" \
+	! gpg2 --no-default-keyring --keyring "$(pwd)/.git/.gnupg/keyring.gpg" \
 		--batch --passphrase password --decrypt commit_msg 2>err
 	grep "No secret key" err
 '

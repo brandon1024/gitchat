@@ -7,12 +7,17 @@
 #include "fs-utils.h"
 #include "utils.h"
 
+#define GIT_CHAT_DIR	".git-chat"
+#define KEYS_DIR		".git-chat/keys"
+#define GNUPG_HOME_DIR	".git/.gnupg"
+#define CHAT_CACHE_DIR	".git/chat-cache"
+
 int is_inside_git_chat_space()
 {
 	int errsv = errno;
 
 	struct stat sb;
-	if (stat(".git-chat", &sb) == -1 || !S_ISDIR(sb.st_mode)) {
+	if (stat(GIT_CHAT_DIR, &sb) == -1 || !S_ISDIR(sb.st_mode)) {
 		LOG_DEBUG("Cannot stat .git-chat directory; %s", strerror(errno));
 		errno = errsv;
 		return 0;
@@ -39,33 +44,32 @@ int is_inside_git_chat_space()
 	return status == 0;
 }
 
+static int get_dir(const char *dir, struct strbuf *buffer);
+
 int get_gpg_homedir(struct strbuf *path)
 {
-	if (path->len)
-		BUG("buffer passed to get_gpg_homedir() must be empty");
-
-	if (!is_inside_git_chat_space())
-		return 1;
-
-	struct strbuf cwd_buff;
-	strbuf_init(&cwd_buff);
-	if (get_cwd(&cwd_buff)) {
-		strbuf_release(&cwd_buff);
-		return 1;
-	}
-
-	strbuf_attach_fmt(path, "%s/.git/.gnupg", cwd_buff.buff);
-	strbuf_release(&cwd_buff);
-	return 0;
+	return get_dir(GNUPG_HOME_DIR, path);
 }
 
 int get_keys_dir(struct strbuf *path)
 {
-	if (path->len)
-		BUG("buffer passed to get_keys_dir() must be empty");
+	return get_dir(KEYS_DIR, path);
+}
 
-	if (!is_inside_git_chat_space())
-		return 1;
+int get_git_chat_dir(struct strbuf *path)
+{
+	return get_dir(GIT_CHAT_DIR, path);
+}
+
+int get_chat_cache_dir(struct strbuf *path)
+{
+	return get_dir(CHAT_CACHE_DIR, path);
+}
+
+static int get_dir(const char *dir, struct strbuf *buffer)
+{
+	if (buffer->len)
+		BUG("buffer must be empty");
 
 	struct strbuf cwd_buff;
 	strbuf_init(&cwd_buff);
@@ -74,7 +78,7 @@ int get_keys_dir(struct strbuf *path)
 		return 1;
 	}
 
-	strbuf_attach_fmt(path, "%s/.keys", cwd_buff.buff);
+	strbuf_attach_fmt(buffer, "%s/%s", cwd_buff.buff, dir);
 	strbuf_release(&cwd_buff);
 	return 0;
 }

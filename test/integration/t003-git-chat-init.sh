@@ -28,19 +28,19 @@ assert_success 'git chat init should initialize empty git repository' '
 	grep "Successfully initialized git-chat space." out
 '
 
-assert_success 'reinitializing a git-chat space should not overwrite .git-chat or .keys directory' '
+assert_success 'reinitializing a git-chat space should not overwrite .git-chat' '
 	reset_trash_dir
 ' '
 	git chat init &&
+	cp $TEST_RESOURCES_DIR/gpgkeys/*.pub.gpg .git-chat/keys &&
 	echo "my space" >>.git-chat/description &&
-	echo "my keys" >.keys/key.gpg &&
-	shasum .git-chat/* >expected_git_chat &&
-	shasum .keys/* >expected_keys &&
+	shasum .git-chat/description >expected_git_chat_description &&
+	shasum .git-chat/keys/* >expected_git_chat_keys &&
 	! git chat init &&
-	shasum .git-chat/* >actual_git_chat &&
-	shasum .keys/* >actual_keys &&
-	cmp -s expected_git_chat actual_git_chat &&
-	cmp -s expected_keys actual_keys
+	shasum .git-chat/description >actual_git_chat_description &&
+	shasum .git-chat/keys/* >actual_git_chat_keys &&
+	cmp -s expected_git_chat_description actual_git_chat_description &&
+	cmp -s expected_git_chat_keys actual_git_chat_keys
 '
 
 assert_success 'git chat init -q should not print to stdout' '
@@ -67,7 +67,7 @@ assert_success 'git chat init should create the expected directory structure' '
 	[ -d ".git" ] &&
 	[ -d ".git/chat-cache" ] &&
 	[ -d ".git-chat" ] &&
-	[ -d ".keys" ] &&
+	[ -d ".git-chat/keys" ] &&
 	[ -f ".git-chat/config" ] &&
 	[ -f ".git-chat/description" ]
 '

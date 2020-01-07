@@ -1,62 +1,71 @@
 #!/usr/bin/env bash
-#
-# Integration test runner for all integration tests.
-#
-# Options:
-#	--from-dir <directory>
-#		By default, tests are executed from 'trash/' directory relative to this
-#		script. This command is used to override this.
-#
-#	--git-chat-installed <path>
-#		If git-chat is installed in an alternate directory, use that installation
-#		rather than the global one. Simply places the given directory at the
-#		beginning of the PATH.
-#
-#	--test <pattern>
-#		Run specific tests according to a given pattern.
-#
-#	--valgrind
-#		Run all git-chat binaries under valgrind memcheck. Note that this will
-#		take much longer to execute.
-#
-#	-v, --verbose
-#		Be more verbose. Prints the output from the test setup and test commands
-#		executed.
-#
-#	-d, --debug
-#		Print very verbose debugging information. This will set -x on each
-#		integration test, and will set the GIT_CHAT_LOG_LEVEL to TRACE. This
-#		is particularly useful when debugging strange behavior in failing tests.
-#
-#	--no-color
-#		Don't print colored output.
-#
-#
-# Environment:
-#	TEST_TRASH_DIR
-#		Equivalent to using --from-dir <directory> option.
-#
-#	TEST_GIT_CHAT_INSTALLED
-#		Equivalent to using --git-chat-installed <path> option.
-#
-#	TEST_PATTERN
-#		Equivalent to using --test <pattern> option.
-#
-#	TEST_VALGRIND
-#		Equivalent to using --valgrind
-#
-#	VALGRIND_TOOL_OPTIONS
-#		Pass options to valgrind memcheck. This will override any default options.
-#
-#	TEST_VERBOSE
-#		Equivalent to using --verbose option.
-#
-#	TEST_DEBUG
-#		Equivalent to using --debug option.
-#
-#	TEST_NO_COLOR_OUT
-#		Equivalent to using -- option.
-#
+
+function show_help () {
+	cat <<EOS
+This script is the integration test runner for all integration tests.
+
+usage: integration-runner.sh [options]
+
+Options:
+	--from-dir <directory>
+		By default, tests are executed from 'trash/' directory relative to this
+		script. This command is used to override this.
+
+	--git-chat-installed <path>
+		If git-chat is installed in an alternate directory, use that installation
+		rather than the global one. Simply places the given directory at the
+		beginning of the PATH.
+
+	--test <pattern>
+		Run specific tests according to a given pattern.
+
+	--valgrind
+		Run all git-chat binaries under valgrind memcheck. Note that this will
+		take much longer to execute.
+
+	-v, --verbose
+		Be more verbose. Prints the output from the test setup and test commands
+		executed.
+
+	-h, --help
+		Display usage information and exit.
+
+	-d, --debug
+		Print very verbose debugging information. This will set -x on each
+		integration test, and will set the GIT_CHAT_LOG_LEVEL to TRACE. This
+		is particularly useful when debugging strange behavior in failing tests.
+
+	--no-color
+		Don't print colored output.
+
+
+Environment:
+	TEST_TRASH_DIR
+		Equivalent to using --from-dir <directory> option.
+
+	TEST_GIT_CHAT_INSTALLED
+		Equivalent to using --git-chat-installed <path> option.
+
+	TEST_PATTERN
+		Equivalent to using --test <pattern> option.
+
+	TEST_VALGRIND
+		Equivalent to using --valgrind
+
+	VALGRIND_TOOL_OPTIONS
+		Pass options to valgrind memcheck. This will override any default options.
+
+	TEST_VERBOSE
+		Equivalent to using --verbose option.
+
+	TEST_DEBUG
+		Equivalent to using --debug option.
+
+	TEST_NO_COLOR_OUT
+		Equivalent to using --no-color option.
+
+EOS
+}
 
 TEST_RUNNER_PATH="$( cd "$(dirname "${0}")" ; pwd -P )"
 TEST_PATTERN="${TEST_PATTERN:-t[0-9][0-9][0-9]*.sh}"
@@ -85,6 +94,10 @@ while [[ ${#} -gt 0 ]]; do
 		-v|--verbose)
 			TEST_VERBOSE=1
 			shift
+			;;
+		-h|--help)
+			show_help
+			exit 0
 			;;
 		-d|--debug)
 			TEST_DEBUG=1

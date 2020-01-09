@@ -5,7 +5,7 @@
 
 #include "str-array.h"
 #include "run-command.h"
-#include "gpg-interface.h"
+#include "gpg-common.h"
 #include "working-tree.h"
 #include "fs-utils.h"
 #include "parse-options.h"
@@ -23,7 +23,7 @@ static const struct usage_string message_cmd_usage[] = {
 };
 
 static int create_message(struct str_array *, const char *, const char *, const char *, int);
-static int encrypt_message_asym(struct gpgme_context *, struct str_array *,
+static int encrypt_message_asym(struct gc_gpgme_ctx *, struct str_array *,
 		struct strbuf *, struct strbuf *);
 static void compose_message(struct strbuf *);
 static void read_message_from_file(const char *, struct strbuf *);
@@ -109,13 +109,8 @@ static int create_message(struct str_array *recipients, const char *message,
 	if (!is_inside_git_chat_space())
 		DIE("Where are you? It doesn't look like you're in the right directory.");
 
-	struct strbuf gpg_homedir;
-	strbuf_init(&gpg_homedir);
-	if (get_gpg_homedir(&gpg_homedir))
-		FATAL("local GPG home directory does not exist or cannot be used for some reason");
-
-	struct gpgme_context *ctx;
-	gpgme_context_init(&ctx, gpg_homedir.buff);
+	struct gc_gpgme_ctx ctx;
+	gpgme_context_init(&ctx, 1);
 
 	struct strbuf message_buff;
 	strbuf_init(&message_buff);
@@ -137,20 +132,19 @@ static int create_message(struct str_array *recipients, const char *message,
 			FATAL(".keys directory does not exist or cannot be used for some reason");
 
 		// reimport the gpg keys into the keyring
-		rebuild_gpg_keyring(ctx, keys_dir_path.buff);
+		rebuild_gpg_keyring(&ctx, keys_dir_path.buff);
 		strbuf_release(&keys_dir_path);
 
-		int ret = encrypt_message_asym(ctx, recipients, &message_buff, &ciphertext);
+		int ret = encrypt_message_asym(&ctx, recipients, &message_buff, &ciphertext);
 		if (ret == 0)
 			DIE("no message recipients; no one will be able to read your message.");
 		if (ret < 0)
 			DIE("one or more message recipients have no public gpg key available.");
 	} else {
-		symmetric_encrypt_plaintext_message(ctx, &message_buff, &ciphertext, passphrase);
+		symmetric_encrypt_plaintext_message(&ctx, &message_buff, &ciphertext, passphrase);
 	}
 
 	gpg_context_release(&ctx);
-	strbuf_release(&gpg_homedir);
 
 	memset(message_buff.buff, 0, message_buff.alloc);
 
@@ -176,11 +170,11 @@ static int create_message(struct str_array *recipients, const char *message,
  * Returns the number of recipients selected to decrypt the message, or -1 if
  * some recipients in the given str_array do not exist (no public key in keyring).
  * */
-static int encrypt_message_asym(struct gpgme_context *ctx, struct str_array *recipients,
+static int encrypt_message_asym(struct gc_gpgme_ctx *ctx, struct str_array *recipients,
 		struct strbuf *message_in, struct strbuf *ciphertext_result)
 {
 	struct gpg_key_list gpg_keys;
-	int key_count = get_gpg_keys_from_keyring(ctx, &gpg_keys);
+	int key_count = fetch_gpg_keys(ctx, &gpg_keys);
 
 	// filter unusable and secret gpg keys
 	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_unusable_keys, NULL);

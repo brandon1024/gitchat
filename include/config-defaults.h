@@ -1,8 +1,6 @@
 #ifndef GIT_CHAT_CONFIG_DEFAULTS_H
 #define GIT_CHAT_CONFIG_DEFAULTS_H
 
-#include <stdlib.h>
-
 struct config_def {
 	const char *key_pattern;
 	const char *default_value;

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -9,7 +10,6 @@
 #include "working-tree.h"
 #include "parse-options.h"
 #include "parse-config.h"
-#include "gpg-interface.h"
 #include "fs-utils.h"
 #include "utils.h"
 

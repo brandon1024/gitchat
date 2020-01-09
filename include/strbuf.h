@@ -1,7 +1,7 @@
 #ifndef GIT_CHAT_STRBUF_H
 #define GIT_CHAT_STRBUF_H
 
-#include <stdlib.h>
+#include <stddef.h>
 
 #include "str-array.h"
 

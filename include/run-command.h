@@ -1,6 +1,8 @@
 #ifndef GIT_CHAT_RUN_COMMAND_H
 #define GIT_CHAT_RUN_COMMAND_H
 
+#include <sys/types.h>
+
 #include "argv-array.h"
 #include "strbuf.h"
 

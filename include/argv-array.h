@@ -1,7 +1,8 @@
 #ifndef GIT_CHAT_ARGV_ARRAY_H
 #define GIT_CHAT_ARGV_ARRAY_H
 
-#include <stdlib.h>
+#include <stddef.h>
+
 #include "str-array.h"
 
 /**

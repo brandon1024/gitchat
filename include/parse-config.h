@@ -103,8 +103,6 @@
  * section_b.key_a
  * */
 
-#include <stdlib.h>
-
 #include "str-array.h"
 
 struct config_entry;

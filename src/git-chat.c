@@ -1,10 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "builtin.h"
 #include "run-command.h"
 #include "fs-utils.h"
-#include "gpg-interface.h"
+#include "gpg-common.h"
 #include "version.h"
 #include "parse-options.h"
 #include "utils.h"
@@ -14,17 +15,6 @@ static const struct usage_string main_cmd_usage[] = {
 		USAGE("git chat [-h | --help]"),
 		USAGE("git chat (-v | --version)"),
 		USAGE_END()
-};
-
-static struct cmd_builtin builtins[] = {
-		{ "channel", cmd_channel },
-		{ "config", cmd_config },
-		{ "init", cmd_init },
-		{ "message", cmd_message },
-		{ "publish", cmd_publish },
-		{ "get", cmd_get },
-		{ "read", cmd_read },
-		{ NULL, NULL }
 };
 
 static struct cmd_builtin *get_builtin(const char *);
@@ -88,7 +78,7 @@ int main(int argc, char *argv[])
 
 static struct cmd_builtin *get_builtin(const char *s)
 {
-	struct cmd_builtin *builtin = builtins;
+	struct cmd_builtin *builtin = registered_builtins;
 	while (builtin->cmd != NULL) {
 		if (!strcmp(s, builtin->cmd))
 			return builtin;

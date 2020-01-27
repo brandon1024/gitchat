@@ -100,6 +100,20 @@ usage: git chat init [(-n | --name) <name>] [(-d | --description) <desc>]
         -h, --help             Show usage and exit
 ```
 
+### git chat import-key
+Import gpg keys into the git-chat keyring and commit them to a channel.
+
+```
+usage: git chat import-key [--gpg-home <path>] [--] <key fpr>...
+   or: git chat import-key (-f | --file) <path>
+   or: git chat import-key (-h | --help)
+
+    --gpg-home <path>   path to the gpg home directory
+    -f, --file <path>   path to exported public key file
+    -h, --help          show usage and exit
+
+```
+
 ### git chat channel
 **IN PROGRESS** Create a new channel by branching off the current point in the conversation.
 

@@ -325,7 +325,6 @@ to avoid clobbering the local gpg configuration (trustdb, keyring, etc).
 This utility will:
 - create trustdb and keybox in ${TEST_TRASH_DIR}/.gpg_tmp
 - import public and private key for test user
-- import any public keys from the ${TEST_TRASH_DIR}/.keys directory
 
 If an argument is given, imports private key from the given path. Otherwise, uses
 test user private key from ${TEST_RESOURCES_DIR}/gpgkeys/test_user.gpg
@@ -334,8 +333,7 @@ Example:
 assert_success 'git chat message without any recipients or keys should fail' '
 	reset_trash_dir &&
 	git chat init &&
-	setup_test_gpg &&
-	[ -z "$(ls -A .keys/)" ]
+	setup_test_gpg
 ' '
 	! git chat message -m "hello world" 2>err &&
 	grep "no gpg keys found" err

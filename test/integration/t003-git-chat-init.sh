@@ -2,14 +2,12 @@
 
 source ./test-lib.sh
 
-assert_success 'git chat init -h should exit with status 0' '
-	git-chat init -h
-'
-
 assert_success 'git chat init -h should display usage info' '
 	reset_trash_dir
 ' '
-	git-chat init -h | grep '\''^usage: git chat init'\''
+	git-chat init -h &&
+	git-chat init --help >out &&
+	grep '\''^usage: git chat init'\'' out
 '
 
 assert_success 'git chat init with unknown flag should exit with status 1 and print useful message' '
@@ -41,13 +39,6 @@ assert_success 'reinitializing a git-chat space should not overwrite .git-chat' 
 	shasum .git-chat/keys/* >actual_git_chat_keys &&
 	cmp -s expected_git_chat_description actual_git_chat_description &&
 	cmp -s expected_git_chat_keys actual_git_chat_keys
-'
-
-assert_success 'git chat init -q should not print to stdout' '
-	reset_trash_dir
-' '
-	git chat init -q >out 2>err &&
-	[ ! -s out ]
 '
 
 assert_success 'git chat init should create a single commit on master' '

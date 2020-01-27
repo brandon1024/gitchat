@@ -4,6 +4,27 @@
 #include "gpg-common.h"
 
 /**
+ * Import an ASCII-armored gpg key from a file into the configured gpg keyring.
+ *
+ * imported_key_fingerprints is updated with the fingerprints of all
+ * imported keys.
+ *
+ * Returns the number of keys successfully imported.
+ * */
+int import_gpg_key(struct gc_gpgme_ctx *ctx, const char *key_file_path,
+		struct str_array *imported_key_fingerprints);
+
+/**
+ * From the configured gpg keyring, export a key with a given fingerprint to
+ * a given file.
+ *
+ * Returns zero if the key was exported successfully, or 1 if a gpgme error
+ * occurred, and -1 if unable to create the exported key file.
+ * */
+int export_gpg_key(struct gc_gpgme_ctx *ctx, const char *fingerprint,
+		const char *file_path);
+
+/**
  * Reimport any gpg keys from the given keys directory into the gpg keyring.
  *
  * gpg_homedir must be the full path to the gpg home directory, typically

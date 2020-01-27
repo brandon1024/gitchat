@@ -19,7 +19,7 @@ assert_success 'git chat config uninitialized space should fail with appropriate
 
 assert_success 'git chat config --get with unknown config should print empty string' '
 	reset_trash_dir &&
-	git chat init -q
+	git chat init
 ' '
 	! git chat config --get unknown >out &&
 	[ ! -s out ]
@@ -27,7 +27,7 @@ assert_success 'git chat config --get with unknown config should print empty str
 
 assert_success 'git chat config --get with known config should print config' '
 	reset_trash_dir &&
-	git chat init -q &&
+	git chat init &&
 	cat >.git-chat/config <<-\EOF
 	[ mysimpleconfig ]
 		simple = value
@@ -39,7 +39,7 @@ assert_success 'git chat config --get with known config should print config' '
 
 assert_success 'git chat config --get should find all config entries' '
 	reset_trash_dir &&
-	git chat init -q &&
+	git chat init &&
 	cat >.git-chat/config <<-\EOF
 	[ config1 ]
 		simple1 = value1
@@ -57,7 +57,7 @@ assert_success 'git chat config --get should find all config entries' '
 
 assert_success 'git chat config --set with existing key should set the config for that key' '
 	reset_trash_dir &&
-	git chat init -q &&
+	git chat init &&
 	cat >.git-chat/config <<-\EOF
 	[ config1 ]
 		simple1 = value
@@ -76,7 +76,7 @@ assert_success 'git chat config --set with existing key should set the config fo
 
 assert_success 'git chat config --set with unknown key should create new config' '
 	reset_trash_dir &&
-	git chat init -q
+	git chat init
 ' '
 	git chat config --set my.config "my config value" &&
 	git chat config --get my.config >out &&
@@ -86,7 +86,7 @@ assert_success 'git chat config --set with unknown key should create new config'
 
 assert_success 'git chat config --set with invalid key should fail with message' '
 	reset_trash_dir &&
-	git chat init -q
+	git chat init
 ' '
 	! git chat config --set '\''my.c$onfig.value'\'' "my config value" 2>err &&
 	grep "invalid config key" err &&
@@ -106,7 +106,7 @@ assert_success 'git chat config --unset with unknonwn key should exit with nonze
 
 assert_success 'git chat config --unset should remove the property from the file' '
 	reset_trash_dir &&
-	git chat init -q &&
+	git chat init &&
 	cat >.git-chat/config <<-\EOF
 	[ config1 ]
 		simple1 = value1
@@ -123,7 +123,7 @@ assert_success 'git chat config --unset should remove the property from the file
 
 assert_success 'git chat config --unset should remove section if no entries exist' '
 	reset_trash_dir &&
-	git chat init -q &&
+	git chat init &&
 	cat >.git-chat/config <<-\EOF
 	[ config1 ]
 		simple1 = value1
@@ -140,7 +140,7 @@ assert_success 'git chat config --unset should remove section if no entries exis
 
 assert_success 'git chat config with invalid comibnation of options should fail' '
 	reset_trash_dir &&
-	git chat init -q &&
+	git chat init &&
 	cat >.git-chat/config <<-\EOF
 	[ config1 ]
 		simple1 = value1
@@ -161,7 +161,7 @@ assert_success 'git chat config with invalid comibnation of options should fail'
 
 assert_success 'git chat config --get-or-default should return default value' '
 	reset_trash_dir &&
-	git chat init -q
+	git chat init
 ' '
 	git chat config --get-or-default channel.master.name >out &&
 	grep "master" out
@@ -179,7 +179,7 @@ assert_success 'git chat config --is-valid-key should exit with zero status if k
 
 assert_success 'git chat config --is-valid-config with invalid config should exit with nonzero status' '
 	reset_trash_dir &&
-	git chat init -q
+	git chat init
 ' '
 	cp $TEST_RESOURCES_DIR/bad_key_1.config .git-chat/config &&
 	! git chat config --is-valid-config &&
@@ -203,7 +203,7 @@ assert_success 'git chat config --is-valid-config with invalid config should exi
 
 assert_success 'git chat config --is-valid-config with valid config should exit with zero status' '
 	reset_trash_dir &&
-	git chat init -q
+	git chat init
 ' '
 	cp $TEST_RESOURCES_DIR/good_3.config .git-chat/config &&
 	git chat config --is-valid-config

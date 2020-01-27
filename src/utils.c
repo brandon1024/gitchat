@@ -75,6 +75,8 @@ static void print_message(FILE *output_stream, const char *prefix,
 		}
 
 		str_array_release(&lines);
+	} else {
+		strbuf_attach_fmt(&message_buffer, "\n");
 	}
 
 	fputs(message_buffer.buff, output_stream);

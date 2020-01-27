@@ -132,10 +132,4 @@ setup_test_gpg () {
 	fi
 
 	gpg2 --batch --allow-secret-key-import --import "${private_key}"
-
-	for filename in "${TEST_TRASH_DIR}"/.keys/*.gpg; do
-		[[ -f "${filename}" ]] || continue
-
-		gpg2 --batch --import "${filename}"
-	done
 }

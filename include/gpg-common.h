@@ -56,6 +56,14 @@ void init_gpgme_openpgp_engine(void);
 void gpgme_context_init(struct gc_gpgme_ctx *ctx, int use_gc_gpg_homedir);
 
 /**
+ * Set the gnupg home directory on a gpgme context.
+ *
+ * If home_dir is NULL, uses default home directory. Otherwise uses the given
+ * home directory.
+ * */
+void gpgme_context_set_homedir(struct gc_gpgme_ctx *ctx, const char *home_dir);
+
+/**
  * Release any resources under a git-chat gpgme context.
  * */
 void gpg_context_release(struct gc_gpgme_ctx *ctx);

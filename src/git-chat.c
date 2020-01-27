@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
 			OPT_CMD("publish", "Publish messages to the remote server", NULL),
 			OPT_CMD("get", "Download messages", NULL),
 			OPT_CMD("read", "Display, format and read messages", NULL),
+			OPT_CMD("import-key", "Import a GPG key into the current channel", NULL),
 			OPT_BOOL('h', "help", "Show usage and exit", &show_help),
 			OPT_BOOL('v', "version", "Output version information and exit", &show_version),
 			OPT_END()

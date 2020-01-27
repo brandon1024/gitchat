@@ -106,13 +106,13 @@ int cmd_message(int argc, char *argv[])
 static int create_message(struct str_array *recipients, const char *message,
 		const char *file, const char *passphrase, const int asym)
 {
+	struct gc_gpgme_ctx ctx;
+	struct strbuf message_buff, ciphertext;
+
 	if (!is_inside_git_chat_space())
 		DIE("Where are you? It doesn't look like you're in the right directory.");
 
-	struct gc_gpgme_ctx ctx;
 	gpgme_context_init(&ctx, 1);
-
-	struct strbuf message_buff;
 	strbuf_init(&message_buff);
 
 	// build the message into the message_buff buffer
@@ -123,7 +123,6 @@ static int create_message(struct str_array *recipients, const char *message,
 	else
 		strbuf_attach_str(&message_buff, message);
 
-	struct strbuf ciphertext;
 	strbuf_init(&ciphertext);
 	if (asym) {
 		struct strbuf keys_dir_path;
@@ -216,11 +215,13 @@ static int encrypt_message_asym(struct gc_gpgme_ctx *ctx, struct str_array *reci
  * */
 static void compose_message(struct strbuf *buff)
 {
+	struct child_process_def cmd;
+	struct strbuf path_buff;
+
 	char buffer[BUFF_LEN];
 	ssize_t bytes_read = 0;
 	int status;
 
-	struct strbuf path_buff;
 	strbuf_init(&path_buff);
 	if (get_cwd(&path_buff))
 		FATAL("unable to obtain the current working directory from getcwd()");
@@ -235,7 +236,6 @@ static void compose_message(struct strbuf *buff)
 	close(fd);
 
 	// open vim without backup on GC_EDITMSG
-	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 	cmd.executable = "vim";
 	argv_array_push(&cmd.args, "-c", "set nobackup nowritebackup", "-n",
@@ -261,13 +261,8 @@ static void compose_message(struct strbuf *buff)
 	close(fd);
 
 	// clear the contents of GC_EDITMSG
-	fd = open(msg_compose_file, O_WRONLY | O_TRUNC);
-	if (fd < 0)
-		FATAL(FILE_OPEN_FAILED, msg_compose_file);
-
 	unlink(msg_compose_file);
 
-	close(fd);
 	strbuf_release(&path_buff);
 }
 
@@ -350,8 +345,8 @@ static int filter_gpg_keylist_by_recipients(struct _gpgme_key *key, void *data)
  * */
 static int write_commit(struct strbuf *encrypted_message)
 {
-	int status = 0;
 	struct child_process_def cmd;
+
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
 	argv_array_push(&cmd.args, "commit", "--no-gpg-sign", "--allow-empty",
@@ -369,7 +364,7 @@ static int write_commit(struct strbuf *encrypted_message)
 		FATAL("failed to write encrypted message to pipe");
 	close(cmd.in_fd[1]);
 
-	status = finish_command(&cmd);
+	int status = finish_command(&cmd);
 	child_process_def_release(&cmd);
 	if (status)
 		return 1;

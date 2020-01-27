@@ -1,12 +1,113 @@
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #include "key-manager.h"
-#include "fs-utils.h"
+#include "working-tree.h"
 #include "utils.h"
+
+int import_gpg_key(struct gc_gpgme_ctx *ctx, const char *key_file_path,
+		struct str_array *imported_key_fingerprints)
+{
+	gpgme_error_t err;
+	struct gpgme_data *key_data;
+	struct strbuf keys_dir;
+	int keys_imported = 0;
+
+	err = gpgme_data_new_from_file(&key_data, key_file_path, 1);
+	if (err)
+		FATAL("Failed to read key file '%s'", key_file_path);
+
+	err = gpgme_op_import(ctx->gpgme_ctx, key_data);
+	switch (err) {
+		case GPG_ERR_INV_VALUE:
+			BUG("failed to import key from file");
+		case GPG_ERR_NO_DATA:
+			BUG("failed to import key from file; file or buffer was empty");
+		case GPG_ERR_NO_ERROR:
+		default:
+			LOG_DEBUG("Successfully imported key from file");
+	}
+
+	gpgme_data_release(key_data);
+
+	strbuf_init(&keys_dir);
+	if (get_keys_dir(&keys_dir))
+		FATAL("failed to obtain git-chat keys dir");
+
+	gpgme_import_result_t import_result = gpgme_op_import_result(ctx->gpgme_ctx);
+	gpgme_import_status_t result = import_result->imports;
+	while (result) {
+		if (result->result != GPG_ERR_NO_ERROR)
+			DIE("failed to import GPG key");
+
+		LOG_DEBUG("imported key with fingerprint %s", result->fpr);
+		if (imported_key_fingerprints)
+			str_array_push(imported_key_fingerprints, result->fpr, NULL);
+
+		result = result->next;
+		keys_imported++;
+	}
+
+	return keys_imported;
+}
+
+int export_gpg_key(struct gc_gpgme_ctx *ctx, const char *fingerprint,
+		const char *file_path)
+{
+	gpgme_error_t err;
+	gpgme_data_t key_data;
+
+	LOG_DEBUG("exporting key with fingerprint %s to file '%s'", fingerprint, file_path);
+
+	err = gpgme_data_new(&key_data);
+	if (err) {
+		LOG_ERROR("%s: %s", gpgme_strsource(err), gpgme_strerror(err));
+		return 1;
+	}
+
+	err = gpgme_op_export(ctx->gpgme_ctx, fingerprint, 0, key_data);
+	if (err) {
+		LOG_ERROR("%s: %s", gpgme_strsource(err), gpgme_strerror(err));
+		gpgme_data_release(key_data);
+		return 1;
+	}
+
+	int fd = open(file_path, O_WRONLY | O_CREAT | O_EXCL,
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (fd < 0) {
+		LOG_ERROR(FILE_OPEN_FAILED, file_path);
+		return -1;
+	}
+
+	err = gpgme_data_seek(key_data, 0, SEEK_SET);
+	if (err) {
+		LOG_ERROR("%s: %s", gpgme_strsource(err), gpgme_strerror(err));
+		gpgme_data_release(key_data);
+		close(fd);
+
+		return 1;
+	}
+
+	ssize_t bytes_read;
+	unsigned char buffer[1024];
+	while ((bytes_read = gpgme_data_read(key_data, buffer, 1024)) > 0) {
+		if (recoverable_write(fd, buffer, bytes_read) != bytes_read)
+			FATAL("file write failed");
+	}
+
+	if (bytes_read < 0)
+		FATAL("unable to read data from GPGME data buffer");
+
+	close(fd);
+	gpgme_data_release(key_data);
+
+	return 0;
+}
 
 static struct gpg_key_list_node *gpg_key_list_push(struct gpg_key_list *,
 		struct _gpgme_key *);

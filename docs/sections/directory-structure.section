@@ -2,12 +2,8 @@
 
 .TP
 .B .git
-This directory is created by \fIgit-init\fR, and is largely untouched by git-chat, with the exception of \fB.git/chat-cache\fR which contains git-chat configuration files, temporary files, and gpg keyring.
+This directory is created by \fIgit-init\fR, and is largely untouched by git-chat, with the exception of \fB.git/chat-cache\fR which contains git-chat configuration files and temporary files. The git-chat gpg keyring is also located under \fB.git/.gnupg\fR.
 
 .TP
 .B .git-chat
-This directory is created by \fIgit-chat-init\fR. It contains channel metadata, such as the channel name and description. These files are tracked, and are therefore public to all users.
-
-.TP
-.B .keys
-This directory is created by \fIgit-chat-init\fR. It contains public gpg keys for all users in the current channel. These keys are used by the users in a channel to encrypt messages. These files are tracked, and are therefore public to all users.
+This directory is created by \fIgit-chat-init\fR. It contains channel metadata, such as the channel name and description. Exported GPG keys are located under \fB.git-chat/keys\fR. These files are tracked, and are therefore public to all users.

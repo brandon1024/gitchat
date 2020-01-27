@@ -8,8 +8,6 @@ int decrypt_asymmetric_message(struct gc_gpgme_ctx *ctx,
 	gpgme_error_t err;
 	int errsv = errno;
 
-	gpgme_set_armor(ctx->gpgme_ctx, 1);
-
 	struct gpgme_data *message_in;
 	struct gpgme_data *message_out;
 	err = gpgme_data_new_from_mem(&message_in, ciphertext->buff, ciphertext->len, 0);

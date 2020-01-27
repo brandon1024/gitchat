@@ -8,6 +8,7 @@
 
 #include "run-command.h"
 #include "working-tree.h"
+#include "git.h"
 #include "parse-options.h"
 #include "parse-config.h"
 #include "fs-utils.h"
@@ -19,24 +20,21 @@
 
 static const struct usage_string init_cmd_usage[] = {
 		USAGE("git chat init [(-n | --name) <name>] [(-d | --description) <desc>]"),
-		USAGE("git chat init [-q | --quiet]"),
 		USAGE("git chat init (-h | --help)"),
 		USAGE_END()
 };
 
-static int init(const char *, const char *, int );
+static int init(const char *, const char *);
 
 int cmd_init(int argc, char *argv[])
 {
 	char *channel_name = NULL;
 	char *room_desc = NULL;
-	int opt_quiet = 0;
 	int show_help = 0;
 
 	const struct command_option init_cmd_options[] = {
 			OPT_STRING('n', "name", "name", "specify a name for the master channel", &channel_name),
 			OPT_STRING('d', "description", "desc", "specify a description for the space", &room_desc),
-			OPT_BOOL('q', "quiet", "only print error and warning messages", &opt_quiet),
 			OPT_BOOL('h', "help", "show usage and exit", &show_help),
 			OPT_END()
 	};
@@ -52,15 +50,17 @@ int cmd_init(int argc, char *argv[])
 		return 0;
 	}
 
-	return init(channel_name, room_desc, opt_quiet);
+	return init(channel_name, room_desc);
 }
 
 static void prepare_git_chat(const char *, const char *, const char *);
-static int get_author_identity(struct strbuf *);
 static void initialize_channel_root();
 
-static int init(const char *channel_name, const char *space_desc, const int quiet)
+static int init(const char *channel_name, const char *space_desc)
 {
+	struct child_process_def cmd;
+	struct strbuf author;
+
 	if (is_inside_git_chat_space())
 		DIE("a git-chat space cannot be reinitialized.");
 
@@ -68,16 +68,10 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 			 space_desc, channel_name);
 
 	// execute 'git init' as child process
-	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	child_process_def_stdin(&cmd, STDIN_NULL);
-	argv_array_push(&cmd.args, "init", NULL);
-	if (quiet) {
-		child_process_def_stdout(&cmd, STDOUT_NULL);
-		argv_array_push(&cmd.args, "-q", NULL);
-	}
 
+	argv_array_push(&cmd.args, "init", NULL);
 	int ret = run_command(&cmd);
 	if (ret)
 		DIE("'git init' failed from the current directory; "
@@ -85,7 +79,6 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 
 	child_process_def_release(&cmd);
 
-	struct strbuf author;
 	strbuf_init(&author);
 	if (get_author_identity(&author)) {
 		WARN("Unable to retrieve your user git information.\n"
@@ -100,8 +93,7 @@ static int init(const char *channel_name, const char *space_desc, const int quie
 	// create initial commit
 	initialize_channel_root();
 
-	if (!quiet)
-		fprintf(stdout, "Successfully initialized git-chat space.\n");
+	fprintf(stdout, "Successfully initialized git-chat space.\n");
 
 	strbuf_release(&author);
 
@@ -122,13 +114,13 @@ static void update_space_description(char *, const char *);
  * */
 static void prepare_git_chat(const char *channel_name, const char *description, const char *author)
 {
-	struct strbuf templates_dir_path;
-	strbuf_init(&templates_dir_path);
+	struct strbuf templates_dir_path, path;
 
-	struct strbuf path;
+	strbuf_init(&templates_dir_path);
 	strbuf_init(&path);
 
 	strbuf_attach_str(&templates_dir_path, DEFAULT_GIT_CHAT_TEMPLATES_DIR);
+
 	struct stat sb;
 	if (stat(templates_dir_path.buff, &sb) == -1) {
 		if (errno == EACCES)
@@ -204,10 +196,11 @@ static void prepare_git_chat(const char *channel_name, const char *description, 
 static void update_config(char *base, const char *channel_name, const char *author)
 {
 	struct strbuf config_path;
+	struct config_file_data conf;
+
 	strbuf_init(&config_path);
 	strbuf_attach_fmt(&config_path, "%s/config", base);
 
-	struct config_file_data conf;
 	int ret = parse_config(&conf, config_path.buff);
 	if (ret < 0)
 		DIE("unable to update '%s'; cannot access file", config_path);
@@ -280,101 +273,35 @@ static void update_space_description(char *base, const char *description)
  * */
 static void initialize_channel_root()
 {
-	// add config and description to index
-	struct child_process_def cmd;
-	child_process_def_init(&cmd);
-	cmd.git_cmd = 1;
-	cmd.std_fd_info = STDIN_NULL | STDOUT_NULL | STDERR_NULL;
+	struct strbuf git_chat_dir, config_path, description_path;;
+	struct str_array files;
 
-	struct strbuf git_chat_dir;
 	strbuf_init(&git_chat_dir);
 	if (get_git_chat_dir(&git_chat_dir))
 		FATAL("unable to obtain .git-chat dir");
 
-	struct strbuf config_path;
 	strbuf_init(&config_path);
 	strbuf_attach_fmt(&config_path, "%s/config", git_chat_dir.buff);
 
-	struct strbuf description_path;
 	strbuf_init(&description_path);
 	strbuf_attach_fmt(&description_path, "%s/description", git_chat_dir.buff);
 
-	argv_array_push(&cmd.args, "add", config_path.buff, description_path.buff, NULL);
-	int ret = run_command(&cmd);
-	if (ret)
-		DIE("unable to 'git add' from the current directory; git exited with status %d", ret);
+	str_array_init(&files);
+	str_array_push(&files, config_path.buff, description_path.buff, NULL);
 
+	int ret = git_add_files_to_index(&files);
+	if (ret)
+		DIE("failed to add files to the index; git exited with status %d", ret);
+
+	strbuf_release(&git_chat_dir);
 	strbuf_release(&config_path);
 	strbuf_release(&description_path);
-	child_process_def_release(&cmd);
+	str_array_release(&files);
 
-	// create commit object
-	child_process_def_init(&cmd);
-	cmd.git_cmd = 1;
-	cmd.std_fd_info = STDIN_NULL | STDOUT_NULL | STDERR_NULL;
-
-	argv_array_push(&cmd.args, "commit", "--no-gpg-sign", "--no-verify",
-			"--message", "You have reached the beginning of time.", NULL);
-
-	ret = run_command(&cmd);
+	ret = git_commit_index_with_options("You have reached the beginning of time.",
+			"--no-gpg-sign", "--no-verify", NULL);
 	if (ret)
-		DIE("unable to create initial commit; git exited with status %d", ret);
-
-	child_process_def_release(&cmd);
+		DIE("failed to commit index to the tree; git exited with status %d", ret);
 
 	LOG_DEBUG("Successfully created channel root commit");
-}
-
-/**
- * Attempt to fetch the user identify from their .gitconfig. The author's name
- * is chosen, in the following order:
- * 1. user.username
- * 2. user.email
- * 3. user.name
- *
- * If none of these are available (i.e. git returns a status of 1 for all three),
- * then this function returns 1. Otherwise, returns 0 and populates the given
- * strbuf with the author's name.
- * */
-static int get_author_identity(struct strbuf *result)
-{
-	struct child_process_def cmd;
-	struct strbuf cmd_out;
-	int ret = 0;
-
-	strbuf_init(&cmd_out);
-	child_process_def_init(&cmd);
-	cmd.git_cmd = 1;
-
-	const char * const config_keys[] = {
-			"user.username",
-			"user.email",
-			"user.name",
-			NULL
-	};
-
-	const char * const *config_key = config_keys;
-	while (*config_key) {
-		strbuf_clear(&cmd_out);
-		str_array_clear((struct str_array *)&cmd.args);
-
-		argv_array_push(&cmd.args, "config", "--get", *config_key, NULL);
-		ret = capture_command(&cmd, &cmd_out);
-		if (!ret) {
-			strbuf_trim(&cmd_out);
-			strbuf_attach_str(result, cmd_out.buff);
-
-			strbuf_release(&cmd_out);
-			child_process_def_release(&cmd);
-
-			return 0;
-		}
-
-		config_key++;
-	}
-
-	child_process_def_release(&cmd);
-	strbuf_release(&cmd_out);
-
-	return 1;
 }

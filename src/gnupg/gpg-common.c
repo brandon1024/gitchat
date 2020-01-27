@@ -38,7 +38,7 @@ void init_gpgme_openpgp_engine(void)
 #endif
 
 	err = gpgme_engine_check_version(GPGME_PROTOCOL_OpenPGP);
-	if (err && gpgme_err_code(err) != GPG_ERR_NO_ERROR)
+	if (err)
 		GPG_FATAL("failed to load OpenPGP engine using installed version of GPGME", err);
 
 	struct _gpgme_engine_info *enginfo;
@@ -73,9 +73,8 @@ void init_gpgme_openpgp_engine(void)
 
 void gpgme_context_init(struct gc_gpgme_ctx *ctx, int use_gc_gpg_homedir)
 {
-	struct strbuf gpg_homedir;
-	strbuf_init(&gpg_homedir);
-	if (get_gpg_homedir(&gpg_homedir))
+	strbuf_init(&ctx->gnupg_homedir);
+	if (get_gpg_homedir(&ctx->gnupg_homedir))
 		FATAL("local GPG home directory does not exist or cannot be used for some reason");
 
 	gpgme_error_t err = gpgme_new(&ctx->gpgme_ctx);
@@ -83,10 +82,30 @@ void gpgme_context_init(struct gc_gpgme_ctx *ctx, int use_gc_gpg_homedir)
 		GPG_FATAL("failed to create GPGME context", err);
 
 	if (use_gc_gpg_homedir)
-		safe_create_dir(gpg_homedir.buff, NULL, S_IRUSR | S_IWUSR | S_IXUSR);
+		safe_create_dir(ctx->gnupg_homedir.buff, NULL, S_IRUSR | S_IWUSR | S_IXUSR);
 
 	err = gpgme_ctx_set_engine_info(ctx->gpgme_ctx, GPGME_PROTOCOL_OpenPGP, NULL,
-			use_gc_gpg_homedir ? gpg_homedir.buff : NULL);
+			use_gc_gpg_homedir ? ctx->gnupg_homedir.buff : NULL);
+	if (err)
+		GPG_FATAL("failed to mutate GPGME engine homedir", err);
+
+	gpgme_set_armor(ctx->gpgme_ctx, 1);
+}
+
+void gpgme_context_set_homedir(struct gc_gpgme_ctx *ctx, const char *home_dir)
+{
+	gpgme_error_t err;
+	if (home_dir) {
+		strbuf_clear(&ctx->gnupg_homedir);
+		strbuf_attach_str(&ctx->gnupg_homedir, home_dir);
+
+		err = gpgme_ctx_set_engine_info(ctx->gpgme_ctx, GPGME_PROTOCOL_OpenPGP, NULL,
+				ctx->gnupg_homedir.buff);
+	} else {
+		err = gpgme_ctx_set_engine_info(ctx->gpgme_ctx, GPGME_PROTOCOL_OpenPGP, NULL,
+				NULL);
+	}
+
 	if (err)
 		GPG_FATAL("failed to mutate GPGME engine homedir", err);
 }

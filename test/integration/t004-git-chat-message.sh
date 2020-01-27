@@ -2,12 +2,10 @@
 
 source ./test-lib.sh
 
-assert_success 'git chat message -h should exit with status 0' '
-	git chat message -h
-'
-
 assert_success 'git chat message -h should display usage info' '
-	git chat message -h | grep '\''^usage: git chat message'\''
+	git chat message -h &&
+	git chat message --help >out &&
+	grep '\''^usage: git chat message'\'' out
 '
 
 assert_success 'git chat message without any recipients or keys should fail' '

@@ -13,9 +13,7 @@ void asymmetric_encrypt_plaintext_message(struct gc_gpgme_ctx *ctx,
 	gpgme_error_t err;
 	int errsv = errno;
 
-	LOG_INFO("Encrypting plaintext message in ascii armor format");
-
-	gpgme_set_armor(ctx->gpgme_ctx, 1);
+	LOG_INFO("Encrypting plaintext message");
 
 	struct str_array keys;
 	str_array_init(&keys);
@@ -98,9 +96,7 @@ void symmetric_encrypt_plaintext_message(struct gc_gpgme_ctx *ctx,
 	gpgme_error_t err;
 	int errsv = errno;
 
-	LOG_INFO("Encrypting plaintext message in ascii armor format");
-
-	gpgme_set_armor(ctx->gpgme_ctx, 1);
+	LOG_INFO("Encrypting plaintext message");
 
 	// if passphrase is defined, configure a passphrase callback to skip the
 	// default pinentry method

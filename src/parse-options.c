@@ -67,12 +67,12 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 	char *arg = argv[arg_index] + 2;
 	int new_len = argc;
 
-	for (const struct command_option *op = options; op->type != OPTION_END; op++) {
+	for (const struct command_option *op = options; ~op->type & OPTION_END; op++) {
 		if (!op->l_flag)
 			continue;
 
 		// if the argument is a boolean arg, set value to one and return
-		if (op->type == OPTION_BOOL_T && !strcmp(arg, op->l_flag)) {
+		if (op->type & OPTION_BOOL_T && !strcmp(arg, op->l_flag)) {
 			array_shift(argv, arg_index, &new_len, 1);
 			*(int *) op->arg_value = 1;
 			break;
@@ -93,7 +93,7 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 
 			arg = argv[arg_index + 1];
 
-			if (op->type == OPTION_INT_T) {
+			if (op->type & OPTION_INT_T) {
 				char *tailptr = NULL;
 				long arg_value = strtol(arg, &tailptr, 0);
 
@@ -103,12 +103,12 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 					*(long *) op->arg_value = arg_value;
 					break;
 				}
-			} else if (op->type == OPTION_STRING_T) {
+			} else if (op->type & OPTION_STRING_T) {
 				array_shift(argv, arg_index, &new_len, 2);
 
 				*(char **) op->arg_value = arg;
 				break;
-			} else if (op->type == OPTION_STRING_LIST_T) {
+			} else if (op->type & OPTION_STRING_LIST_T) {
 				array_shift(argv, arg_index, &new_len, 2);
 
 				str_array_push(op->arg_value, arg, NULL);
@@ -118,7 +118,7 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 			// argument value is attached to the argument with '='
 			arg = arg + flag_len + 1;
 
-			if (op->type == OPTION_INT_T) {
+			if (op->type & OPTION_INT_T) {
 				char *tailptr = NULL;
 				long arg_value = strtol(arg, &tailptr, 0);
 
@@ -128,12 +128,12 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 					*(long *) op->arg_value = arg_value;
 					break;
 				}
-			} else if (op->type == OPTION_STRING_T) {
+			} else if (op->type & OPTION_STRING_T) {
 				array_shift(argv, arg_index, &new_len, 1);
 
 				*(char **) op->arg_value = arg;
 				break;
-			} else if (op->type == OPTION_STRING_LIST_T) {
+			} else if (op->type & OPTION_STRING_LIST_T) {
 				array_shift(argv, arg_index, &new_len, 1);
 
 				str_array_push(op->arg_value, arg, NULL);
@@ -152,22 +152,22 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 
 	// skip '-' prefix
 	for (char *arg = argv[arg_index] + 1; *arg; arg++) {
-		for (const struct command_option *op = options; op->type != OPTION_END; op++) {
+		for (const struct command_option *op = options; ~op->type & OPTION_END; op++) {
 			if (!op->s_flag || op->s_flag != *arg) {
 				// if the option is undefined, stop
 				const struct command_option *next = op + 1;
-				if (next->type == OPTION_END)
+				if (next->type & OPTION_END)
 					return argc - new_len;
 
 				continue;
 			}
 
-			if (op->type == OPTION_BOOL_T) {
+			if (op->type & OPTION_BOOL_T) {
 				*(int *) op->arg_value = 1;
 				break;
 			}
 
-			if (op->type == OPTION_STRING_T || op->type == OPTION_STRING_LIST_T) {
+			if (op->type & (OPTION_STRING_T | OPTION_STRING_LIST_T)) {
 				// intermediate options that accept values are disallowed
 				if (*(arg + 1))
 					return argc - new_len;
@@ -177,7 +177,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 					return argc - new_len;
 			}
 
-			if (op->type == OPTION_INT_T) {
+			if (op->type & OPTION_INT_T) {
 				char *tailptr = NULL;
 				long arg_value = 0;
 
@@ -205,7 +205,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 				return argc - new_len;
 			}
 
-			if (op->type == OPTION_STRING_T) {
+			if (op->type & OPTION_STRING_T) {
 				arg = argv[arg_index + 1];
 				array_shift(argv, arg_index, &new_len, 2);
 
@@ -213,7 +213,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 				return argc - new_len;
 			}
 
-			if (op->type == OPTION_STRING_LIST_T) {
+			if (op->type & OPTION_STRING_LIST_T) {
 				arg = argv[arg_index + 1];
 				array_shift(argv, arg_index, &new_len, 2);
 
@@ -230,15 +230,16 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 static int parse_subcommand(char *argv[], int arg_index,
 		const struct command_option options[])
 {
-	for (const struct command_option *op = options; op->type != OPTION_END; op++) {
-		if (op->type != OPTION_COMMAND_T)
+	for (const struct command_option *op = options; ~op->type & OPTION_END; op++) {
+		if (~op->type & OPTION_COMMAND_T)
+			continue;
+		if (!op->l_flag)
 			continue;
 
 		char *arg = argv[arg_index];
-		if (!strcmp(arg, op->str_name)) {
-			if (op->arg_value) {
+		if (!strcmp(arg, op->l_flag)) {
+			if (op->arg_value)
 				*(int *) op->arg_value = 1;
-			}
 
 			return 1;
 		}
@@ -286,11 +287,11 @@ void show_options(const struct command_option opts[], int err)
 	FILE *fp = err ? stderr : stdout;
 
 	size_t index = 0;
-	while (opts[index].type != OPTION_END) {
+	while (~opts[index].type & OPTION_END) {
 		struct command_option opt = opts[index++];
 		int printed_chars = 0;
 
-		if (opt.type == OPTION_GROUP_T) {
+		if (opt.type & OPTION_GROUP_T) {
 			if (index > 1)
 				fprintf(fp, "\n");
 
@@ -298,47 +299,39 @@ void show_options(const struct command_option opts[], int err)
 			continue;
 		}
 
+		if (opt.type & OPTION_HIDDEN_T)
+			continue;
+
 		printed_chars += fprintf(fp, "    ");
-		switch(opt.type) {
-			case OPTION_BOOL_T:
-				if (opt.s_flag)
-					printed_chars += fprintf(fp, "-%c", opt.s_flag);
+		if (opt.type & OPTION_BOOL_T) {
+			if (opt.s_flag)
+				printed_chars += fprintf(fp, "-%c", opt.s_flag);
 
-				if (opt.s_flag && opt.l_flag)
-					printed_chars += fprintf(fp, ", --%s", opt.l_flag);
-				else if (opt.l_flag)
-					printed_chars += fprintf(fp, "--%s", opt.l_flag);
-				break;
-			case OPTION_INT_T:
-				if (opt.s_flag)
-					printed_chars += fprintf(fp, "-%c=<n>", opt.s_flag);
+			if (opt.s_flag && opt.l_flag)
+				printed_chars += fprintf(fp, ", --%s", opt.l_flag);
+			else if (opt.l_flag)
+				printed_chars += fprintf(fp, "--%s", opt.l_flag);
+		} else if (opt.type & OPTION_INT_T) {
+			if (opt.s_flag)
+				printed_chars += fprintf(fp, "-%c=<n>", opt.s_flag);
 
-				if (opt.s_flag && opt.l_flag)
-					printed_chars += fprintf(fp, ", --%s=<n>", opt.l_flag);
-				else if (opt.l_flag)
-					printed_chars += fprintf(fp, "--%s=<n>", opt.l_flag);
-				break;
-			case OPTION_STRING_T:
-				/* fall through */
-			case OPTION_STRING_LIST_T:
-				if (opt.s_flag)
-					printed_chars += fprintf(fp, "-%c", opt.s_flag);
+			if (opt.s_flag && opt.l_flag)
+				printed_chars += fprintf(fp, ", --%s=<n>", opt.l_flag);
+			else if (opt.l_flag)
+				printed_chars += fprintf(fp, "--%s=<n>", opt.l_flag);
+		} else if (opt.type & (OPTION_STRING_T | OPTION_STRING_LIST_T)) {
+			if (opt.s_flag)
+				printed_chars += fprintf(fp, "-%c", opt.s_flag);
 
-				if (opt.s_flag && opt.l_flag)
-					printed_chars += fprintf(fp, ", --%s", opt.l_flag);
-				else if (opt.l_flag)
-					printed_chars += fprintf(fp, "--%s", opt.l_flag);
-
-				printed_chars += fprintf(fp, " <%s>", opt.str_name);
-				break;
-			case OPTION_COMMAND_T:
-				printed_chars += fprintf(fp, "%s", opt.str_name);
-				break;
-			case OPTION_GROUP_T:
-			case OPTION_END:
-				break;
-			default:
-				BUG("unknown enum for option type");
+			if (opt.s_flag && opt.l_flag)
+				printed_chars += fprintf(fp, ", --%s", opt.l_flag);
+			else if (opt.l_flag)
+				printed_chars += fprintf(fp, "--%s", opt.l_flag);
+			printed_chars += fprintf(fp, " <%s>", opt.str_name);
+		} else if (opt.type & OPTION_COMMAND_T) {
+			printed_chars += fprintf(fp, "%s", opt.str_name);
+		} else {
+			BUG("unknown enum for option type");
 		}
 
 		if (printed_chars >= (USAGE_OPTIONS_WIDTH - USAGE_OPTIONS_GAP))

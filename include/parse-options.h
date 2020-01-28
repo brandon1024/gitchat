@@ -4,13 +4,14 @@
 #include <stdarg.h>
 
 enum opt_type {
-	OPTION_BOOL_T,
-	OPTION_INT_T,
-	OPTION_STRING_T,
-	OPTION_STRING_LIST_T,
-	OPTION_COMMAND_T,
-	OPTION_GROUP_T,
-	OPTION_END
+	OPTION_BOOL_T = (1 << 0),
+	OPTION_INT_T = (1 << 1),
+	OPTION_STRING_T = (1 << 2),
+	OPTION_STRING_LIST_T = (1 << 3),
+	OPTION_COMMAND_T = (1 << 4),
+	OPTION_GROUP_T = (1 << 5),
+	OPTION_HIDDEN_T = (1 << 6),
+	OPTION_END = (1 << 7)
 };
 
 struct command_option;
@@ -40,8 +41,9 @@ struct usage_string {
 #define OPT_INT(S,L,D,V)				{ (S), (L), NULL, (D), OPTION_INT_T, (V) }
 #define OPT_STRING(S,L,N,D,V)			{ (S), (L), (N), (D), OPTION_STRING_T, (V) }
 #define OPT_STRING_LIST(S,L,N,D,V)			{ (S), (L), (N), (D), OPTION_STRING_LIST_T, (V) }
-#define OPT_CMD(N,D,V)					{ 0, NULL, (N), (D), OPTION_COMMAND_T, (V) }
+#define OPT_CMD(N,D,V)					{ 0, (N), NULL, (D), OPTION_COMMAND_T, (V) }
 #define OPT_GROUP(N)					{ 0, NULL, NULL, N, OPTION_GROUP_T, NULL }
+#define OPT_HIDDEN(S,L,T,V)				{ (S), (L), NULL, NULL, ((T) | OPTION_HIDDEN_T), (V) }
 #define OPT_END()						{ 0, NULL, NULL, NULL, OPTION_END, NULL }
 
 #define USAGE(DESC)					{ (DESC) }

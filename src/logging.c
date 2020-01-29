@@ -14,6 +14,15 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+
+#define LEVEL_ALL		(0)
+#define LEVEL_TRACE		(1 << 0)
+#define LEVEL_DEBUG		(1 << 1)
+#define LEVEL_INFO		(1 << 2)
+#define LEVEL_WARN		(1 << 3)
+#define LEVEL_ERROR		(1 << 4)
+#define LEVEL_NONE		(1 << 5)
+
 struct logger {
 	unsigned initialized: 1;
 	unsigned int level;

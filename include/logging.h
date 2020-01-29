@@ -21,13 +21,13 @@
  * 32	NONE
  * */
 
-#define LEVEL_ALL		(0)
-#define LEVEL_TRACE		(1 << 0)
-#define LEVEL_DEBUG		(1 << 1)
-#define LEVEL_INFO		(1 << 2)
-#define LEVEL_WARN		(1 << 3)
-#define LEVEL_ERROR		(1 << 4)
-#define LEVEL_NONE		(1 << 5)
+#ifdef RUNTIME_LOGGING
+
+void log_trace(const char *file, int line_number, const char *fmt, ...);
+void log_debug(const char *file, int line_number, const char *fmt, ...);
+void log_info(const char *file, int line_number, const char* fmt, ...);
+void log_warn(const char *file, int line_number, const char *fmt, ...);
+void log_error(const char *file, int line_number, const char *fmt, ...);
 
 /**
  * Log a message to stdout at the trace level. Arguments to this function are
@@ -59,10 +59,12 @@
  * */
 #define LOG_ERROR(...) log_error(__FILE__, __LINE__, __VA_ARGS__)
 
-void log_trace(const char *file, int line_number, const char *fmt, ...);
-void log_debug(const char *file, int line_number, const char *fmt, ...);
-void log_info(const char *file, int line_number, const char* fmt, ...);
-void log_warn(const char *file, int line_number, const char *fmt, ...);
-void log_error(const char *file, int line_number, const char *fmt, ...);
+#else
+#define LOG_TRACE(...) (void)0
+#define LOG_DEBUG(...) (void)0
+#define LOG_INFO(...) (void)0
+#define LOG_WARN(...) (void)0
+#define LOG_ERROR(...) (void)0
+#endif
 
 #endif //GIT_CHAT_LOGGING_H

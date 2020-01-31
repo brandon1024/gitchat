@@ -522,79 +522,79 @@ TEST_DEFINE(parse_options_combined_short_arg_test)
 	TEST_END();
 }
 
-TEST_DEFINE(hidden_option_test)
-{
-	int intval = 0;
-	int boolval = 0;
-	int cmd = 0;
-	char *stringval = NULL;
-
-	struct str_array strings;
-	str_array_init(&strings);
-
-	TEST_START() {
-		int new_argc;
-		int argc;
-
-		// test integer
-		options[50].type = OPTION_HIDDEN_T | OPTION_INT_T;
-		options[50].arg_value = &intval;
-		char *argv[] = {"-x", "0x12a"};
-		argc = 2;
-
-		new_argc = parse_options(argc, argv, options, 0, 1);
-		assert_eq(0, new_argc);
-		assert_eq(0x12a, intval);
-
-		// test boolean
-		options[50].type = OPTION_HIDDEN_T | OPTION_BOOL_T;
-		options[50].arg_value = &boolval;
-		char *argv1[] = {"-x"};
-		argc = 1;
-
-		new_argc = parse_options(argc, argv1, options, 0, 1);
-		assert_eq(0, new_argc);
-		assert_true(boolval);
-
-		// test command
-		options[50].type = OPTION_HIDDEN_T | OPTION_COMMAND_T;
-		options[50].arg_value = &cmd;
-
-		char *argv2[] = {"xpr", "some string", "some other string"};
-		argc = 3;
-
-		new_argc = parse_options(argc, argv2, options, 0, 1);
-		assert_eq(3, new_argc);
-		assert_true(cmd);
-
-		// test string
-		options[50].type = OPTION_HIDDEN_T | OPTION_STRING_T;
-		options[50].arg_value = &stringval;
-
-		char *argv3[] = {"-x", "my string"};
-		argc = 2;
-
-		new_argc = parse_options(argc, argv3, options, 0, 1);
-		assert_eq(0, new_argc);
-		assert_string_eq("my string", stringval);
-
-		// test string list
-		options[50].type = OPTION_HIDDEN_T | OPTION_STRING_LIST_T;
-		options[50].arg_value = &strings;
-
-		char *argv4[] = {"-x", "my string", "-x", "my other string"};
-		argc = 4;
-
-		new_argc = parse_options(argc, argv4, options, 0, 1);
-		assert_eq(0, new_argc);
-		assert_string_eq("my string", str_array_get(&strings, 0));
-		assert_string_eq("my other string", str_array_get(&strings, 1));
-	}
-
-	str_array_release(&strings);
-
-	TEST_END();
-}
+//TEST_DEFINE(hidden_option_test)
+//{
+//	int intval = 0;
+//	int boolval = 0;
+//	int cmd = 0;
+//	char *stringval = NULL;
+//
+//	struct str_array strings;
+//	str_array_init(&strings);
+//
+//	TEST_START() {
+//		int new_argc;
+//		int argc;
+//
+//		// test integer
+//		options[50].type = OPTION_HIDDEN_T | OPTION_INT_T;
+//		options[50].arg_value = &intval;
+//		char *argv[] = {"-x", "0x12a"};
+//		argc = 2;
+//
+//		new_argc = parse_options(argc, argv, options, 0, 1);
+//		assert_eq(0, new_argc);
+//		assert_eq(0x12a, intval);
+//
+//		// test boolean
+//		options[50].type = OPTION_HIDDEN_T | OPTION_BOOL_T;
+//		options[50].arg_value = &boolval;
+//		char *argv1[] = {"-x"};
+//		argc = 1;
+//
+//		new_argc = parse_options(argc, argv1, options, 0, 1);
+//		assert_eq(0, new_argc);
+//		assert_true(boolval);
+//
+//		// test command
+//		options[50].type = OPTION_HIDDEN_T | OPTION_COMMAND_T;
+//		options[50].arg_value = &cmd;
+//
+//		char *argv2[] = {"xpr", "some string", "some other string"};
+//		argc = 3;
+//
+//		new_argc = parse_options(argc, argv2, options, 0, 1);
+//		assert_eq(3, new_argc);
+//		assert_true(cmd);
+//
+//		// test string
+//		options[50].type = OPTION_HIDDEN_T | OPTION_STRING_T;
+//		options[50].arg_value = &stringval;
+//
+//		char *argv3[] = {"-x", "my string"};
+//		argc = 2;
+//
+//		new_argc = parse_options(argc, argv3, options, 0, 1);
+//		assert_eq(0, new_argc);
+//		assert_string_eq("my string", stringval);
+//
+//		// test string list
+//		options[50].type = OPTION_HIDDEN_T | OPTION_STRING_LIST_T;
+//		options[50].arg_value = &strings;
+//
+//		char *argv4[] = {"-x", "my string", "-x", "my other string"};
+//		argc = 4;
+//
+//		new_argc = parse_options(argc, argv4, options, 0, 1);
+//		assert_eq(0, new_argc);
+//		assert_string_eq("my string", str_array_get(&strings, 0));
+//		assert_string_eq("my other string", str_array_get(&strings, 1));
+//	}
+//
+//	str_array_release(&strings);
+//
+//	TEST_END();
+//}
 
 int parse_options_test(struct test_runner_instance *instance)
 {
@@ -615,7 +615,7 @@ int parse_options_test(struct test_runner_instance *instance)
 			{ "parse_options with skip_first enabled should ignore first argument in arg vector", parse_options_skip_first_arg_test },
 			{ "parse_options with stop_on_unknown enabled should stop if unknown arg found in arg vector", parse_options_unknown_arg_test },
 			{ "combined short options should parse correctly", parse_options_combined_short_arg_test },
-			{ "hidden options should match against given arguments", hidden_option_test },
+			//{ "hidden options should match against given arguments", hidden_option_test },
 			{ NULL, NULL }
 	};
 

@@ -137,8 +137,7 @@ static char *find_extension(char *extension_name)
 
 static void print_version(void)
 {
-	fprintf(stdout, "git-chat version %s.%s\n", GITCHAT_VERSION_MAJOR,
-			GITCHAT_VERSION_MINOR);
+	fprintf(stdout, "git-chat version %s\n", GIT_CHAT_VERSION);
 
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);

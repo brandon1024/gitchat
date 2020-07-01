@@ -5,7 +5,7 @@
 
 #include "str-array.h"
 #include "run-command.h"
-#include "gpg-common.h"
+#include "gnupg/gpg-common.h"
 #include "working-tree.h"
 #include "fs-utils.h"
 #include "parse-options.h"
@@ -14,15 +14,13 @@
 #define BUFF_LEN 1024
 
 static const struct usage_string message_cmd_usage[] = {
-		USAGE("git chat message [-a | --asym] [(--recipient <alias>)...]"),
-		USAGE("git chat message (-s | --sym) [--passphrase <passphrase>]"),
-		USAGE("git chat message (-m | --message) <message>"),
-		USAGE("git chat message (-f | --file) <filename>"),
+		USAGE("git chat message [(--recipient <alias>)...] (-m | --message) <message>"),
+		USAGE("git chat message [(--recipient <alias>)...] (-f | --file) <filename>"),
 		USAGE("git chat message (-h | --help)"),
 		USAGE_END()
 };
 
-static int create_message(struct str_array *, const char *, const char *, const char *, int);
+static int create_message(struct str_array *, const char *, const char *);
 static int encrypt_message_asym(struct gc_gpgme_ctx *, struct str_array *,
 		struct strbuf *, struct strbuf *);
 static void compose_message(struct strbuf *);
@@ -33,23 +31,13 @@ static int write_commit(struct strbuf *);
 
 int cmd_message(int argc, char *argv[])
 {
-	int asym = 0, sym = 0;
 	int show_help = 0;
 	struct str_array recipients;
 	const char *message = NULL;
 	const char *file = NULL;
-	const char *passphrase = NULL;
 
 	const struct command_option message_cmd_options[] = {
-			OPT_GROUP("asymmetric (public-key) encryption"),
-			OPT_BOOL('a', "asym", "encrypt message using public-key (asymmetric) cryptography", &asym),
 			OPT_LONG_STRING_LIST("recipient", "alias", "specify one or more recipients that may read the message", &recipients),
-
-			OPT_GROUP("symmetric (password-based) encryption"),
-			OPT_BOOL('s', "sym", "encrypt the message using passphrase-based (symmetric) cryptography", &sym),
-			OPT_LONG_STRING("passphrase", "passphrase", "skip the default pinentry method and provide passphrase as argument", &passphrase),
-
-			OPT_GROUP("configuring message"),
 			OPT_STRING('m', "message", "message", "provide the message contents", &message),
 			OPT_STRING('f', "file", "filename", "read message contents from file", &file),
 			OPT_BOOL('h', "help", "show usage and exit", &show_help),
@@ -69,42 +57,20 @@ int cmd_message(int argc, char *argv[])
 		return 0;
 	}
 
-	if (sym && asym) {
-		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: cannot combine --sym and --asym");
-		str_array_release(&recipients);
-		return 1;
-	}
-
-	//prefer asym
-	if (!sym && !asym)
-		asym = 1;
-
-	if (sym && recipients.len) {
-		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: --recipient doesn't make any sense with --sym");
-		str_array_release(&recipients);
-		return 1;
-	}
-
 	if (message && file) {
 		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: mixing --message and --file is not supported");
 		str_array_release(&recipients);
 		return 1;
 	}
 
-	if (passphrase && asym) {
-		show_usage_with_options(message_cmd_usage, message_cmd_options, 1, "error: --passphrase doesn't make sense with asymmetric encryption");
-		str_array_release(&recipients);
-		return 1;
-	}
-
-	int ret = create_message(&recipients, message, file, passphrase, asym);
+	int ret = create_message(&recipients, message, file);
 
 	str_array_release(&recipients);
 	return ret;
 }
 
 static int create_message(struct str_array *recipients, const char *message,
-		const char *file, const char *passphrase, const int asym)
+		const char *file)
 {
 	struct gc_gpgme_ctx ctx;
 	struct strbuf message_buff, ciphertext;
@@ -124,24 +90,20 @@ static int create_message(struct str_array *recipients, const char *message,
 		strbuf_attach_str(&message_buff, message);
 
 	strbuf_init(&ciphertext);
-	if (asym) {
-		struct strbuf keys_dir_path;
-		strbuf_init(&keys_dir_path);
-		if (get_keys_dir(&keys_dir_path))
-			FATAL(".keys directory does not exist or cannot be used for some reason");
+	struct strbuf keys_dir_path;
+	strbuf_init(&keys_dir_path);
+	if (get_keys_dir(&keys_dir_path))
+		FATAL(".keys directory does not exist or cannot be used for some reason");
 
-		// reimport the gpg keys into the keyring
-		rebuild_gpg_keyring(&ctx, keys_dir_path.buff);
-		strbuf_release(&keys_dir_path);
+	// reimport the gpg keys into the keyring
+	rebuild_gpg_keyring(&ctx, keys_dir_path.buff);
+	strbuf_release(&keys_dir_path);
 
-		int ret = encrypt_message_asym(&ctx, recipients, &message_buff, &ciphertext);
-		if (ret == 0)
-			DIE("no message recipients; no one will be able to read your message.");
-		if (ret < 0)
-			DIE("one or more message recipients have no public gpg key available.");
-	} else {
-		symmetric_encrypt_plaintext_message(&ctx, &message_buff, &ciphertext, passphrase);
-	}
+	int ret = encrypt_message_asym(&ctx, recipients, &message_buff, &ciphertext);
+	if (ret == 0)
+		DIE("no message recipients; no one will be able to read your message.");
+	if (ret < 0)
+		DIE("one or more message recipients have no public gpg key available.");
 
 	gpg_context_release(&ctx);
 
@@ -230,7 +192,8 @@ static void compose_message(struct strbuf *buff)
 	const char *msg_compose_file = path_buff.buff;
 
 	// clear the contents of GC_EDITMSG
-	int fd = open(msg_compose_file, O_WRONLY | O_TRUNC | O_CREAT);
+	int fd = open(msg_compose_file, O_WRONLY | O_TRUNC | O_CREAT,
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (fd < 0)
 		FATAL(FILE_OPEN_FAILED, msg_compose_file);
 	close(fd);
@@ -371,7 +334,7 @@ static int write_commit(struct strbuf *encrypted_message)
 
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	argv_array_push(&cmd.args, "cat-file", "-p", "HEAD", NULL);
+	argv_array_push(&cmd.args, "show", "-s", "--format=%B", "HEAD", NULL);
 	status = run_command(&cmd);
 
 	child_process_def_release(&cmd);

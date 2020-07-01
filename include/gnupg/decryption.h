@@ -1,7 +1,7 @@
 #ifndef GIT_CHAT_DECRYPTION_H
 #define GIT_CHAT_DECRYPTION_H
 
-#include "gpg-common.h"
+#include "gnupg/gpg-common.h"
 #include "strbuf.h"
 
 /**

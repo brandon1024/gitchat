@@ -1,6 +1,6 @@
 #include <stdarg.h>
 
-#include "git.h"
+#include "git/git.h"
 #include "run-command.h"
 
 int git_add_file_to_index(const char *file)

@@ -5,7 +5,7 @@
 #include "builtin.h"
 #include "run-command.h"
 #include "fs-utils.h"
-#include "gpg-common.h"
+#include "gnupg/gpg-common.h"
 #include "version.h"
 #include "parse-options.h"
 #include "utils.h"

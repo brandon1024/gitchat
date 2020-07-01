@@ -121,23 +121,12 @@ usage: git chat import-key [--gpg-home <path>] [--] <key fpr>...
 Create a new message in the current channel. The message is encrypted with GPG. The message is not yet published, and needs to be pushed to the remote repository using `git chat publish`.
 
 ```
-usage: git chat message [-a | --asym] [(--recipient <alias>...)]
-   or: git chat message (-s | --sym) [--passphrase <passphrase>]
-   or: git chat message (-m | --message) <message>
-   or: git chat message (-f | --file) <filename>
+usage: git chat message [(--recipient <alias>)...] (-m | --message) <message>
+   or: git chat message [(--recipient <alias>)...] (-f | --file) <filename>
    or: git chat message (-h | --help)
 
-asymmetric (public-key) encryption:
-    -a, --asym          encrypt message using public-key (asymmetric) cryptography
     --recipient <alias>
                         specify one or more recipients that may read the message
-
-symmetric (password-based) encryption:
-    -s, --sym           encrypt the message using passphrase-based (symmetric) cryptography
-    --passphrase <passphrase>
-                        skip the default pinentry method and provide passphrase as argument
-
-configuring message:
     -m, --message <message>
                         provide the message contents
     -f, --file <filename>
@@ -149,7 +138,14 @@ configuring message:
 **IN PROGRESS** Push a any new messages to the remote repository.
 
 ### git chat read
-**IN PROGRESS** Read the messages in the current channel.
+Read the messages in the current channel.
+
+```
+usage: git chat read [<commit hash>]
+   or: git chat read (-h | --help)
+
+    -h, --help          show usage and exit
+```
 
 ### git chat get
 **IN PROGRESS** Fetch any new messages from the remote repository.

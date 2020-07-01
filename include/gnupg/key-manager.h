@@ -1,7 +1,7 @@
 #ifndef GIT_CHAT_KEY_MANAGER_H
 #define GIT_CHAT_KEY_MANAGER_H
 
-#include "gpg-common.h"
+#include "gnupg/gpg-common.h"
 
 /**
  * Import an ASCII-armored gpg key from a file into the configured gpg keyring.

@@ -1,6 +1,6 @@
 #include <errno.h>
 
-#include "decryption.h"
+#include "gnupg/decryption.h"
 
 int decrypt_asymmetric_message(struct gc_gpgme_ctx *ctx,
 		struct strbuf *ciphertext, struct strbuf *output)
@@ -18,9 +18,10 @@ int decrypt_asymmetric_message(struct gc_gpgme_ctx *ctx,
 	if (err)
 		GPG_FATAL("unable to create GPGME data buffer for encrypted ciphertext", err);
 
+	// if decryption failed, we won't die FATAL, we will just notify the caller
 	err = gpgme_op_decrypt(ctx->gpgme_ctx, message_in, message_out);
 	if (err)
-		GPG_FATAL("unable to decrypt ciphertext", err);
+		goto decrypt_failed;
 
 	// read plaintext into message_out strbuf
 	int ret = gpgme_data_seek(message_out, 0, SEEK_SET);
@@ -39,4 +40,10 @@ int decrypt_asymmetric_message(struct gc_gpgme_ctx *ctx,
 
 	errno = errsv;
 	return 0;
+
+decrypt_failed:
+	gpgme_data_release(message_in);
+	gpgme_data_release(message_out);
+
+	return 1;
 }

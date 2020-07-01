@@ -8,7 +8,7 @@
 
 #include "run-command.h"
 #include "working-tree.h"
-#include "git.h"
+#include "git/git.h"
 #include "parse-options.h"
 #include "parse-config.h"
 #include "fs-utils.h"

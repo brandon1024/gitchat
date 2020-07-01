@@ -6,7 +6,7 @@
 #include <dirent.h>
 #include <unistd.h>
 
-#include "key-manager.h"
+#include "gnupg/key-manager.h"
 #include "working-tree.h"
 #include "utils.h"
 

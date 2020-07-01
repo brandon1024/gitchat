@@ -6,15 +6,13 @@ git-chat-message \- Encrypt plaintext messages and commit them to the git histor
 .SH SYNOPSIS
 .sp
 .nf
-\fIgit-chat-message\fR [\-a | \-\-asym] [(\-\-recipient <alias>)...]
-\fIgit-chat-message\fR (\-s | \-\-sym) [\-\-passphrase <passphrase>]
-\fIgit-chat-message\fR (\-m | \-\-message) <message>
-\fIgit-chat-message\fR (\-f | \-\-file) <filename>
+\fIgit-chat-message\fR [(\-\-recipient <alias>)...] (\-m | \-\-message) <message>
+\fIgit-chat-message\fR [(\-\-recipient <alias>)...] (\-f | \-\-file) <filename>
 \fIgit-chat-message\fR (\-h | \-\-help)
 
 
 .SH DESCRIPTION
-\fIgit-chat\fR supports asymmetric and symmetric encryption of plaintext messages through \fBGNU Privacy Guard\fR (gpg). By default asymmetric (or public key) encryption is used, but this can be overridden with the \fI--sym\fR option for password-based message encryption.
+\fIgit-chat\fR supports asymmetric encryption of plaintext messages through \fBGNU Privacy Guard\fR (gpg).
 
 New messages are created as empty commit objects in the Git database. If successful, new message commits are created on the tip of the current branch. You can manually decrypt messages by piping the commit message body into gpg:
 
@@ -29,18 +27,12 @@ $ git show --format="%B" HEAD | gpg --decrypt
 
 If the message, or a file containing the message, is not provided as a command line argument, the \fBvim\fR editor is invoked so that the user can compose the message. Multiple \fI-m\fR or \fI-f\fR are not supported at this time.
 
-Messages encrypted with asymmetric encryption may only be decrypted by message recipients given either implicitly or with the \fI--recipient\fR option. Each recipient, including the user who authored the message, must export their public key in ASCII-armored format into a file in the \fI.keys\fR directory within the git-chat space. By default, messages are encrypted with all public keys in the \fI.keys\fR directory if no recipients are explicitly defined.
+Messages may only be decrypted by message recipients given either implicitly or with the \fI--recipient\fR option. Each recipient, including the user who authored the message, must export their public key in ASCII-armored format into a file in the \fI.keys\fR directory within the git-chat space (see \fIgit-chat-import-key\fR). By default, messages are encrypted with all public keys in the \fI.keys\fR directory if no recipients are explicitly defined.
 
-Messages encrypted with symmetric encryption may only be decrypted using a common password which must be shared between recipients of the message. When the message is created with git-chat-message \fI--sym\fR, a prompt will be shown allowing the user to enter the password that will be used to decrypt the message.
-
-\fIgit-chat\fR manages an internal gpg keyring and trust store which is intentionally kept separate from the user's gpg home directory. The internal gpg home directory is located within the \fI.git\fR directory under \fI.git/.gnupg\fR. Although allowed, it is ill advised to manipulate the git-chat gpg home directory manually.
+\fIgit-chat\fR manages an internal gpg keyring and trust store which is intentionally kept separate from the user's gpg home directory. The internal gpg home directory is located within the \fI.git\fR directory under \fI.git/.gnupg\fR. It is ill advised to manipulate the git-chat gpg home directory manually.
 
 
 .SH OPTIONS
-.TP
-\-a, \-\-asym
-Encrypt the message using public-key cryptography. This is the default and preferred encryption mode. By default, all public gpg keys in the \fI.keys\fR directory are used as message recipients.
-
 .TP
 \-\-recipient <key uid>
 Specify one recipient of the encrypted message. This option may be used multiple times to specify multiple recipients. The arguments provided must map to a existing and valid GPG public key in the keyring. Recipients provided can match any of:
@@ -60,14 +52,6 @@ any subkey address field
 .RE
 
 .TP
-\-s, \-\-sym
-Encrypt the message using symmetric encryption. This encryption method is discouraged since other users in the git-chat space will need to know the password to decrypt the message.
-
-.TP
-\-\-passphrase <passphrase>
-Rather than prompt for a message passphrase using the default pinentry method, accept the passphrase as a argument. This is discouraged and should be used sparingly if possible. For GPG version 2.1.0 - 2.1.12 this mode requires allow-loopback-pinentry to be enabled in the gpg-agent.conf or an agent started with that option.
-
-.TP
 \-m, \-\-message <message>
 Provide the message at the command line.
 
@@ -81,6 +65,7 @@ Print a simple synopsis and exit.
 
 .SH SEE ALSO
 \fBgit-chat-init\fR(1)
+\fBgit-chat-import-key\fR(1)
 
 
 .SH REPORTING BUGS

@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <locale.h>
 
-#include "gpg-common.h"
+#include "gnupg/gpg-common.h"
 #include "working-tree.h"
 #include "fs-utils.h"
 

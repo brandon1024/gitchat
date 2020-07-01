@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include "gpg-common.h"
+#include "gnupg/gpg-common.h"
 
 int filter_gpg_keys_by_predicate(struct gpg_key_list *keys,
 		int (*predicate)(struct _gpgme_key *, void *), void *optional_data)

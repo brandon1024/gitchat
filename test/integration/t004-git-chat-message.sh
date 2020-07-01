@@ -46,15 +46,6 @@ assert_success 'author of encrypted message must be able to decrypt message if i
 	grep "hello world" out
 '
 
-assert_success 'symmetric message encryption must be decrypted with given passphrase' '
-	setup_test_gpg
-' '
-	git chat message --sym -m "hello world1" --passphrase "password" &&
-	git show -s --format="%B" HEAD >commit_msg &&
-	echo password | gpg2 --pinentry-mode=loopback --passphrase-fd 0 --batch --decrypt commit_msg >out &&
-	grep "hello world1" out
-'
-
 assert_success 'message given as file should correctly read from file' '
 	setup_test_gpg
 ' '
@@ -74,32 +65,11 @@ assert_success 'message supplied via stdin should correctly encrypt message' '
 	grep "hello world3" out
 '
 
-assert_success 'mixing --asym and --passphrase should fail' '
-	setup_test_gpg
-' '
-	! git chat message --asym --passphrase "pass" 2>err &&
-	grep "\-\-passphrase doesn'\''t make sense with asymmetric encryption" err
-'
-
 assert_success 'mixing --message and --file should fail (unsupported)' '
 	setup_test_gpg
 ' '
 	! git chat message --message "test" --file "unknown" 2>err &&
 	grep "mixing \-\-message and \-\-file is not supported" err
-'
-
-assert_success 'mixing --recipient and --sym should fail' '
-	setup_test_gpg
-' '
-	! git chat message --recipient alice.jones@example.com --sym 2>err &&
-	grep "\-\-recipient doesn'\''t make any sense with \-\-sym" err
-'
-
-assert_success 'mixing --sym and --asym should fail' '
-	setup_test_gpg
-' '
-	! git chat message --sym --asym -m "test" 2>err &&
-	grep "cannot combine \-\-sym and \-\-asym" err
 '
 
 assert_success 'missing argument to --message should fail' '
@@ -117,13 +87,6 @@ assert_success 'missing argument to --file should fail' '
 	! git chat message -f 2>err &&
 	grep "error: unknown option" err &&
 	! git chat message --file 2>err &&
-	grep "error: unknown option" err
-'
-
-assert_success 'missing argument to --passphrase should fail' '
-	setup_test_gpg
-' '
-	! git chat message --passphrase 2>err &&
 	grep "error: unknown option" err
 '
 

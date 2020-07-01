@@ -1,7 +1,7 @@
 #ifndef GIT_CHAT_KEY_FILTER_H
 #define GIT_CHAT_KEY_FILTER_H
 
-#include "gpg-common.h"
+#include "gnupg/gpg-common.h"
 
 /**
  * Filter a gpg_key_list according to the return value of a filter predicate

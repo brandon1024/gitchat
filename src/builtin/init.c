@@ -9,6 +9,8 @@
 #include "run-command.h"
 #include "working-tree.h"
 #include "git/git.h"
+#include "git/index.h"
+#include "git/commit.h"
 #include "parse-options.h"
 #include "parse-config.h"
 #include "fs-utils.h"
@@ -251,8 +253,8 @@ static void update_space_description(char *base, const char *description)
 	if (desc_fd < 0)
 		FATAL(FILE_OPEN_FAILED, desc_path);
 
-	size_t len = strlen(description);
-	if (recoverable_write(desc_fd, description, len) != len)
+	ssize_t len = strlen(description);
+	if (xwrite(desc_fd, description, len) != len)
 		FATAL("failed to write to description file file '%s'", desc_path);
 
 	close(desc_fd);

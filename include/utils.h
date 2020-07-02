@@ -69,12 +69,12 @@ void set_exit_routine(NORETURN void (*new_exit_routine)(int status));
  * A self-recovering wrapper for read(). If EINTR or EAGAIN is encountered,
  * retries read().
  * */
-ssize_t recoverable_read(int fd, void *buf, size_t len);
+ssize_t xread(int fd, void *buf, size_t len);
 
 /**
  * A self-recovering wrapper for write(). If EINTR or EAGAIN is encountered,
  * retries write().
  * */
-ssize_t recoverable_write(int fd, const void *buf, size_t len);
+ssize_t xwrite(int fd, const void *buf, size_t len);
 
 #endif //GIT_CHAT_UTILS_H

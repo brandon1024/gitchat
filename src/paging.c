@@ -1,9 +1,8 @@
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <signal.h>
-#include <sys/wait.h>
-#include <fcntl.h>
 
 #include "paging.h"
 #include "run-command.h"
@@ -11,26 +10,53 @@
 #include "utils.h"
 
 static struct child_process_def cmd;
-static int stdout_cpy = -1;
-static int stderr_cpy = -1;
 
-static void pager_stop_internal(int);
 static int get_pager(struct strbuf *);
-static void register_sigchld_handler(void (*handler)(int));
-static void sigchld_handler(int);
 
-void pager_start()
+static void pager_stop(int in_sig)
+{
+	if (!in_sig) {
+		fflush(stdout);
+		fflush(stderr);
+	}
+
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+	close(cmd.in_fd[1]);
+
+	int status = finish_command(&cmd);
+	(void) status;
+
+	child_process_def_release(&cmd);
+}
+
+static void pager_stop_exit(void)
+{
+	pager_stop(0);
+}
+
+static void sigaction_register(int signal, void (*handler)(int))
+{
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = handler;
+
+	sigaction(signal, &sa, NULL);
+}
+
+static void pager_stop_signal(int sig)
+{
+	(void)sig;
+	pager_stop(1);
+	sigaction_register(sig, SIG_DFL);
+	raise(sig);
+}
+
+void pager_start(void)
 {
 	if (!isatty(STDOUT_FILENO))
-		DIE("output stream is not a TTY; cannot display paged content");
-	if (!isatty(STDERR_FILENO))
-		WARN("error stream is not a TTY; content might not be displayed correctly");
-
-	// make copies of STDOUT and STDERR, which will be restored later.
-	if ((stdout_cpy = dup(STDOUT_FILENO)) < 0)
-		FATAL("failed to duplicate stdout fd using dup()");
-	if ((stderr_cpy = dup(STDERR_FILENO)) < 0)
-		FATAL("failed to duplicate stderr fd using dup()");
+		return;
 
 	struct strbuf pager_executable;
 	strbuf_init(&pager_executable);
@@ -46,56 +72,25 @@ void pager_start()
 	if (pipe(cmd.in_fd) < 0)
 		FATAL("pipe() failed unexpectedly.");
 
-	register_sigchld_handler(sigchld_handler);
-
 	start_command(&cmd);
+	close(cmd.in_fd[0]);
 	cmd.executable = NULL;
 
 	if (dup2(cmd.in_fd[1], STDOUT_FILENO) < 0)
 		FATAL("dup2() failed unexpectedly.");
-	if (dup2(cmd.in_fd[1], STDERR_FILENO) < 0)
-		FATAL("dup2() failed unexpectedly.");
-
-	close(cmd.in_fd[0]);
+	if (isatty(STDERR_FILENO)) {
+		if (dup2(cmd.in_fd[1], STDERR_FILENO) < 0)
+			FATAL("dup2() failed unexpectedly.");
+	}
 
 	strbuf_release(&pager_executable);
-}
 
-void pager_stop()
-{
-	pager_stop_internal(0);
-}
-
-void pager_kill()
-{
-	pager_stop_internal(1);
-}
-
-static void pager_stop_internal(int force)
-{
-	register_sigchld_handler(SIG_DFL);
-
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
-	close(cmd.in_fd[1]);
-
-	if (force && kill(cmd.pid, SIGKILL))
-		FATAL("failed to kill process with pid %d", cmd.pid);
-
-	int status;
-	if (!force && (status = finish_command(&cmd)))
-		DIE("pager exited with status %d", status);
-
-	child_process_def_release(&cmd);
-
-	if (dup2(stdout_cpy, STDOUT_FILENO) < 0)
-		FATAL("failed to restore stdout with dup2().");
-	if (dup2(stderr_cpy, STDERR_FILENO) < 0)
-		FATAL("failed to restore stderr with dup2().");
-	close(stdout_cpy);
-	close(stderr_cpy);
-	set_cloexec(STDOUT_FILENO);
-	set_cloexec(STDERR_FILENO);
+	sigaction_register(SIGINT, pager_stop_signal);
+	sigaction_register(SIGHUP, pager_stop_signal);
+	sigaction_register(SIGTERM, pager_stop_signal);
+	sigaction_register(SIGQUIT, pager_stop_signal);
+	sigaction_register(SIGPIPE, pager_stop_signal);
+	atexit(pager_stop_exit);
 }
 
 /**
@@ -116,7 +111,12 @@ static void pager_stop_internal(int force)
 static int get_pager(struct strbuf *pager)
 {
 	const char *env = NULL;
-	const char * const recognized_vars[] = {"GIT_CHAT_PAGER", "GIT_PAGER", "PAGER", NULL};
+	const char * const recognized_vars[] = {
+			"GIT_CHAT_PAGER",
+			"GIT_PAGER",
+			"PAGER",
+			NULL
+	};
 	for (size_t i = 0; recognized_vars[i]; i++) {
 		env = getenv(*recognized_vars);
 		if (env && *env) {
@@ -156,35 +156,4 @@ static int get_pager(struct strbuf *pager)
 	}
 
 	return 1;
-}
-
-/**
- * SIGCHLD handler used to exit git-chat if the pager child process terminates.
- * */
-static void sigchld_handler(int sig)
-{
-	(void)sig;
-	int status;
-
-	pid_t ret = waitpid(cmd.pid, &status, WNOHANG);
-	if (ret < 0)
-		FATAL("waitpid() failed unexpectedly.");
-	if (ret != cmd.pid)
-		return;
-
-	close(cmd.in_fd[1]);
-	exit(status);
-}
-
-/**
- * Register a handler for the SIGCHLD signal.
- * */
-static void register_sigchld_handler(void (*handler)(int))
-{
-	struct sigaction sa;
-
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = handler;
-
-	sigaction(SIGCHLD, &sa, NULL);
 }

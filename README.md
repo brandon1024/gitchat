@@ -138,7 +138,7 @@ usage: git chat message [(--recipient <alias>)...] (-m | --message) <message>
 **IN PROGRESS** Push a any new messages to the remote repository.
 
 ### git chat read
-Read the messages in the current channel.
+Read messages in the current channel.
 
 ```
 usage: git chat read [<commit hash>]

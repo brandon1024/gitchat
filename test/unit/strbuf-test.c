@@ -155,7 +155,7 @@ TEST_DEFINE(strbuf_trim_test) {
 		strbuf_attach_str(&buf, str);
 		assert_zero(buf.buff[buf.len]);
 		ret = strbuf_trim(&buf);
-		assert_eq_msg(strlen(str), ret, "Incorrect number of characters trimmed from strbuf.");
+		assert_eq_msg(strlen(str), (size_t)ret, "Incorrect number of characters trimmed from strbuf.");
 		assert_zero(buf.len);
 		assert_true(is_null_terminated(&buf));
 

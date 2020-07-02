@@ -69,6 +69,18 @@ int cmd_message(int argc, char *argv[])
 	return ret;
 }
 
+/**
+ * Create a new message with the given recipients.
+ *
+ * The mutually-exclusive arguments `message` and `file` are used to supply
+ * the contents of the message. If both arguments are NULL, the editor
+ * is spawned to allow the user to compose the message.
+ *
+ * If `file` is non-null, the message content is read from a file with the
+ * given path, unless the path is `-` which will read the message from stdin.
+ *
+ * Message cannot be empty.
+ * */
 static int create_message(struct str_array *recipients, const char *message,
 		const char *file)
 {
@@ -89,6 +101,9 @@ static int create_message(struct str_array *recipients, const char *message,
 	else
 		strbuf_attach_str(&message_buff, message);
 
+	if (!message_buff.len)
+		DIE("message aborted (message was not provided)");
+
 	strbuf_init(&ciphertext);
 	struct strbuf keys_dir_path;
 	strbuf_init(&keys_dir_path);
@@ -105,7 +120,7 @@ static int create_message(struct str_array *recipients, const char *message,
 	if (ret < 0)
 		DIE("one or more message recipients have no public gpg key available.");
 
-	gpg_context_release(&ctx);
+	gpgme_context_release(&ctx);
 
 	memset(message_buff.buff, 0, message_buff.alloc);
 
@@ -147,7 +162,7 @@ static int encrypt_message_asym(struct gc_gpgme_ctx *ctx, struct str_array *reci
 				filter_gpg_keylist_by_recipients, recipients);
 
 		// if there is not a 1-1 mapping of recipients to gpg keys, fail
-		if (key_count != recipients->len) {
+		if ((size_t)key_count != recipients->len) {
 			LOG_ERROR("Some recipients defined cannot be mapped to GPG keys");
 
 			release_gpg_key_list(&gpg_keys);
@@ -215,7 +230,7 @@ static void compose_message(struct strbuf *buff)
 	if (fd < 0)
 		FATAL(FILE_OPEN_FAILED, msg_compose_file);
 
-	while ((bytes_read = recoverable_read(fd, buffer, BUFF_LEN)) > 0)
+	while ((bytes_read = xread(fd, buffer, BUFF_LEN)) > 0)
 		strbuf_attach(buff, buffer, bytes_read);
 
 	if (bytes_read < 0)
@@ -247,7 +262,7 @@ static void read_message_from_file(const char *file_path, struct strbuf *buff)
 		fprintf(stderr, "[INFO] Type your message below. Once complete, press ⌃D to exit.\n");
 
 	ssize_t bytes_read = 0;
-	while ((bytes_read = recoverable_read(fd, buffer, BUFF_LEN)) > 0)
+	while ((bytes_read = xread(fd, buffer, BUFF_LEN)) > 0)
 		strbuf_attach(buff, buffer, bytes_read);
 
 	if (bytes_read < 0)
@@ -323,7 +338,7 @@ static int write_commit(struct strbuf *encrypted_message)
 	start_command(&cmd);
 
 	close(cmd.in_fd[0]);
-	if (recoverable_write(cmd.in_fd[1], encrypted_message->buff, encrypted_message->len) != encrypted_message->len)
+	if (xwrite(cmd.in_fd[1], encrypted_message->buff, encrypted_message->len) != (ssize_t)encrypted_message->len)
 		FATAL("failed to write encrypted message to pipe");
 	close(cmd.in_fd[1]);
 
@@ -334,7 +349,7 @@ static int write_commit(struct strbuf *encrypted_message)
 
 	child_process_def_init(&cmd);
 	cmd.git_cmd = 1;
-	argv_array_push(&cmd.args, "show", "-s", "--format=%B", "HEAD", NULL);
+	argv_array_push(&cmd.args, "--no-pager", "show", "-s", "--format=%B", "HEAD", NULL);
 	status = run_command(&cmd);
 
 	child_process_def_release(&cmd);

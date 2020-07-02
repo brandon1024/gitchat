@@ -11,7 +11,7 @@
 #include "utils.h"
 
 static const struct usage_string main_cmd_usage[] = {
-		USAGE("git chat <command> [<options>]"),
+		USAGE("git chat [<options>] <command> [<args>]"),
 		USAGE("git chat [-h | --help]"),
 		USAGE("git chat (-v | --version)"),
 		USAGE_END()
@@ -25,18 +25,29 @@ static void print_version(void);
 
 int main(int argc, char *argv[])
 {
+	int gpg_pass_fd = -1;
+	char *gpg_pass_file = NULL;
+	char *gpg_pass = NULL;
+
 	int show_help = 0;
 	int show_version = 0;
 
 	const struct command_option main_cmd_options[] = {
-			OPT_CMD("channel", "Create and manage communication channels", NULL),
-			OPT_CMD("message", "Create messages", NULL),
-			OPT_CMD("publish", "Publish messages to the remote server", NULL),
-			OPT_CMD("get", "Download messages", NULL),
-			OPT_CMD("read", "Display, format and read messages", NULL),
-			OPT_CMD("import-key", "Import a GPG key into the current channel", NULL),
-			OPT_BOOL('h', "help", "Show usage and exit", &show_help),
-			OPT_BOOL('v', "version", "Output version information and exit", &show_version),
+			OPT_GROUP("commands"),
+			OPT_CMD("channel", "create and manage communication channels", NULL),
+			OPT_CMD("message", "create messages", NULL),
+			OPT_CMD("publish", "publish messages to the remote server", NULL),
+			OPT_CMD("get", "download messages", NULL),
+			OPT_CMD("read", "display, format and read messages", NULL),
+			OPT_CMD("import-key", "import a GPG key into the current channel", NULL),
+			OPT_CMD("config", "configure a channel", NULL),
+
+			OPT_GROUP("options"),
+			OPT_LONG_INT("passphrase-fd", "read passphrase from file descriptor", &gpg_pass_fd),
+			OPT_LONG_STRING("passphrase-file", "file", "read passphrase from file", &gpg_pass_file),
+			OPT_LONG_STRING("passphrase", "pass", "use string as passphrase", &gpg_pass),
+			OPT_BOOL('h', "help", "show usage and exit", &show_help),
+			OPT_BOOL('v', "version", "output version information and exit", &show_version),
 			OPT_END()
 	};
 
@@ -56,6 +67,30 @@ int main(int argc, char *argv[])
 		print_version();
 		return 0;
 	}
+
+	if (gpg_pass_fd >= 0 && (gpg_pass_file || gpg_pass)) {
+		show_usage_with_options(main_cmd_usage, main_cmd_options, 1,
+				"error: --passphrase-fd cannot be combined with --passphrase-file or --passphrase");
+		return 1;
+	}
+	if (gpg_pass_file && (gpg_pass_fd >= 0 || gpg_pass)) {
+		show_usage_with_options(main_cmd_usage, main_cmd_options, 1,
+				"error: --passphrase-file cannot be combined with --passphrase-fd or --passphrase");
+		return 1;
+	}
+	if (gpg_pass && (gpg_pass_file || gpg_pass_fd >= 0)) {
+		show_usage_with_options(main_cmd_usage, main_cmd_options, 1,
+				"error: --passphrase cannot be combined with --passphrase-fd or --passphrase-file");
+		return 1;
+	}
+
+	// configure gpgme passphrase loopback
+	if (gpg_pass_fd >= 0)
+		gpgme_configure_passphrase_loopback(gpgme_pass_fd_cb, &gpg_pass_fd);
+	if (gpg_pass_file)
+		gpgme_configure_passphrase_loopback(gpgme_pass_file_cb, gpg_pass_file);
+	if (gpg_pass)
+		gpgme_configure_passphrase_loopback(gpgme_pass_cb, gpg_pass);
 
 	//delegate commands
 	struct cmd_builtin *builtin = get_builtin(argv[0]);
@@ -105,7 +140,7 @@ static int run_extension(const char *s, int argc, char *argv[])
 	struct child_process_def cmd;
 	child_process_def_init(&cmd);
 	cmd.executable = s;
-	for (size_t i = 0; i < argc; i++)
+	for (int i = 0; i < argc; i++)
 		argv_array_push(&cmd.args, argv[i], NULL);
 
 	int status = run_command(&cmd);

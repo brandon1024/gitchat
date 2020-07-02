@@ -274,7 +274,7 @@ int str_array_vpush_test_helper(size_t args, ...)
 		ret = str_array_vpush(&str_a, ap);
 		va_end(ap);
 
-		assert_eq(args, ret);
+		assert_eq(args, (size_t)ret);
 		assert_true(str_a.alloc > 8);
 		assert_eq(8, str_a.len);
 		assert_string_eq("str3", str_array_get(&str_a, 2));
@@ -469,14 +469,14 @@ TEST_DEFINE(str_array_remove_test)
 		char *removed_str = str_array_remove(&str_a, 0);
 		assert_string_eq("str1", removed_str);
 		assert_string_eq("str2", str_array_get(&str_a, 0));
-		assert_eq((ret - 1), str_a.len);
+		assert_eq((size_t)(ret - 1), str_a.len);
 
 		free(removed_str);
 
 		removed_str = str_array_remove(&str_a, 1);
 		assert_string_eq("str3", removed_str);
 		assert_string_eq("str4", str_array_get(&str_a, 1));
-		assert_eq((ret - 2), str_a.len);
+		assert_eq((size_t)(ret - 2), str_a.len);
 
 		free(removed_str);
 	}
@@ -497,7 +497,7 @@ TEST_DEFINE(str_array_detach_test)
 
 		strings = str_array_detach(&str_a, &len);
 		assert_eq(5, len);
-		assert_eq(len, ret);
+		assert_eq(len, (size_t)ret);
 		assert_nonnull(strings);
 
 		assert_null(str_a.entries);

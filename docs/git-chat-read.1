@@ -1,0 +1,52 @@
+.TH git-chat-read 1 "@CMAKE_COMPILATION_DATE@" "git-chat @CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@" "git-chat manual"
+
+.SH NAME
+git-chat-read \- decrypt and show messages
+
+
+.SH SYNOPSIS
+.sp
+.nf
+\fIgit-chat-read\fR [<commit hash>]
+\fIgit-chat-read\fR (\-h | \-\-help)
+
+
+.SH DESCRIPTION
+Decrypt and read messages in the current channel.
+
+Messages are displayed in reverse chronological order. If messages are encrypted, git-chat will attempt to decrypt the message and display the plaintext. If messages are already in plaintext, this text is shown as is. If the message could not be decrypted (e.g. user's keys cannot decrypt the message), a placeholder message is shown.
+
+When a commit hash is provided, only that message is shown.
+
+.PP
+.in +4n
+.EX
+[Sat Oct 17 22:23:29 2020 DEC Brandon Richardson]
+	this is the most recent message
+[Sat Oct 17 22:23:15 2020 DEC Brandon Richardson]
+	this is an example message
+[Sat Oct 17 21:27:14 2020 PLN Brandon Richardson]
+	brandon.richardson@siemens.com joined the channel.
+[Sat Oct 17 21:27:14 2020 PLN Brandon Richardson]
+	You have reached the beginning of time.
+.EE
+.in
+.PP
+
+
+.SH OPTIONS
+.TP
+\-h, \-\-help
+Print a simple synopsis and exit.
+
+
+.SH SEE ALSO
+\fBgit-chat-message\fR(1)
+
+
+.SH REPORTING BUGS
+@DOCS_REPORTING_BUGS_SECTION@
+
+
+.SH AUTHOR
+@DOCS_AUTHORS_SECTION@

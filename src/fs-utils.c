@@ -115,13 +115,16 @@ ssize_t copy_file_fd(int dest_fd, int src_fd)
 	ssize_t bytes_written = 0;
 
 	ssize_t bytes_read;
-	while ((bytes_read = recoverable_read(src_fd, buffer, BUFF_LEN)) > 0) {
+	while ((bytes_read = xread(src_fd, buffer, BUFF_LEN)) > 0) {
 		// if write failed, return bytes_written
-		if (recoverable_write(dest_fd, buffer, bytes_read) != bytes_read)
+		if (xwrite(dest_fd, buffer, bytes_read) != bytes_read)
 			return bytes_written;
 
 		bytes_written += bytes_read;
 	}
+
+	if (bytes_read < 0)
+		return bytes_read;
 
 	return bytes_written;
 }
@@ -139,7 +142,7 @@ int get_symlink_target(const char *symlink_path, struct strbuf *result, size_t s
 		if (len < 0)
 			return 1;
 
-		if (len < size)
+		if (len < (ssize_t)size)
 			return 0;
 
 		size *= 2;

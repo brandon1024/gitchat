@@ -6,18 +6,40 @@ git-chat \- use a Git repository as a chatroom
 .SH SYNOPSIS
 .sp
 .nf
-\fIgit-chat\fR <command> [options]
+\fIgit-chat\fR [<options>] <command> [<args>]
 \fIgit-chat\fR [\-h | \-\-help]
 \fIgit-chat\fR [\-v | \-\-version]
 
 
 .SH DESCRIPTION
-\fIgit-chat\fR is a secure messaging application build on top of the \fIGit\fR suite. It leverages Git's ability to track content, using commit objects as messages and branches as message channels. git-chat also leverages GnuPG for message signing and encryption.
+\fIgit-chat\fR is a secure messaging application build on top of the \fIGit\fR suite. It leverages Git's ability to track content, using commit objects as messages and branches as message channels. \fIgit-chat\fR also leverages GnuPG for message signing and encryption.
 
 If you're using git-chat for messaging, keep in mind that it should not be used as secure and tamper proof communication. It suffers from potential tampering (lost messages, erased history, etc.). Please use at your own risk.
 
 
 .SH OPTIONS
+.TP
+\-\-passphrase-fd <n>
+When a passphrase is required, read the passphrase from the given file descriptor. Only the first line will be read from the file descriptor.
+
+This option is primarily used to override the GPG engine pinentry functionality when interactive passphrase entry isn't possible (e.g. when used in scripts).
+
+.TP
+\-\-passphrase-file <file>
+When a passphrase is required, read the passphrase from the given file. Only the first line will be read from the file.
+
+This option is primarily used to override the GPG engine pinentry functionality when interactive passphrase entry isn't possible (e.g. when used in scripts).
+
+Storing passwords in plaintext is ill advised.
+
+.TP
+\-\-passphrase <pass>
+When a passphrase is required, use the supplied passphrase.
+
+This option is primarily used to override the GPG engine pinentry functionality when interactive passphrase entry isn't possible (e.g. when used in scripts).
+
+This option should be used with care; passwords can be leaked accidentally if this option is misused.
+
 .TP
 \-h, \-\-help
 Print a simple synopsis, along with any common subcommands and options.
@@ -108,6 +130,9 @@ ERROR
 NONE
 .RE
 
+.TP
+\fBGIT_CHAT_PAGER\fR, \fBGIT_PAGER\fR, \fBPAGER\fR
+When output is being paged (\fIgit-chat-read\fR, for example), these environment variables may be used to specify an alternate paging program. The variable value must be the absolute path to the executable (e.g. /usr/bin/cat).
 
 .SH EXTENDING GIT-CHAT
 \fIgit-chat\fR follows a similar extension model to Git, where executables located on the PATH that are prefixed with \fBgit-chat-\fR will be invoked when \fBgit chat <extension name>\fR is run at the command line. This allows you to build custom plugins in your language of choice.

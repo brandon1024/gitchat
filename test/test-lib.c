@@ -57,7 +57,7 @@ static void print_test_summary(const char *test_name, int ret)
 
 int execute_suite(struct suite_test tests[], int verbose, int immediate)
 {
-	struct test_runner_instance instance = { 0, 0, 0, 0 };
+	struct test_runner_instance instance = { 0, 0, 0, 0, 0 };
 	struct suite_test *test = tests;
 	int ret = 0, failed = 0;
 

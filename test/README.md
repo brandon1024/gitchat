@@ -9,7 +9,7 @@ Like any good piece of software, git-chat has a suite of unit and integration te
 	2. [Integration](#integration)
 		1. [CMake Build Target](#cmake-build-target)
 		2. [Integration Runner](#integration-runner)
-2. Writing [Tests](#writing-tests)
+2. [Writing Tests](#writing-tests)
 	1. [Unit Tests](#unit-tests)
 		1. [Adding a New Unit Test](#adding-a-new-unit-test)
 		2. [Adding a New Test Suite](#adding-a-new-test-suite)

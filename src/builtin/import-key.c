@@ -4,6 +4,8 @@
 #include "parse-options.h"
 #include "gnupg/gpg-common.h"
 #include "git/git.h"
+#include "git/index.h"
+#include "git/commit.h"
 #include "working-tree.h"
 #include "utils.h"
 #include "fs-utils.h"
@@ -42,7 +44,7 @@ int cmd_import_key(int argc, char *argv[])
 	// fingerprint
 	if (argc) {
 		if (key_paths.len) {
-			show_usage_with_options(import_key_cmd_usage, options, 1, "importing keys from an external keyring and from exported key files are mutually exclusive operations.");
+			show_usage_with_options(import_key_cmd_usage, options, 1, "error: importing keys from an external keyring and from exported key files are mutually exclusive operations.");
 			return 1;
 		}
 
@@ -51,14 +53,14 @@ int cmd_import_key(int argc, char *argv[])
 
 	if (key_paths.len) {
 		if (gpg_home_dir) {
-			show_usage_with_options(import_key_cmd_usage, options, 1, "importing keys from an external keyring and from exported key files are mutually exclusive operations.");
+			show_usage_with_options(import_key_cmd_usage, options, 1, "error: importing keys from an external keyring and from exported key files are mutually exclusive operations.");
 			return 1;
 		}
 
 		return import_key_from_files(&key_paths);
 	}
 
-	show_usage_with_options(import_key_cmd_usage, options, 1, "nothing to do");
+	show_usage_with_options(import_key_cmd_usage, options, 1, "error: nothing to do");
 	return 1;
 }
 
@@ -84,7 +86,13 @@ static int filter_gpg_keylist_by_fingerprints(struct _gpgme_key *key, void *data
 static void publish_keys(void);
 
 /**
+ * Import a set of keys (identified by their fingerprints) into the git-chat keyring.
  *
+ * If optional_gpg_home_dir is non-null, keys are imported from that gpg keyring.
+ * Otherwise keys are imported from the default keyring.
+ *
+ * Imported keys are also exported to ascii-armored files under .git-chat/keys,
+ * and committed to history.
  * */
 static int import_keys_from_keyring(int fpr_count, char *fpr[],
 		const char *optional_gpg_home_dir)
@@ -110,7 +118,7 @@ static int import_keys_from_keyring(int fpr_count, char *fpr[],
 	// create the keys directory, if it does not exist
 	safe_create_dir(keys_path.buff, NULL, S_IRWXU | S_IRGRP | S_IROTH);
 
-	for (size_t i = 0; i < fpr_count; i++)
+	for (int i = 0; i < fpr_count; i++)
 		str_array_push(&fingerprints, fpr[i], NULL);
 
 	// filter for public keys by fingerprint
@@ -163,8 +171,8 @@ static int import_keys_from_keyring(int fpr_count, char *fpr[],
 	str_array_release(&fingerprints);
 
 	release_gpg_key_list(&gpg_keys);
-	gpg_context_release(&ctx);
-	gpg_context_release(&gc_ctx);
+	gpgme_context_release(&ctx);
+	gpgme_context_release(&gc_ctx);
 
 	publish_keys();
 
@@ -209,7 +217,7 @@ static int import_key_from_files(struct str_array *key_files)
 		FATAL("failed to obtain git-chat keys dir");
 
 	// export keys to working tree
-	for (size_t i = 0; i < keys_imported; i++) {
+	for (int i = 0; i < keys_imported; i++) {
 		char *fpr = str_array_get(&imported_keys, i);
 		int status;
 
@@ -228,7 +236,7 @@ static int import_key_from_files(struct str_array *key_files)
 		strbuf_clear(&key_path);
 	}
 
-	gpg_context_release(&gc_ctx);
+	gpgme_context_release(&gc_ctx);
 	str_array_release(&imported_keys);
 	strbuf_release(&keys_dir);
 	strbuf_release(&key_path);
@@ -246,7 +254,7 @@ static void publish_keys(void)
 	if (get_author_identity(&message))
 		strbuf_attach_str(&message, "unknown user");
 
-	strbuf_attach_str(&message, " joined the channel");
+	strbuf_attach_str(&message, " joined the channel.");
 
 	if (git_commit_index_with_options(message.buff, "--no-gpg-sign", "--no-verify", NULL))
 		DIE("unable to commit exported gpg key(s) to tree");

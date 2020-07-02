@@ -7,7 +7,7 @@ static const struct config_def config_defaults[] = {
 		{ "channel.*.name", "" },
 		{ "channel.*.createdby", "" },
 		{ "channel.*.description", "" },
-		{ NULL }
+		{ NULL, NULL }
 };
 
 static int key_matches_pattern(const char *, const char *);

@@ -1,3 +1,4 @@
+#include <string.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <locale.h>
@@ -5,6 +6,9 @@
 #include "gnupg/gpg-common.h"
 #include "working-tree.h"
 #include "fs-utils.h"
+
+static gpgme_passphrase_cb_t pass_loopback_cb = NULL;
+static void *pass_loopback_cb_data = NULL;
 
 const char *get_gpgme_library_version()
 {
@@ -90,6 +94,26 @@ void gpgme_context_init(struct gc_gpgme_ctx *ctx, int use_gc_gpg_homedir)
 		GPG_FATAL("failed to mutate GPGME engine homedir", err);
 
 	gpgme_set_armor(ctx->gpgme_ctx, 1);
+
+	if (pass_loopback_cb) {
+		gpgme_set_pinentry_mode(ctx->gpgme_ctx, GPGME_PINENTRY_MODE_LOOPBACK);
+		gpgme_set_passphrase_cb(ctx->gpgme_ctx, pass_loopback_cb, pass_loopback_cb_data);
+	} else {
+		gpgme_set_pinentry_mode(ctx->gpgme_ctx, GPGME_PINENTRY_MODE_DEFAULT);
+		gpgme_set_passphrase_cb(ctx->gpgme_ctx, NULL, NULL);
+	}
+}
+
+void gpgme_context_release(struct gc_gpgme_ctx *ctx)
+{
+	gpgme_release(ctx->gpgme_ctx);
+	strbuf_release(&ctx->gnupg_homedir);
+}
+
+void gpgme_configure_passphrase_loopback(gpgme_passphrase_cb_t cb, void *cb_data)
+{
+	pass_loopback_cb = cb;
+	pass_loopback_cb_data = cb_data;
 }
 
 void gpgme_context_set_homedir(struct gc_gpgme_ctx *ctx, const char *home_dir)
@@ -110,8 +134,67 @@ void gpgme_context_set_homedir(struct gc_gpgme_ctx *ctx, const char *home_dir)
 		GPG_FATAL("failed to mutate GPGME engine homedir", err);
 }
 
-void gpg_context_release(struct gc_gpgme_ctx *ctx)
+gpgme_error_t gpgme_pass_fd_cb(void *hook, const char *uid_hint,
+		const char *passphrase_info, int prev_was_bad, int fd)
 {
-	gpgme_release(ctx->gpgme_ctx);
-	strbuf_release(&ctx->gnupg_homedir);
+	int pass_fd = *((int *)hook);
+	(void)prev_was_bad;
+
+	if (uid_hint)
+		LOG_DEBUG("passphrase callback uid hint: %s", uid_hint);
+	if (passphrase_info)
+		LOG_DEBUG("passphrase info: %s", passphrase_info);
+
+	char buffer[1024];
+	ssize_t bytes_read;
+	while ((bytes_read = xread(pass_fd, buffer, 1024)) > 0) {
+		if (gpgme_io_writen(fd, buffer, bytes_read) < 0)
+			return GPG_ERR_USER_2;
+	}
+
+	return 0;
+}
+
+gpgme_error_t gpgme_pass_file_cb(void *hook, const char *uid_hint,
+		const char *passphrase_info, int prev_was_bad, int fd)
+{
+	const char *pass_file = (const char *)hook;
+	(void)prev_was_bad;
+
+	if (uid_hint)
+		LOG_DEBUG("passphrase callback uid hint: %s", uid_hint);
+	if (passphrase_info)
+		LOG_DEBUG("passphrase info: %s", passphrase_info);
+
+	int pass_fd;
+	if ((pass_fd = open(pass_file, O_RDONLY)) < 0)
+		return GPG_ERR_USER_1;
+
+	char buffer[1024];
+	ssize_t bytes_read;
+	while ((bytes_read = xread(pass_fd, buffer, 1024)) > 0) {
+		if (gpgme_io_writen(fd, buffer, bytes_read) < 0)
+			return GPG_ERR_USER_2;
+	}
+
+	return 0;
+}
+
+gpgme_error_t gpgme_pass_cb(void *hook, const char *uid_hint,
+		const char *passphrase_info, int prev_was_bad, int fd)
+{
+	const char *pass = (const char *)hook;
+	(void)prev_was_bad;
+
+	if (uid_hint)
+		LOG_DEBUG("passphrase callback uid hint: %s", uid_hint);
+	if (passphrase_info)
+		LOG_DEBUG("passphrase info: %s", passphrase_info);
+
+	if (gpgme_io_writen(fd, pass, strlen(pass)) < 0)
+		return GPG_ERR_USER_2;
+	if (gpgme_io_writen(fd, "\n", 1) < 0)
+		return GPG_ERR_USER_2;
+
+	return 0;
 }

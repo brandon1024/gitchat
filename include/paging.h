@@ -40,7 +40,7 @@
  *     write(1, "and this too", 13);
  *
  *     // stops the pager, restoring standard streams
- *     pager_stop();
+ *     return 0;
  * }
  * */
 
@@ -50,17 +50,6 @@
  * Standard output stream must by a TTY. If the underlying paging application
  * terminates, git-chat will also exit.
  * */
-void pager_start();
-
-/**
- * Wait for the pager to exit, remove signal handler, and restore standard streams.
- * */
-void pager_stop();
-
-/**
- * Forceably kill the running pager. Useful if git-chat encounters an exceptional
- * state and needs to terminate.
- * */
-void pager_kill();
+void pager_start(void);
 
 #endif //GIT_CHAT_PAGING_H

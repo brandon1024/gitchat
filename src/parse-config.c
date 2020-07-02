@@ -123,7 +123,7 @@ int write_config(struct config_file_data *conf, const char *conf_path)
 			strbuf_clear(&temporary);
 			strbuf_attach_fmt(&temporary, "[%s]\n", current_section.buff);
 
-			if (recoverable_write(conf_fd, temporary.buff, temporary.len) != temporary.len)
+			if (xwrite(conf_fd, temporary.buff, temporary.len) != (ssize_t)temporary.len)
 				FATAL(FILE_WRITE_FAILED, conf_path);
 		}
 
@@ -144,7 +144,7 @@ int write_config(struct config_file_data *conf, const char *conf_path)
 		else
 			strbuf_attach_fmt(&temporary, "%s\n", entry->value);
 
-		if (recoverable_write(conf_fd, temporary.buff, temporary.len) != temporary.len)
+		if (xwrite(conf_fd, temporary.buff, temporary.len) != (ssize_t)temporary.len)
 			FATAL(FILE_WRITE_FAILED, conf_path);
 
 		entry = entry->next;

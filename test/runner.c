@@ -12,6 +12,7 @@ static struct suite_test tests[] = {
 		{ "parse-options", parse_options_test },
 		{ "fs-utils", fs_utils_test },
 		{ "config-defaults", config_defaults_test },
+		{ "git-commit-parse", git_commit_parse_test },
 		{ NULL, NULL }
 };
 

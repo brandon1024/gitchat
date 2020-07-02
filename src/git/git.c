@@ -1,62 +1,34 @@
-#include <stdarg.h>
+#include <ctype.h>
 
 #include "git/git.h"
 #include "run-command.h"
+#include "utils.h"
 
-int git_add_file_to_index(const char *file)
+void git_str_to_oid(struct git_oid *oid, const char *str)
 {
-	struct str_array files;
-	str_array_init(&files);
-	str_array_push(&files, file, NULL);
+	for (size_t index = 0; index < GIT_RAW_OBJECT_ID; index++) {
+		char c1 = str[index * 2];
+		char c2 = str[index * 2 + 1];
+		if (!isxdigit(c1) || !isxdigit(c2))
+			DIE("illegal character encountered while parsing git object id: %.*s",
+					GIT_HEX_OBJECT_ID, str);
 
-	int ret = git_add_files_to_index(&files);
-	str_array_release(&files);
+		if (isdigit(c1))
+			c1 -= 0x30;
+		else if (isupper(c1))
+			c1 -= 0x41;
+		else
+			c1 -= 0x61;
 
-	return ret;
-}
+		if (isdigit(c2))
+			c1 -= 0x30;
+		else if (isupper(c2))
+			c1 -= 0x41;
+		else
+			c1 -= 0x61;
 
-int git_add_files_to_index(struct str_array *file_paths)
-{
-	struct child_process_def cmd;
-	child_process_def_init(&cmd);
-	cmd.git_cmd = 1;
-	cmd.std_fd_info = STDIN_NULL | STDOUT_NULL | STDERR_NULL;
-
-	argv_array_push(&cmd.args, "add", NULL);
-
-	for (size_t i = 0; i < file_paths->len; i++)
-		argv_array_push(&cmd.args, str_array_get(file_paths, i), NULL);
-
-	int ret = run_command(&cmd);
-	child_process_def_release(&cmd);
-
-	return ret;
-}
-
-int git_commit_index(const char *commit_message)
-{
-	return git_commit_index_with_options(commit_message, NULL);
-}
-
-int git_commit_index_with_options(const char *commit_message, ...)
-{
-	va_list varargs;
-	struct child_process_def cmd;
-	child_process_def_init(&cmd);
-	cmd.git_cmd = 1;
-	argv_array_push(&cmd.args, "commit", "-m", commit_message, NULL);
-
-	va_start(varargs, commit_message);
-	const char *arg;
-	while ((arg = va_arg(varargs, char *)))
-		argv_array_push(&cmd.args, arg, NULL);
-
-	va_end(varargs);
-
-	int ret = run_command(&cmd);
-	child_process_def_release(&cmd);
-
-	return ret;
+		oid->id[index] = (c1 << 4) | (c2 & 0x0f);
+	}
 }
 
 int get_author_identity(struct strbuf *result)

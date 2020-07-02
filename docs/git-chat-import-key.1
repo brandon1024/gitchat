@@ -8,8 +8,8 @@ git-chat-import-key \- import GnuPG public keys into a channel
 .sp
 .nf
 \fIgit-chat-import-key\fR [\-\-gpg\-home <path>] [\-\-] <key fpr>...
-\fIgit-chat\fR (\-f | \-\-file) <path>
-\fIgit-chat\fR (\-h | \-\-help)
+\fIgit-chat-import-key\fR (\-f | \-\-file) <path>
+\fIgit-chat-import-key\fR (\-h | \-\-help)
 
 
 .SH DESCRIPTION
@@ -20,11 +20,11 @@ When a key is imported into the channel, a new commit at the tip of the channel 
 
 .SH OPTIONS
 .TP
-\-\-gpg\-home
+\-\-gpg\-home <path>
 Specify an alternate GNUPGHOME from which keys will be exported and imported into the git-chat keyring.
 
 .TP
-\-f, \-\-file
+\-f, \-\-file <path>
 Import public key from a key file. May be defined more than once to import multiple keys.
 
 .TP

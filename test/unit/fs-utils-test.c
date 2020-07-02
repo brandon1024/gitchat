@@ -36,7 +36,7 @@ TEST_DEFINE(copy_file_test)
 		mode_t mode = S_IRUSR | S_IWUSR;
 		ssize_t ret = copy_file(copy_filename, filename, mode);
 		assert_neq_msg(-1, ret, "copy file should not fail to open src or destination file");
-		assert_eq_msg(len, ret, "unexpected number of bytes written to output file: %zd", ret);
+		assert_eq_msg((ssize_t)len, ret, "unexpected number of bytes written to output file: %zd", ret);
 
 		// check new file mode
 		struct stat st;
@@ -44,7 +44,7 @@ TEST_DEFINE(copy_file_test)
 
 		mode_t new_mode = st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
 		assert_eq_msg(mode, new_mode, "incorrect file mode %lo (expected %lo)", new_mode, mode);
-		assert_eq_msg(len, st.st_size, "incorrect file size %lu (expected %lu)", st.st_size, len);
+		assert_eq_msg((off_t)len, st.st_size, "incorrect file size %lu (expected %lu)", st.st_size, len);
 
 		// check new file contents
 		fp_dest = fopen(copy_filename, "r");
@@ -257,7 +257,7 @@ TEST_DEFINE(copy_file_fd_test)
 		assert_true_msg(out_fd >= 0, "failed to open file %s for writing", filename_out);
 
 		ssize_t ret = copy_file_fd(out_fd, in_fd);
-		assert_eq_msg(len, ret, "copy_file_fd should return the number of bytes copied, but was %zd", ret);
+		assert_eq_msg((ssize_t)len, ret, "copy_file_fd should return the number of bytes copied, but was %zd", ret);
 	}
 
 	unlink(filename_in);

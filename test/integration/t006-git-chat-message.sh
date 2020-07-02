@@ -11,16 +11,15 @@ assert_success 'git chat message -h should display usage info' '
 assert_success 'git chat message without any recipients or keys should fail' '
 	reset_trash_dir &&
 	git chat init &&
-	setup_test_gpg &&
-	[ -z "$(ls -A .git-chat/keys)" ]
+	setup_test_gpg
 ' '
 	! git chat message -m "hello world" 2>err &&
 	grep "no message recipients" err
 '
 
 assert_success 'git chat message with unknown recipient should fail' '
-	cp $TEST_RESOURCES_DIR/gpgkeys/*.pub.gpg .git-chat/keys &&
-	setup_test_gpg
+	setup_test_gpg &&
+	git chat import-key -f "$TEST_RESOURCES_DIR/gpgkeys/ajones_noexpire.pub.gpg"
 ' '
 	git chat message -m "hello world" --recipient alice.jones@example.com &&
 	! git chat message -m "hello world" --recipient unknown@unknown.ca 2>err &&
@@ -38,7 +37,8 @@ assert_success 'author of encrypted message should not be able to decrypt messag
 '
 
 assert_success 'author of encrypted message must be able to decrypt message if included as recipient' '
-	setup_test_gpg
+	setup_test_gpg &&
+	git chat import-key -f "$TEST_RESOURCES_DIR/gpgkeys/test_user.pub.gpg"
 ' '
 	git chat message -m "hello world" &&
 	git show -s --format="%B" HEAD >commit_msg &&

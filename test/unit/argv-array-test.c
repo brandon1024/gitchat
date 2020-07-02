@@ -82,7 +82,7 @@ TEST_DEFINE(argv_array_pop_test)
 		popped_str = argv_array_pop(&argv_a);
 		assert_nonnull_msg(popped_str, "String popped from argv_array should not be null.");
 		assert_string_eq("str5", popped_str);
-		assert_eq_msg(len - 1, argv_a.arr.len, "Expected length of %d but was %zu.", argv_a.arr.len);
+		assert_eq_msg((size_t) (len - 1), argv_a.arr.len, "Expected length of %d but was %zu.", argv_a.arr.len);
 	}
 
 	free(popped_str);
@@ -135,7 +135,7 @@ TEST_DEFINE(argv_array_detach_test)
 	TEST_START() {
 		int ret = argv_array_push(&argv_a, "str1", "str2", "str3", "str4", "str5", NULL);
 		strings = argv_array_detach(&argv_a, &len);
-		assert_eq_msg(ret, len, "Detaching string list from string should set len to %d, but got %d.", ret, len);
+		assert_eq_msg((size_t)ret, len, "Detaching string list from string should set len to %d, but got %d.", ret, len);
 		assert_nonnull(strings);
 
 		assert_null_msg(argv_a.arr.entries, "argv_array_detach() should reinitialize the structure");

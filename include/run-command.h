@@ -110,8 +110,7 @@ void child_process_def_stdout(struct child_process_def *cmd, unsigned int flag);
 void child_process_def_stderr(struct child_process_def *cmd, unsigned int flag);
 
 /**
- * Release any resources tracked under a child_process_def, and re-initialize
- * the child_process_def.
+ * Release any resources tracked under a child_process_def.
  *
  * If any pipes were provisioned, they must be closed manually by the caller since
  * this child_process_def_release() will not close them.

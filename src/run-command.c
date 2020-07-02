@@ -30,7 +30,7 @@ void child_process_def_init(struct child_process_def *cmd)
 	cmd->use_shell = 0;
 	cmd->git_cmd = 0;
 	cmd->internals = (struct child_process_def_internal) {
-		.notify_pipe = {0,0}
+		.notify_pipe = {-1,-1}
 	};
 
 	argv_array_init(&cmd->args);
@@ -53,7 +53,6 @@ void child_process_def_release(struct child_process_def *cmd)
 {
 	argv_array_release(&cmd->args);
 	str_array_release(&cmd->env);
-	child_process_def_init(cmd);
 }
 
 int run_command(struct child_process_def *cmd)
@@ -89,7 +88,7 @@ int capture_command(struct child_process_def *cmd, struct strbuf *buffer)
 
 	char out_buffer[BUFF_LEN];
 	ssize_t bytes_read = 0;
-	while ((bytes_read = recoverable_read(cmd->out_fd[READ], out_buffer, BUFF_LEN)) > 0)
+	while ((bytes_read = xread(cmd->out_fd[READ], out_buffer, BUFF_LEN)) > 0)
 		strbuf_attach(buffer, out_buffer, bytes_read);
 
 	if (bytes_read < 0)
@@ -170,13 +169,13 @@ int start_command(struct child_process_def *cmd)
 			case STDIN_INHERITED:
 				break;
 			case STDIN_PROVISIONED:
-				set_cloexec(cmd->in_fd[0]);
-				close(cmd->in_fd[1]);
-				if ((cmd->in_fd[0] = dup2(cmd->in_fd[0], STDIN_FILENO)) < 0)
+				close(cmd->in_fd[WRITE]);
+				set_cloexec(cmd->in_fd[READ]);
+				if ((cmd->in_fd[READ] = dup2(cmd->in_fd[READ], STDIN_FILENO)) < 0)
 					FATAL("dup2() failed unexpectedly.");
 				break;
 			case STDIN_NULL:
-				if ((cmd->in_fd[0] = dup2(null_fd, STDIN_FILENO)) < 0)
+				if ((cmd->in_fd[READ] = dup2(null_fd, STDIN_FILENO)) < 0)
 					FATAL("dup2() failed unexpectedly.");
 				break;
 			default:
@@ -188,13 +187,13 @@ int start_command(struct child_process_def *cmd)
 			case STDOUT_INHERITED:
 				break;
 			case STDOUT_PROVISIONED:
-				set_cloexec(cmd->out_fd[1]);
-				close(cmd->out_fd[0]);
-				if ((cmd->out_fd[1] = dup2(cmd->out_fd[1], STDOUT_FILENO)) < 0)
+				close(cmd->out_fd[READ]);
+				set_cloexec(cmd->out_fd[WRITE]);
+				if ((cmd->out_fd[WRITE] = dup2(cmd->out_fd[WRITE], STDOUT_FILENO)) < 0)
 					FATAL("dup2() failed unexpectedly.");
 				break;
 			case STDOUT_NULL:
-				if ((cmd->out_fd[1] = dup2(null_fd, STDOUT_FILENO)) < 0)
+				if ((cmd->out_fd[WRITE] = dup2(null_fd, STDOUT_FILENO)) < 0)
 					FATAL("dup2() failed unexpectedly.");
 				break;
 			default:
@@ -206,13 +205,13 @@ int start_command(struct child_process_def *cmd)
 			case STDERR_INHERITED:
 				break;
 			case STDERR_PROVISIONED:
-				set_cloexec(cmd->err_fd[1]);
-				close(cmd->err_fd[0]);
-				if ((cmd->err_fd[1] = dup2(cmd->err_fd[1], STDERR_FILENO)) < 0)
+				set_cloexec(cmd->err_fd[WRITE]);
+				close(cmd->err_fd[READ]);
+				if ((cmd->err_fd[WRITE] = dup2(cmd->err_fd[WRITE], STDERR_FILENO)) < 0)
 					FATAL("dup2() failed unexpectedly.");
 				break;
 			case STDERR_NULL:
-				if ((cmd->err_fd[1] = dup2(null_fd, STDERR_FILENO)) < 0)
+				if ((cmd->err_fd[WRITE] = dup2(null_fd, STDERR_FILENO)) < 0)
 					FATAL("dup2() failed unexpectedly.");
 				break;
 			default:
@@ -280,12 +279,14 @@ int finish_command(struct child_process_def *cmd)
 
 	/* spin waiting for process exit or error */
 	while (waitpid(cmd->pid, &child_ret_status, 0) < 0 && errno == EINTR);
-	if (WIFEXITED(child_ret_status))
+	if (WIFEXITED(child_ret_status)) {
 		child_ret_status = WEXITSTATUS(child_ret_status);
+		LOG_TRACE("child process %d terminated with status %d", cmd->pid, child_ret_status);
+	}
+	if (WIFSIGNALED(child_ret_status))
+		LOG_WARN("child process with pid %d terminated with signal %d", cmd->pid, WTERMSIG(child_ret_status));
 
-	LOG_TRACE("child process %d terminated with status %d", cmd->pid, child_ret_status);
-
-	if (recoverable_read(cmd->internals.notify_pipe[READ], &status, sizeof(status)) > 0)
+	if (xread(cmd->internals.notify_pipe[READ], &status, sizeof(status)) > 0)
 		FATAL("child process encountered a fatal error and exited with status %d.", status);
 
 	close(cmd->internals.notify_pipe[READ]);

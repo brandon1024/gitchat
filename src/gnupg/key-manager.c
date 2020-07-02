@@ -96,7 +96,7 @@ int export_gpg_key(struct gc_gpgme_ctx *ctx, const char *fingerprint,
 	ssize_t bytes_read;
 	unsigned char buffer[1024];
 	while ((bytes_read = gpgme_data_read(key_data, buffer, 1024)) > 0) {
-		if (recoverable_write(fd, buffer, bytes_read) != bytes_read)
+		if (xwrite(fd, buffer, bytes_read) != bytes_read)
 			FATAL("file write failed");
 	}
 

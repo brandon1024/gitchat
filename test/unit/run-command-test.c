@@ -217,7 +217,7 @@ TEST_DEFINE(run_command_provisioned_in)
 		const char buffer[] = "All work and no play makes Jack a dull boy";
 		for (int i = 0; i < 4096; i++) {
 			size_t expected = sizeof(buffer);
-			if (recoverable_write(cmd.in_fd[1], buffer, expected) != expected) {
+			if (xwrite(cmd.in_fd[1], buffer, expected) != (ssize_t)expected) {
 				write_failed = 1;
 				break;
 			}
@@ -262,12 +262,12 @@ TEST_DEFINE(run_command_provisioned_out)
 		ssize_t total_bytes_read = 0;
 		for (int i = 0; i < 4096; i++) {
 			size_t expected = sizeof(buffer);
-			if (recoverable_write(cmd.in_fd[1], buffer, expected) != expected) {
+			if (xwrite(cmd.in_fd[1], buffer, expected) != (ssize_t)expected) {
 				write_failed = 1;
 				break;
 			}
 
-			ssize_t bytes_read = recoverable_read(cmd.out_fd[0], capture_buffer, 1024);
+			ssize_t bytes_read = xread(cmd.out_fd[0], capture_buffer, 1024);
 			if (bytes_read < 0) {
 				read_failed = 1;
 				break;
@@ -323,7 +323,7 @@ TEST_DEFINE(run_command_provisioned_err)
 		ssize_t total_bytes_read = 0;
 		for (int i = 0; i < 4096; i++) {
 			size_t expected = sizeof(buffer);
-			if (recoverable_write(cmd.in_fd[1], buffer, expected) != expected) {
+			if (xwrite(cmd.in_fd[1], buffer, expected) != (ssize_t)expected) {
 				write_failed = 1;
 				break;
 			}
@@ -356,6 +356,60 @@ TEST_DEFINE(run_command_provisioned_err)
 	TEST_END();
 }
 
+TEST_DEFINE(run_command_chain_processes)
+{
+	struct child_process_def child_a;
+	struct child_process_def child_b;
+
+	child_process_def_init(&child_a);
+	child_a.executable = "echo";
+	argv_array_push(&child_a.args, "hi", NULL);
+	child_process_def_stdout(&child_a, STDOUT_PROVISIONED);
+
+	child_process_def_init(&child_b);
+	child_b.executable = "cat";
+	child_process_def_stdin(&child_b, STDIN_PROVISIONED);
+	child_process_def_stdout(&child_b, STDOUT_PROVISIONED);
+
+	TEST_START() {
+		int chain_pipe[2];
+		assert_zero_msg(pipe(chain_pipe), "failed to initialize pipe");
+
+		// stdout of child_a refers to stdin of child_b
+		child_a.out_fd[0] = chain_pipe[0];
+		child_a.out_fd[1] = chain_pipe[1];
+		child_b.in_fd[0] = chain_pipe[0];
+		child_b.in_fd[1] = chain_pipe[1];
+
+		assert_zero_msg(pipe(child_b.out_fd), "failed to initialize pipe");
+
+		start_command(&child_a);
+		start_command(&child_b);
+		close(child_b.out_fd[1]);
+
+		int ret = finish_command(&child_a);
+		assert_eq_msg(0, ret, "non-zero exit status %d from child process 'a'", ret);
+
+		close(chain_pipe[1]);
+		ret = finish_command(&child_b);
+		assert_eq_msg(0, ret, "non-zero exit status %d from child process 'b'", ret);
+		close(chain_pipe[0]);
+
+		// read child_b output to verify data was passed between processes
+		char capture_buffer[1024];
+		ssize_t bytes_read = read(child_b.out_fd[0], capture_buffer, 1024);
+		assert_true_msg(bytes_read == strlen("hi\n") , "unexpected number of characters read from child_b process");
+		assert_zero_msg(strncmp(capture_buffer, "hi\n", 3), "expected string 'hi\\n' from process_b output");
+
+		close(child_b.out_fd[0]);
+	}
+
+	child_process_def_release(&child_a);
+	child_process_def_release(&child_b);
+
+	TEST_END();
+}
+
 int run_command_test(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
@@ -372,6 +426,7 @@ int run_command_test(struct test_runner_instance *instance)
 			{ "Executing a child process with a provisioned stdin fd should correctly use that fd as stdin", run_command_provisioned_in },
 			{ "Executing a child process with a provisioned stdout fd should correctly use that fd as stdout", run_command_provisioned_out },
 			{ "Executing a child process with a provisioned stderr fd should correctly use that fd as stderr", run_command_provisioned_err },
+			{ "Chaining child processes' streams should correctly pipe data between them", run_command_chain_processes },
 			{ NULL, NULL }
 	};
 

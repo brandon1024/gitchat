@@ -74,35 +74,22 @@ void strbuf_attach_fmt(struct strbuf *buff, const char *fmt, ...)
 
 void strbuf_attach_vfmt(struct strbuf *buff, const char *fmt, va_list varargs)
 {
-	struct strbuf tmp;
-	strbuf_init(&tmp);
-
 	va_list varargs_cpy;
+	va_copy(varargs_cpy, varargs);
 
-	size_t size = strlen(fmt);
-	size = size > 64 ? size : 64;
+	// calculate required buffer size
+	ssize_t len = vsnprintf(NULL, 0, fmt, varargs_cpy);
+	if (len < 0)
+		FATAL("Unexpected error from vsnprintf()");
 
-	while (1) {
-		ssize_t len;
-		strbuf_grow(&tmp, size);
+	va_end(varargs_cpy);
 
-		va_copy(varargs_cpy, varargs);
-		len = vsnprintf(tmp.buff, size, fmt, varargs_cpy);
-		if (len < 0)
-			FATAL("Unexpected error from vsnprintf()");
+	strbuf_grow(buff, buff->alloc + len + 1);
+	len = vsnprintf(buff->buff + buff->len, len + 1, fmt, varargs);
+	if (len < 0)
+		FATAL("Unexpected error from vsnprintf()");
 
-		va_end(varargs_cpy);
-
-		if (len < (ssize_t) size) {
-			tmp.len = len;
-			break;
-		}
-
-		size *= 2;
-	}
-
-	strbuf_attach(buff, tmp.buff, tmp.len);
-	strbuf_release(&tmp);
+	buff->len += len;
 }
 
 int strbuf_trim(struct strbuf *buff)

@@ -119,6 +119,10 @@ TEST_DEFINE(strbuf_attach_fmt_test)
 		assert_string_eq("Hello World 1", buf.buff);
 		assert_true(is_null_terminated(&buf));
 
+		strbuf_attach_fmt(&buf, "%s %s %d", "Hello", "World", 1);
+		assert_string_eq("Hello World 1Hello World 1", buf.buff);
+		assert_true(is_null_terminated(&buf));
+
 		strbuf_release(&buf);
 		strbuf_init(&buf);
 

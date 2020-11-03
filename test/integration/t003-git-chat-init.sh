@@ -67,14 +67,14 @@ assert_success 'git chat init -n with name should set the master channel name' '
 	reset_trash_dir
 ' '
 	git chat init -n "test-name" &&
-	grep "name = test-name" .git-chat/config
+	grep "name = \"test-name\"" .git-chat/config
 '
 
 assert_success 'git chat init --name with name should set the master channel name' '
 	reset_trash_dir
 ' '
 	git chat init --name "test-name-2" &&
-	grep "name = test-name-2" .git-chat/config
+	grep "name = \"test-name-2\"" .git-chat/config
 '
 
 assert_success 'git chat init -d with description should set the space description' '
@@ -98,7 +98,7 @@ assert_success 'git chat init should update config first with username' '
 	git config --file ".gitconfig" user.name "test-name"
 ' '
 	GIT_CONFIG=$(pwd)/.gitconfig GIT_CONFIG_NOSYSTEM=1 git chat init &&
-	grep "createdby = test-username" .git-chat/config
+	grep "createdby = \"test-username\"" .git-chat/config
 '
 
 assert_success 'git chat init should update config with email if no username found' '
@@ -107,7 +107,7 @@ assert_success 'git chat init should update config with email if no username fou
 	git config --file ".gitconfig" user.name "test-name"
 ' '
 	GIT_CONFIG=$(pwd)/.gitconfig GIT_CONFIG_NOSYSTEM=1 git chat init &&
-	grep "createdby = test.email@test.com" .git-chat/config
+	grep "createdby = \"test.email@test.com\"" .git-chat/config
 '
 
 assert_success 'git chat init should update config with name if no username or email found' '
@@ -115,5 +115,5 @@ assert_success 'git chat init should update config with name if no username or e
 	git config --file ".gitconfig" user.name "test-name"
 ' '
 	GIT_CONFIG=$(pwd)/.gitconfig GIT_CONFIG_NOSYSTEM=1 git chat init &&
-	grep "createdby = test-name" .git-chat/config
+	grep "createdby = \"test-name\"" .git-chat/config
 '

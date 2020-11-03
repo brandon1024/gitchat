@@ -56,7 +56,7 @@ Print a simple synopsis and exit.
 
 
 .SH CONFIG FILE FORMAT
-The config file has a format similar to INI or TOML, but simplified. It consists of key-value pairs organized in sections. For example:
+The config file has a format similar to INI, TOML or Git's own config file format, albeit simplified. It consists of key-value pairs, organized in sections. For example:
 
 .PP
 .in +4n
@@ -74,7 +74,7 @@ The config file has a format similar to INI or TOML, but simplified. It consists
 .SP
 .SS Whitespace Rules
 .SP
-Leading and trailing whitespace is ignored. So, the following two examples are equivalent:
+Leading and trailing whitespace is generally ignored, unless escaped. Whitespace surrounding section names, property names and property values are removed, so
 
 .PP
 .in +4n
@@ -82,45 +82,44 @@ Leading and trailing whitespace is ignored. So, the following two examples are e
 [ section_a ]
     key_1 = value
     key_2 = valueb
+.EE
+.in
+.PP
 
-[ section_b ]
+is equivalent to
+
+.PP
+.in +4n
+.EX
+[section_b]
 key_1 = 123
 key_a = 321
 .EE
 .in
 .PP
 
-Furthermore, whitespace between the key name and `=`, and between `=` and the value is ignored. So, these statements are equivalent:
-
-.PP
-.in +4n
-.EX
-key_1 = 123
-key_1=	123
-key_1=123
-.EE
-.in
-.PP
-
-Trailing whitespace in config values are also ignored. If the value for the key must contain leading or trailing whitespace, it can be quoted with single or double quotes. Config values must not wrap multiple lines.
+Section names, property names and property values cannot span multiple lines.
 
 .SP
-.SS Sections
+.SS Sections and Subsections
 .SP
-Key-value pairs can be defined outside of a section, but must appear before any section declaration:
+Key-value pairs can be defined outside of a section, but must appear before any section declaration, or after an empty section:
 
 .PP
 .in +4n
 .EX
 key_3 = valuec
+
 [ section_a ]
     key_1 = value
     key_2 = valueb
+[]
+    key_4 = valued
 .EE
 .in
 .PP
 
-Although sections cannot be nested, section names can have a period `.`, which can be used to help indicate that the section is be represented as a subsection:
+Sections cannot be nested, but section names can can be period-delimited, which can be used to help indicate that the section is be represented as a subsection:
 
 .PP
 .in +4n
@@ -133,8 +132,7 @@ Although sections cannot be nested, section names can have a period `.`, which c
 .in
 .PP
 
-Section and key names may only contain alphanumeric characters, underscores `_`, and periods `.`. Use of disallowed characters may result in undesired or undefined behavior.
-Duplicate section names are allowed, but duplicate addresses will result in undefined behavior. For instance, the following is disallowed because the address `section_a.key_1` is defined twice:
+Duplicate section names and properties are allowed. Duplicate properties will simply override earlier declarations.
 
 .PP
 .in +4n
@@ -149,14 +147,50 @@ Duplicate section names are allowed, but duplicate addresses will result in unde
 .in
 .PP
 
-.SP
-.SS Key-Value Pairs
-.SP
-Key-value pairs take the form `<key> = <value>`. Values in the config file are addressed using the dot ".", as shown below:
+In the example above, the following effective properties are defined:
 
 .PP
 .in +4n
 .EX
+section_a.key_1 = 123
+section_a.key_2 = valueb
+section_a.key_a = 321
+.EE
+.in
+.PP
+
+Section names are case sensitive.
+
+.SP
+.SS Key-Value Pairs
+.SP
+Key-value pairs take the form `<key> = <value>`. Any characters between the first `=` and end of line are parsed as the value, with the exception that leading and trailing whitespace is trimmed. Values may not spread over multiple lines.
+
+Property names are case sensitive.
+
+Property names may contain period-delimited components. For example, the following config file is valid:
+
+.PP
+.in +4n
+.EX
+section.subsection.property1 = value1
+section.subsection.property2 = value2
+.EE
+.in
+.PP
+
+Property names and values may be surrounded in single or double quotes
+(see further).
+
+.SP
+.SS Addressing Key-Value Pairs
+.SP
+Values in a config file are addressed by the section they belong to, and the property name. Section names and properties are delimited by a period `.`:
+
+.PP
+.in +4n
+.EX
+config:
 [ section_a ]
     key_1 = value
     key_2 = valueb
@@ -164,12 +198,30 @@ Key-value pairs take the form `<key> = <value>`. Values in the config file are a
     key_a = 123
     key_b = 321
 
+keys:
 section_a.key_1
 section_b.key_a
 .EE
 .in
 .PP
 
+.SP
+.SS Characters, Quotes and Escaping
+.SP
+Unquoted, section names and property names can only contain alphanumeric characters and underscores (`_`).
+
+When a section name or property name must contain symbols, the section name or property name may be surrounded in double quotes. For example:
+
+.PP
+.in +4n
+.EX
+[section.with."$ymbols"]
+    "pr()perty" = value
+.EE
+.in
+.PP
+
+Double quotes (`"`) and backslashes (`\\`) can be escaped as `\\"` and `\\\\`, respectively. Backslashes preceding other characters are simply removed, so `\\n` becomes `n`.
 
 .SH SEE ALSO
 \fBgit-chat-init\fR(1)

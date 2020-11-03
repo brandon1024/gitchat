@@ -187,6 +187,16 @@ void str_array_reverse(struct str_array *str_a);
 char *str_array_remove(struct str_array *str_a, size_t pos);
 
 /**
+ * Remove and free one or more strings from a given position in the str_array.
+ *
+ * All subsequent entries in the array are shifted to the left to fill the gap.
+ *
+ * If free_data is non-zero, data located at the entry `void *data` is also
+ * free()d.
+ * */
+void str_array_delete(struct str_array *str_a, size_t pos, size_t n);
+
+/**
  * Remove an entry from a given position in the str_array. All subsequent entries
  * in the array are shifted to the left to fill the gap. The entry given by reference
  * as a parameter is updated with the entry that was removed.

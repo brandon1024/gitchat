@@ -179,6 +179,14 @@ char *str_array_remove(struct str_array *str_a, size_t pos)
 	return removed_str;
 }
 
+void str_array_delete(struct str_array *str_a, size_t pos, size_t n)
+{
+	for (size_t i = 0; i < n && str_a->len > pos; i++) {
+		char *str = str_array_remove(str_a, pos);
+		free(str);
+	}
+}
+
 void str_array_clear(struct str_array *str_a)
 {
 	for (size_t i = 0; i < str_a->len; i++) {

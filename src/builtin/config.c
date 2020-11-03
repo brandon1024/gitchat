@@ -1,8 +1,9 @@
 #include <stdio.h>
 
 #include "parse-options.h"
-#include "parse-config.h"
-#include "config-defaults.h"
+#include "config/parse-config.h"
+#include "config/config-defaults.h"
+#include "config/config-key.h"
 #include "run-command.h"
 #include "working-tree.h"
 #include "fs-utils.h"
@@ -109,7 +110,7 @@ int cmd_config(int argc, char *argv[])
 			return 1;
 		}
 
-		return !(is_recognized_config_key(argv[0]) && is_valid_key(argv[0]));
+		return !(is_recognized_config_key(argv[0]) && is_valid_config_key(argv[0]));
 	}
 
 	if (is_valid_config) {
@@ -136,8 +137,7 @@ int cmd_config(int argc, char *argv[])
 static int config_query_value(const char *key, int fallback_default)
 {
 	struct strbuf cwd_path,  config_path;
-	struct config_file_data conf;
-	struct config_entry *entry;
+	struct config_data *conf;
 
 	if (!is_inside_git_chat_space())
 		DIE("Where are you? It doesn't look like you're in the right directory.");
@@ -149,22 +149,23 @@ static int config_query_value(const char *key, int fallback_default)
 	strbuf_init(&config_path);
 	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
 
-	int ret = parse_config(&conf, config_path.buff);
+	config_data_init(&conf);
+	int ret = parse_config(conf, config_path.buff);
 	if (ret < 0)
 		DIE("unable to query config from '%s'; cannot access file", config_path);
 	if (ret > 0)
 		DIE("unable to query config from '%s'; file contains syntax errors", config_path);
 
-	entry = config_file_data_find_entry(&conf, key);
-	if (entry)
-		fprintf(stdout, "%s\n", config_file_data_get_entry_value(entry));
+	const char *value = config_data_find(conf, key);
+	if (value)
+		fprintf(stdout, "%s\n", value);
 
 	strbuf_release(&config_path);
 	strbuf_release(&cwd_path);
-	config_file_data_release(&conf);
+	config_data_release(&conf);
 
 	// if no entry was found, and fallback on default, then show default value
-	if (!entry && fallback_default) {
+	if (!value && fallback_default) {
 		const char *default_val = get_default_config_value(key);
 		if (!default_val)
 			return 1;
@@ -173,14 +174,13 @@ static int config_query_value(const char *key, int fallback_default)
 		return 0;
 	}
 
-	return entry == NULL;
+	return value == NULL;
 }
 
 static int config_set_value(const char *key, const char *value)
 {
 	struct strbuf cwd_path, config_path;
-	struct config_file_data conf;
-	struct config_entry *entry;
+	struct config_data *conf;
 
 	if (!is_inside_git_chat_space())
 		DIE("Where are you? It doesn't look like you're in the right directory.");
@@ -192,29 +192,42 @@ static int config_set_value(const char *key, const char *value)
 	strbuf_init(&config_path);
 	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
 
-	int ret = parse_config(&conf, config_path.buff);
+	config_data_init(&conf);
+	int ret = parse_config(conf, config_path.buff);
 	if (ret < 0)
 		FATAL("unable to update config '%s'; cannot access file", config_path);
 	if (ret > 0)
 		DIE("malformed config file '%s'", config_path);
 
-	entry = config_file_data_find_entry(&conf, key);
+	const char *old_value = config_data_find(conf, key);
 	if (!value) {
 		// unset config
-		if (entry)
-			config_file_data_delete_entry(&conf, entry);
-		else
+		if (old_value) {
+			int status = config_data_delete(conf, key);
+			if (status < 0)
+				DIE("invalid key '%s'", key);
+			if (status > 0)
+				DIE("no such config for key '%s'", key);
+		} else {
 			WARN("config with key '%s' does not exist", key);
-	} else if (!entry) {
+		}
+	} else if (!old_value) {
 		// create if entry doesn't exist
-		if (!config_file_data_insert_entry(&conf, key, value))
-			DIE("invalid config key '%s'", key);
+		int status = config_data_insert(conf, key, value);
+		if (status < 0)
+			DIE("invalid key '%s'", key);
+		if (status > 0)
+			DIE("config already exists for key '%s'", key);
 	} else {
 		// set value if exists
-		config_file_data_set_entry_value(entry, value);
+		int status = config_data_update(conf, key, value);
+		if (status < 0)
+			DIE("invalid key '%s'", key);
+		if (status > 0)
+			DIE("config with key '%s' does not exist", key);
 	}
 
-	ret = write_config(&conf, config_path.buff);
+	ret = write_config(conf, config_path.buff);
 	if (ret < 0)
 		FATAL("failed to open destination file '%s' for writing", config_path.buff);
 	if (ret > 0)
@@ -222,10 +235,10 @@ static int config_set_value(const char *key, const char *value)
 
 	strbuf_release(&config_path);
 	strbuf_release(&cwd_path);
-	config_file_data_release(&conf);
+	config_data_release(&conf);
 
 	// return 1 if --unset and entry not found
-	return !value && !entry;
+	return !value && !old_value;
 }
 
 static int editor_edit_config_file()

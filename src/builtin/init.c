@@ -12,7 +12,7 @@
 #include "git/index.h"
 #include "git/commit.h"
 #include "parse-options.h"
-#include "parse-config.h"
+#include "config/parse-config.h"
 #include "fs-utils.h"
 #include "utils.h"
 
@@ -198,38 +198,34 @@ static void prepare_git_chat(const char *channel_name, const char *description, 
 static void update_config(char *base, const char *channel_name, const char *author)
 {
 	struct strbuf config_path;
-	struct config_file_data conf;
+	struct config_data *conf;
 
 	strbuf_init(&config_path);
 	strbuf_attach_fmt(&config_path, "%s/config", base);
 
-	int ret = parse_config(&conf, config_path.buff);
+	config_data_init(&conf);
+	int ret = parse_config(conf, config_path.buff);
 	if (ret < 0)
 		DIE("unable to update '%s'; cannot access file", config_path);
 	if (ret > 0)
 		DIE("unable to update '%s'; file contains syntax errors", config_path);
 
 	if (channel_name) {
-		struct config_entry *entry = config_file_data_find_entry(&conf, "channel.master.name");
-		if (!entry)
+		int status = config_data_update(conf, "channel.\"master\".name", channel_name);
+		if (status)
 			DIE("unexpected config template with missing key 'channel.master.name'");
-
-		//overwrite updated config file
-		config_file_data_set_entry_value(entry, channel_name);
 	}
 
 	if (author) {
-		struct config_entry *entry = config_file_data_find_entry(&conf, "channel.master.createdby");
-		if (!entry)
+		int status = config_data_update(conf, "channel.\"master\".createdby", author);
+		if (status)
 			DIE("unexpected config template with missing key 'channel.master.createdby'");
-
-		// overwrite updated config file
-		config_file_data_set_entry_value(entry, author);
 	}
 
-	write_config(&conf, config_path.buff);
+	if (write_config(conf, config_path.buff))
+		DIE("failed to write config to file '%s'", config_path.buff);
 	strbuf_release(&config_path);
-	config_file_data_release(&conf);
+	config_data_release(&conf);
 
 	LOG_INFO("Updated master channel configuration");
 }

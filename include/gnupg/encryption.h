@@ -8,7 +8,7 @@
  * Encrypt a plaintext message in ASCII-armor format into a given string buffer.
  * The message is encrypted using asymmetric (public key) encryption.
  *
- * The message in the `message strbuf is encrypted for all recipients in the
+ * The message in the `message` strbuf is encrypted for all recipients in the
  * recipients key list. `recipients` must not be empty.
  *
  * The message is encrypted with the following gpgme encrypt flags:

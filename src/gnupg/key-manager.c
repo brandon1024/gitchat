@@ -15,7 +15,6 @@ int import_gpg_key(struct gc_gpgme_ctx *ctx, const char *key_file_path,
 {
 	gpgme_error_t err;
 	struct gpgme_data *key_data;
-	struct strbuf keys_dir;
 	int keys_imported = 0;
 
 	err = gpgme_data_new_from_file(&key_data, key_file_path, 1);
@@ -34,10 +33,6 @@ int import_gpg_key(struct gc_gpgme_ctx *ctx, const char *key_file_path,
 	}
 
 	gpgme_data_release(key_data);
-
-	strbuf_init(&keys_dir);
-	if (get_keys_dir(&keys_dir))
-		FATAL("failed to obtain git-chat keys dir");
 
 	gpgme_import_result_t import_result = gpgme_op_import_result(ctx->gpgme_ctx);
 	gpgme_import_status_t result = import_result->imports;

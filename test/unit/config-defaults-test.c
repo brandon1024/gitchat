@@ -46,7 +46,8 @@ TEST_DEFINE(is_recognized_key_test)
 	TEST_END();
 }
 
-int config_defaults_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "unrecognized config should return null", config_default_get_default_value_nonexistent },

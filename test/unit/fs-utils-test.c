@@ -499,7 +499,8 @@ TEST_DEFINE(is_executable_test)
 	TEST_END();
 }
 
-int fs_utils_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "copy_file should create a new file with identical file content", copy_file_test },

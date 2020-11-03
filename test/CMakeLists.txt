@@ -1,64 +1,54 @@
 #
-# Configure Unit Tests
+# Prepare Unit Tests
 #
-FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/test)
-FILE(GLOB_RECURSE TEST_SRC_LIST FOLLOW_SYMLINKS ${PROJECT_SOURCE_DIR}/test/*.c ${PROJECT_SOURCE_DIR}/test/unit/*.c ${PROJECT_SOURCE_DIR}/src/*.c)
-LIST(REMOVE_ITEM TEST_SRC_LIST ${PROJECT_SOURCE_DIR}/src/git-chat.c)
+add_custom_target(copy-test-resources ALL
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}/resources)
 
-INCLUDE_DIRECTORIES(
+add_library(unit-test-common runner.c test-lib.c)
+add_dependencies(unit-test-common copy-test-resources)
+target_link_libraries(unit-test-common git-chat-internal)
+target_include_directories(unit-test-common PRIVATE
 		"${PROJECT_SOURCE_DIR}/include/"
-		"${PROJECT_SOURCE_DIR}/test/include/"
 		"${PROJECT_BINARY_DIR}/include/"
-)
+		"${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
-ADD_EXECUTABLE(${PROJECT_NAME}-unit-tests ${PROJECT_SOURCE_DIR}/test/runner.c ${PROJECT_SOURCE_DIR}/test/test-lib.c ${TEST_SRC_LIST})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME}-unit-tests m ${GPGME_VANILLA_LIBRARIES})
-ADD_CUSTOM_TARGET(unittest)
-ADD_CUSTOM_COMMAND(TARGET unittest COMMAND ${PROJECT_NAME}-unit-tests)
+function(add_unit_test test_name test_sources)
+	add_executable(${test_name} ${test_sources})
+	target_link_libraries(${test_name} unit-test-common)
+	target_compile_definitions(${test_name} PRIVATE SUITE_NAME="${test_name}")
+	target_include_directories(${test_name} PRIVATE
+			"${PROJECT_SOURCE_DIR}/include/"
+			"${PROJECT_BINARY_DIR}/include/"
+			"${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
-ADD_TEST(NAME unit-tests COMMAND ${PROJECT_NAME}-unit-tests)
+	add_test(NAME ${test_name} COMMAND ${test_name})
+endfunction()
 
-#
-# Configure Integration Tests
-#
-FIND_PROGRAM(BASH_INTERPRETER bash)
-ADD_CUSTOM_TARGET(integrationtest)
-ADD_CUSTOM_COMMAND(TARGET integrationtest COMMAND ${BASH_INTERPRETER} "${PROJECT_BINARY_DIR}/test/integration-runner.sh")
-
-CONFIGURE_FILE(
-		"${PROJECT_SOURCE_DIR}/test/integration-runner.sh"
-		"${PROJECT_BINARY_DIR}/test/integration-runner.sh"
-		COPYONLY
-)
-
-FILE(GLOB INTEGRATION_TESTS ${PROJECT_SOURCE_DIR}/test/integration/*.sh)
-FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/test)
-FOREACH(INTEGRATION_TEST ${INTEGRATION_TESTS})
-	GET_FILENAME_COMPONENT(FILENAME ${INTEGRATION_TEST} NAME)
-	CONFIGURE_FILE(
-			"${INTEGRATION_TEST}"
-			"${PROJECT_BINARY_DIR}/test/integration/${FILENAME}"
-			COPYONLY
-	)
-ENDFOREACH()
-
-FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/test/integration/bin)
-CONFIGURE_FILE(
-		"${PROJECT_SOURCE_DIR}/test/integration/bin/valgrind.sh"
-		"${PROJECT_BINARY_DIR}/test/integration/bin/valgrind.sh"
-		COPYONLY
-)
-
-ADD_TEST(integration-tests ${BASH_INTERPRETER} "${PROJECT_BINARY_DIR}/test/integration-runner.sh")
+set(MEMORYCHECK_COMMAND_OPTIONS "--gen-suppressions=all --leak-check=full --leak-resolution=high --track-origins=yes --vgdb=no --error-exitcode=1")
+include(CTest)
 
 #
-# Configure Test Resources
+# Add Unit Tests
 #
-FILE(GLOB_RECURSE TEST_RESOURCES RELATIVE ${PROJECT_SOURCE_DIR}/test/resources/ ${PROJECT_SOURCE_DIR}/test/resources/*)
-FOREACH(RESOURCE ${TEST_RESOURCES})
-	CONFIGURE_FILE(
-			"${PROJECT_SOURCE_DIR}/test/resources/${RESOURCE}"
-			"${PROJECT_BINARY_DIR}/test/resources/${RESOURCE}"
-			COPYONLY
-	)
-ENDFOREACH()
+add_unit_test(argv-array-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/argv-array-test.c)
+add_unit_test(config-data-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/config-data-test.c)
+add_unit_test(config-defaults-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/config-defaults-test.c)
+add_unit_test(config-key-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/config-key-test.c)
+add_unit_test(fs-utils-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/fs-utils-test.c)
+add_unit_test(git-commit-parse-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/git-commit-parse-test.c)
+add_unit_test(node-visitor-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/node-visitor-test.c)
+add_unit_test(parse-config-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/parse-config-test.c)
+add_unit_test(parse-options-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/parse-options-test.c)
+add_unit_test(run-command-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/run-command-test.c)
+add_unit_test(str-array-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/str-array-test.c)
+add_unit_test(strbuf-test ${CMAKE_CURRENT_SOURCE_DIR}/unit/strbuf-test.c)
+
+#
+# Prepare Integration Tests
+#
+add_custom_target(copy-integration-tests ALL
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/integration ${CMAKE_CURRENT_BINARY_DIR}/integration)
+add_custom_target(integration
+		COMMAND ${BASH_INTERPRETER} ${CMAKE_CURRENT_SOURCE_DIR}/integration-runner.sh
+		DEPENDS copy-integration-tests copy-test-resources
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

@@ -3,7 +3,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <sys/stat.h>
 
 #include "run-command.h"
@@ -16,9 +15,11 @@
 #include "fs-utils.h"
 #include "utils.h"
 
-#ifndef DEFAULT_GIT_CHAT_TEMPLATES_DIR
-#define DEFAULT_GIT_CHAT_TEMPLATES_DIR "/usr/local/share/git-chat/templates"
-#endif //DEFAULT_GIT_CHAT_TEMPLATES_DIR
+static const char *template_dirs[] = {
+		"/usr/share/git-chat/templates",
+		"/usr/local/share/git-chat/templates",
+		NULL
+};
 
 static const struct usage_string init_cmd_usage[] = {
 		USAGE("git chat init [(-n | --name) <name>] [(-d | --description) <desc>]"),
@@ -106,6 +107,38 @@ static void update_config(char *, const char *, const char *);
 static void update_space_description(char *, const char *);
 
 /**
+ * Try to find where the templates directory is installed. The following
+ * directories are checked, in order of precedence:
+ * - template_dirs[0]
+ * - template_dirs[1]
+ * - ${HOME}/share/git-chat/templates
+ *
+ * Returns zero if template directory was found, and non-zero otherwise.
+ * */
+static int find_templates_dir(struct strbuf *templates_dir)
+{
+	struct stat sb;
+
+	for (const char * const *dir_ptr = template_dirs; *dir_ptr; dir_ptr++) {
+		if (stat(*dir_ptr, &sb) != -1) {
+			strbuf_attach_str(templates_dir, *dir_ptr);
+			return 0;
+		}
+	}
+
+	const char *home = getenv("HOME");
+	if (!home || !*home)
+		DIE("Tried to copy from template directory $HOME/share/git-chat/templates, "
+			"but the $HOME environment variable is not set.");
+
+	strbuf_attach_fmt(templates_dir, "%s/share/git-chat/templates", home);
+	if (stat(templates_dir->buff, &sb) == -1)
+		return 1;
+
+	return 0;
+}
+
+/**
  * Initialize git-chat. Performs the following:
  * - copies templates directory to $cwd/.git-chat
  * - updates config and channel description
@@ -121,42 +154,10 @@ static void prepare_git_chat(const char *channel_name, const char *description, 
 	strbuf_init(&templates_dir_path);
 	strbuf_init(&path);
 
-	strbuf_attach_str(&templates_dir_path, DEFAULT_GIT_CHAT_TEMPLATES_DIR);
-
-	struct stat sb;
-	if (stat(templates_dir_path.buff, &sb) == -1) {
-		if (errno == EACCES)
-			DIE("Something's not quite right with your installation.\n"
-				"Tried to copy from template directory '%s' but don't have "
-				"sufficient permission to read from there.",
-				DEFAULT_GIT_CHAT_TEMPLATES_DIR);
-
-		LOG_WARN("Could not stat default templates directory.\n"
-				"Falling back on $HOME/share/git-chat/templates");
-
-		strbuf_release(&templates_dir_path);
-		const char *home = getenv("HOME");
-		if (!home || !*home)
-			DIE("Tried to copy from template directory $HOME/share/git-chat/templates, "
-				"but the $HOME environment variable is not set.");
-
-		strbuf_init(&templates_dir_path);
-		strbuf_attach_fmt(&templates_dir_path, "%s/share/git-chat/templates", home);
-		if (stat(templates_dir_path.buff, &sb) == -1) {
-			if (errno == EACCES)
-				DIE("Something's not quite right with your installation.\n"
-					"Tried to copy from template directory '%s' but don't have "
-					"sufficient permission to read from there.",
-					templates_dir_path.buff);
-
-			DIE("Something's not quite right with your installation.\n"
-				"Tried to copy from template directory but directory doesn't exist.\n"
-				"Looked in the following places:\n"
-				"%s\n"
-				"%s",
-				DEFAULT_GIT_CHAT_TEMPLATES_DIR,
-				templates_dir_path.buff);
-		}
+	if (find_templates_dir(&templates_dir_path)) {
+		DIE("Something's not quite right with your installation.\n"
+			"Could not find templates directory, typically located under %s.\n",
+			template_dirs[0]);
 	}
 
 	// copy templates directory and update config

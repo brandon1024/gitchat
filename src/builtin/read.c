@@ -110,6 +110,7 @@ static void pretty_print_message(struct git_commit *commit, struct strbuf *messa
 
 	printf("[%s]%s\n", meta.buff, formatted_message.buff);
 
+	str_array_release(&lines);
 	strbuf_release(&meta);
 	strbuf_release(&formatted_message);
 }
@@ -246,6 +247,8 @@ static int read_messages(const char *commit_id)
 
 	strbuf_release(&cat_file_out_buf);
 	str_array_release(&parsed_commits);
+
+	gpgme_context_release(&ctx);
 
 	if (rev_list_exit)
 		return rev_list_exit;

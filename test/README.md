@@ -1,5 +1,5 @@
 # Testing git-chat
-Like any good piece of software, git-chat has a suite of unit and integration tests for testing various components. The unit tests are written in C and the integration tests are written in Bash shell script. There are many ways to run git-chat tests, the easiest of which is by using `cmake` and `ctest`.
+Like any good piece of software, git-chat has a suite of unit and integration tests for testing various components. The unit tests are written in C and the integration tests are written in Bash. There are many ways to run git-chat tests, the easiest of which is by running the `test` and `integration` make targets.
 
 ## Contents
 1. [Running Tests](#running-tests)
@@ -7,12 +7,11 @@ Like any good piece of software, git-chat has a suite of unit and integration te
 		1. [Running Unit Tests with Valgrind Memcheck](#running-unit-tests-with-valgrind-memcheck)
 		2. [Configuring Unit Test Execution](#configuring-unit-test-execution)
 	2. [Integration](#integration)
-		1. [CMake Build Target](#cmake-build-target)
-		2. [Integration Runner](#integration-runner)
+		1. [Using the CMake Build Target](#using-the-cmake-build-target)
+		2. [Using the Integration Runner](#using-the-integration-runner)
 2. [Writing Tests](#writing-tests)
 	1. [Unit Tests](#unit-tests)
-		1. [Adding a New Unit Test](#adding-a-new-unit-test)
-		2. [Adding a New Test Suite](#adding-a-new-test-suite)
+		1. [Adding a New Unit Test Suite](#adding-a-new-unit-test-suite)
 		3. [Assertion Macros](#assertion-macros)
 	2. [Integration Tests](#integration-tests)
 		1. [Assertion Functions](#assertion-functions)
@@ -20,140 +19,77 @@ Like any good piece of software, git-chat has a suite of unit and integration te
 
 ## Running Tests
 ### Unit
-Running unit tests is quite straightforward. First, you'll need to build git-chat.
+Running unit tests is quite straightforward. First, you'll need to build git-chat. Then you can run the `test` target:
 ```
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make git-chat-unit-tests
-```
-
-Next, run the unit tests using any of the methods below:
-```
-$ ctest -R integration-tests --verbose
-$ ./git-chat-unit-tests
+$ cmake -B build/ -S .
+$ make -C build/ all test
 ```
 
 #### Running Unit Tests with Valgrind Memcheck
-To run unit tests with Valgrind memcheck:
+Running unit tests under Valgrind memcheck is easy too!
 ```
-$ valgrind --tool=memcheck --gen-suppressions=all --leak-check=full \
-		--leak-resolution=high --track-origins=yes --vgdb=no --error-exitcode=1 \
-		./git-chat-unit-tests
+$ cmake -B build/ -S .
+$ make -C build/ all
+$ make -C build/ test ARGS='-T memcheck -V'
 ```
 
 #### Configuring Unit Test Execution
-The `git-chat-unit-tests` executable accepts a number of environment variables that allow you to configure how the unit tests are executed.
-- `GIT_CHAT_TEST_VERBOSE`: Make the unit test output more verbose. This will print description messages for every unit test.
-- `GIT_CHAT_TEST_IMMEDIATE`: Exit after the first test failure.
-
-```
-$ GIT_CHAT_TEST_VERBOSE=1 ./git-chat-unit-tests
-*** str-array ***
-[19:46:08] str-array should initialize correctly ........................................................... ok
-[19:46:08] str-array should grow in size upon request ...................................................... ok
-[19:46:08] str-array should release correctly .............................................................. ok
-[19:46:08] accessing element from str-array should return correct element .................................. ok
-
-[...]
-
-[19:46:08] is_valid_argument should differentiate valid and invalid boolean args ........................... ok
-[19:46:08] is_valid_argument should differentiate valid and invalid int args ............................... ok
-[19:46:08] is_valid_argument should differentiate valid and invalid string args ............................ ok
-[19:46:08] is_valid_argument should differentiate valid and invalid command args ........................... ok
-*** run-command ***
-[19:46:08] Executing a child process from a given directory should correctly chdir to that directory ....... ok
-[19:46:08] Executing a child process by providing a full path to the executable should correctly find the executable to run  ok
-[19:46:08] Executing a child process by providing an executable that exists on the path should correctly find the executable to run  ok
-[19:46:08] Executing a child process with a custom environment should correctly merge the environment with the parent process's environment  ok
-[19:46:08] Executing a git command should correctly invoke the git executable .............................. ok
-[19:46:08] run_command() should return the exit status code of the child process that was run .............. ok
-[19:46:08] Capturing stdout from a child process should correctly build the process output to a string buffer  ok
-
-
-Test Execution Summary:
-Executed: 57
-Passed: 57
-Failed: 0
-```
-
-```
-$ GIT_CHAT_TEST_IMMEDIATE=1 ./git-chat-unit-tests
-[19:44:45] str-array ....................................................................................... ok
-[19:44:45] argv-array ...................................................................................... ok
-Assertion failed: strbuf-test.c:206 in strbuf_trim_test()
-	Expected equal values, but actual values not equal.
-
-[19:44:45] strbuf .......................................................................................... fail
-
-
-Test Execution Summary:
-Executed: 28
-Passed: 27
-Failed: 1
-```
+The unit test runner accepts the `GIT_CHAT_TEST_IMMEDIATE` environment variable, which is used to configure how the unit tests behave when a test fails. When set, the test suite will stop immediately when a failure is encountered. Otherwise, all tests are executed.
 
 ### Integration
-Configuring and running integration tests is a bit more involved, since an installation of git-chat is needed. The steps below should be enough to get you all set up.
+The steps for running integration tests are similar to running unit tests, except that you need to install git-chat first.
 
 #### Using the CMake Build Target
-The integration tests are configured as a CMake build target, and can executed by running the following from the project root:
+The integration tests are configured as a CMake build target, and can executed as follows:
 ```
-$ mkdir build
-$ cd build
-$ cmake ..
-
-$ # for local installation
-$ TEST_GIT_CHAT_INSTALLED=~/bin cmake --build . --target git-chat-integration-tests
-
-$ # or for global installation
-$ cmake --build . --target git-chat-integration-tests
+$ cmake -B build/ -S .
+$ make -C build/ all install
+$ make -C build/ integration
 ```
 
 This is the easiest way to run the tests.
 
 #### Using the Integration Runner
-The integration tests can also be executed using the `integration-runner.sh`, located in `test/`.
+The integration tests can also be executed using the `integration-runner.sh`, located in `test/`. This is a more advanced way of running tests.
 ```
-$ mkdir build
-$ cd build
-$ cmake ..
-$ cd test
+$ cmake -B build/ -S .
+$ make -C build/ all install
 
 $ # for local installation
-$ ./integration-runner.sh --git-chat-installed ~/bin
-
+$ ./test/integration-runner.sh --from-dir build/test --git-chat-installed ~/bin
 $ # or for global installation
-$ ./integration-runner.sh
+$ ./test/integration-runner.sh --from-dir build/test
 ```
 
-The runner recognizes a number of command line arguments and environment variables, which are documented fully in `integration-runner.sh`.
+See `integration-runner.sh --help` for more information. 
 
 ## Writing Tests
 ### Unit Tests
 The unit tests use a lightweight and simple test framework with an unobtrusive syntax and simple suite runner. There are a few steps that need to be taken when writing new unit tests, which are outlined below.
 
-#### Adding a New Unit Test
-To add a new unit test to an existing test suite located in `test/unit/`:
-1. First create the test:
+#### Adding a New Unit Test Suite
+1. First create the test suite under `test/unit/` and add tests:
 ```
+#include "test-lib.h"
+
 TEST_DEFINE(test_name)
 {
-	//Put any test setup here
+	// put any test setup here
 
 	TEST_START() {
-		//put your test code here
+		// put your test code here
 	}
 
-	//Put any test teardown here
+	// put any test teardown here
 
 	TEST_END();
 }
 ```
 
-2. Add the test function to the `struct unit_test test[]` in the suite entry point, being sure that the last entry is `{ NULL, NULL }`. For example:
+2. To allow this test to get picked up by the test runner, add an entrypoint and test name:
 ```
-int str_array_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "str-array should initialize correctly", str_array_init_test },
@@ -165,49 +101,9 @@ int str_array_test(struct test_runner_instance *instance)
 }
 ```
 
-#### Adding a New Test Suite
-1. First create the suite in `test/unit/`. You can use the template below as a starting point:
+3. Lastly, register this test suite to get run by adding the test to `test/CMakeLists.txt`:
 ```
-#include "test-lib.h"
-
-TEST_DEFINE(my_test)
-{
-	int zero = 0;
-
-	TEST_START() {
-		assert_zero(zero);
-	}
-
-	TEST_END();
-}
-
-int my_test_suite(struct test_runner_instance *instance)
-{
-	struct unit_test tests[] = {
-			{ "my first test!", my_test },
-			{ NULL, NULL }
-	};
-
-	return execute_tests(instance, tests);
-}
-```
-
-As you add new unit tests, you will need to update your runner function to run those tests.
-
-2. Next, add a function prototype declaration in `test/include/test-suite.h` pointing to the entry of your tests.
-```
-extern int my_test_suite(struct test_runner_instance *instance);
-```
-
-3. Lastly, add the test suite to the unit test runner `test/runner.c`:
-```
-static struct suite_test tests[] = {
-		{ "str-array", str_array_test },
-		{ "my new test", my_test_suite },
-		{ NULL, NULL }
-};
-
-[...]
+add_unit_test(${TEST_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/unit/${TEST_SOURCE_FILE})
 ```
 
 #### Assertion Macros
@@ -277,28 +173,6 @@ assert_success '<test description>' '
 	echo 'setup test prerequisites' >file
 ' '
 	cat file | grep 'setup'
-'
-```
-
-2. `assert_failure`
-```
-assert_failure (description, [test_setup], test)
-Evaluate a command or script and assert that it fails with a non-zero exit status.
-
-Examples:
-assert_failure 'integration tests must not be executed from within a git working tree' '
-	git rev-parse --is-inside-work-tree
-'
-
-assert_failure 'git-chat should not run extension on path if not executable' '
-	cat >git-chat-noex <<-\EOF &&
-	#!/bin/sh
-	echo hello world
-	exit 0
-	EOF
-	chmod -x git-chat-noex
-' '
-	PATH=$PATH:$(pwd) git chat noex
 '
 ```
 

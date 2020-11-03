@@ -45,22 +45,28 @@ int cmd_import_key(int argc, char *argv[])
 	if (argc) {
 		if (key_paths.len) {
 			show_usage_with_options(import_key_cmd_usage, options, 1, "error: importing keys from an external keyring and from exported key files are mutually exclusive operations.");
+			str_array_release(&key_paths);
 			return 1;
 		}
 
+		str_array_release(&key_paths);
 		return import_keys_from_keyring(argc, argv, gpg_home_dir);
 	}
 
 	if (key_paths.len) {
 		if (gpg_home_dir) {
 			show_usage_with_options(import_key_cmd_usage, options, 1, "error: importing keys from an external keyring and from exported key files are mutually exclusive operations.");
+			str_array_release(&key_paths);
 			return 1;
 		}
 
-		return import_key_from_files(&key_paths);
+		int ret = import_key_from_files(&key_paths);
+		str_array_release(&key_paths);
+		return ret;
 	}
 
 	show_usage_with_options(import_key_cmd_usage, options, 1, "error: nothing to do");
+	str_array_release(&key_paths);
 	return 1;
 }
 
@@ -168,7 +174,6 @@ static int import_keys_from_keyring(int fpr_count, char *fpr[],
 
 	strbuf_release(&keys_path);
 	strbuf_release(&key_path);
-	str_array_release(&fingerprints);
 
 	release_gpg_key_list(&gpg_keys);
 	gpgme_context_release(&ctx);

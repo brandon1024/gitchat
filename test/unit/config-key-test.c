@@ -329,7 +329,8 @@ TEST_DEFINE(isolate_merge_normalization_test)
 	TEST_END();
 }
 
-int config_key_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "is_valid_config_key should detect valid keys", is_valid_config_key_detect_valid_test },

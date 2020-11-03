@@ -20,12 +20,12 @@ struct test_runner_instance {
 	unsigned int failed;
 };
 
-static void print_test_heading(const char *test_name)
+static void print_test_heading(const char *suite_name)
 {
-	fprintf(stderr, "*** %s ***\n", test_name);
+	fprintf(stderr, "*** %s ***\n", suite_name);
 }
 
-static void print_test_suite_summary(int passed, int failed)
+static void print_test_suite_summary(unsigned int passed, unsigned int failed)
 {
 	fprintf(stderr, "\n\nTest Execution Summary:\n");
 	fprintf(stderr, "Executed: %d\n", passed + failed);
@@ -34,7 +34,7 @@ static void print_test_suite_summary(int passed, int failed)
 	fprintf(stderr, "Failed: %d\n" ANSI_COLOR_RESET, failed);
 }
 
-static void print_test_summary(const char *test_name, int ret)
+static void print_test_summary(const char *suite_name, int ret)
 {
 	time_t rawtime;
 	struct tm *timeinfo;
@@ -48,50 +48,38 @@ static void print_test_summary(const char *test_name, int ret)
 		   timeinfo->tm_min,
 		   timeinfo->tm_sec);
 
-	fprintf(stderr, "%s ", test_name);
-	int len = 96 - (int)strlen(test_name);
+	fprintf(stderr, "%s ", suite_name);
+	int len = 96 - (int)strlen(suite_name);
 	for (int i = 0; len > 0 && i < len; i++)
 		fprintf(stderr, ".");
 	fprintf(stderr, " %s\n" ANSI_COLOR_RESET, ret ? "fail" : "ok");
 }
 
-int execute_suite(struct suite_test tests[], int verbose, int immediate)
+int execute_suite(int (*fn)(struct test_runner_instance *), const char *suite_name, int immediate)
 {
 	struct test_runner_instance instance = { 0, 0, 0, 0, 0 };
-	struct suite_test *test = tests;
-	int ret = 0, failed = 0;
+	int ret;
 
-	instance.verbose = verbose;
 	instance.immediate = immediate;
 
-	while (test->test_name) {
-		if (instance.verbose)
-			print_test_heading(test->test_name);
+	print_test_heading(suite_name);
 
-		ret = test->fn(&instance);
-		failed |= ret;
-		if (!instance.verbose)
-			print_test_summary(test->test_name, ret);
-
-		if (ret && instance.immediate)
-			break;
-
-		test++;
-	}
+	ret = fn(&instance);
+	if (!instance.verbose)
+		print_test_summary(suite_name, ret);
 
 	print_test_suite_summary(instance.passed, instance.failed);
-	return failed;
+	return ret;
 }
 
 int execute_tests(struct test_runner_instance *instance, struct unit_test *tests)
 {
-	int ret = 0, failed = 0;
+	int ret, failed = 0;
 	struct unit_test *test = tests;
 
 	while (test->test_name) {
 		ret = test->fn();
-		if (instance->verbose)
-			print_test_summary(test->test_name, ret);
+		print_test_summary(test->test_name, ret);
 
 		instance->executed++;
 		if (ret)

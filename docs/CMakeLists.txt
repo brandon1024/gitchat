@@ -1,32 +1,27 @@
 #
 # Configure Man Page Installation
 #
-FIND_PROGRAM(GZIP_EXECUTABLE gzip)
-ADD_CUSTOM_TARGET(docs ALL)
-ADD_DEPENDENCIES(docs ${PROJECT_NAME})
+find_program(GZIP_EXECUTABLE gzip)
+add_custom_target(docs ALL)
 
 #
 # Sections and Template Strings
 #
-STRING(TIMESTAMP CMAKE_COMPILATION_DATE "%d/%m/%Y")
-FILE(READ ${PROJECT_SOURCE_DIR}/docs/sections/directory-structure.section DOCS_FILE_DIRECTORY_LAYOUT_SECTION)
-FILE(READ ${PROJECT_SOURCE_DIR}/docs/sections/reporting-bugs.section DOCS_REPORTING_BUGS_SECTION)
-FILE(READ ${PROJECT_SOURCE_DIR}/docs/sections/authors.section DOCS_AUTHORS_SECTION)
+string(TIMESTAMP CMAKE_COMPILATION_DATE "%d/%m/%Y")
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/sections/directory-structure.section DOCS_FILE_DIRECTORY_LAYOUT_SECTION)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/sections/reporting-bugs.section DOCS_REPORTING_BUGS_SECTION)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/sections/authors.section DOCS_AUTHORS_SECTION)
 
 #
 # Configure Build and Install Target
 #
-FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/docs)
-FILE(GLOB MAN_PAGES ${PROJECT_SOURCE_DIR}/docs/*.1)
-FOREACH(FILE ${MAN_PAGES})
-	GET_FILENAME_COMPONENT(FILENAME ${FILE} NAME)
-	CONFIGURE_FILE(
-			"${FILE}"
-			"${PROJECT_BINARY_DIR}/docs/${FILENAME}"
-	)
-	ADD_CUSTOM_COMMAND(TARGET docs
-			COMMAND ${GZIP_EXECUTABLE} -c9 "${PROJECT_BINARY_DIR}/docs/${FILENAME}" > ${PROJECT_BINARY_DIR}/docs/${FILENAME}.gz
-			DEPENDS ${FILE}
-			COMMENT "Building manual page docs/${FILENAME}.gz")
-	INSTALL(FILES ${PROJECT_BINARY_DIR}/docs/${FILENAME}.gz DESTINATION share/man/man1)
-ENDFOREACH(FILE)
+foreach(SECTION 1 2 3 4 5 6 7 8)
+	file(GLOB MAN_PAGES ${CMAKE_CURRENT_SOURCE_DIR}/*.${SECTION})
+
+	foreach(FILE ${MAN_PAGES})
+		get_filename_component(FILENAME ${FILE} NAME)
+		configure_file(${FILE} ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME})
+
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME} DESTINATION share/man/man${SECTION})
+	endforeach()
+endforeach()

@@ -45,7 +45,7 @@ void init_gpgme_openpgp_engine(void)
 	if (err)
 		GPG_FATAL("failed to load OpenPGP engine using installed version of GPGME", err);
 
-	struct _gpgme_engine_info *enginfo;
+	gpgme_engine_info_t enginfo;
 	err = gpgme_get_engine_info(&enginfo);
 	if (err)
 		GPG_FATAL("failed to load gpgme engine info", err);

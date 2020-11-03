@@ -176,7 +176,8 @@ int merge_config_key_components(struct str_array *components, struct strbuf *key
 	if (!is_valid_config_key(key_tmp.buff))
 		return 1;
 
-	strbuf_attach(key, key_tmp.buff, key_tmp.len);
+	if (key)
+		strbuf_attach(key, key_tmp.buff, key_tmp.len);
 
 	strbuf_release(&comp_tmp);
 	strbuf_release(&key_tmp);

@@ -146,21 +146,17 @@ static struct str_array_entry *config_data_has_prop(struct config_data *config,
 	return NULL;
 }
 
-int config_data_insert(struct config_data *config, const char *key, const char *value)
+/**
+ * Insert a value into config_data structure. The config key is broken down into
+ * its components, and is assumed to represent a valid key.
+ *
+ * `key_components` is mutated.
+ * */
+static int config_data_insert_internal(struct config_data *config,
+		struct str_array *key_components, const char *value)
 {
-	struct str_array key_components;
-	str_array_init(&key_components);
-
-	int key_invalid = isolate_config_key_components(key, &key_components);
-	if (key_invalid) {
-		str_array_release(&key_components);
-		return -1;
-	}
-
-	char *prop = str_array_remove(&key_components, key_components.len - 1);
-	struct config_data *current = config_data_lookup_section(config, &key_components, 1);
-
-	str_array_release(&key_components);
+	char *prop = str_array_remove(key_components, key_components->len - 1);
+	struct config_data *current = config_data_lookup_section(config, key_components, 1);
 
 	// verify that there are no duplicate entries
 	if (config_data_has_prop(current, prop, NULL)) {
@@ -176,7 +172,30 @@ int config_data_insert(struct config_data *config, const char *key, const char *
 	return 0;
 }
 
-int config_data_update(struct config_data *config, const char *key, const char *value)
+int config_data_insert_exp_key(struct config_data *config, const char *value, ...)
+{
+	va_list ap;
+
+	struct str_array key_components;
+	str_array_init(&key_components);
+
+	va_start(ap, value);
+	str_array_vpush(&key_components, ap);
+	va_end(ap);
+
+	int is_invalid = merge_config_key_components(&key_components, NULL);
+	if (is_invalid) {
+		str_array_release(&key_components);
+		return -1;
+	}
+
+	int status = config_data_insert_internal(config, &key_components, value);
+
+	str_array_release(&key_components);
+	return status;
+}
+
+int config_data_insert(struct config_data *config, const char *key, const char *value)
 {
 	struct str_array key_components;
 	str_array_init(&key_components);
@@ -187,9 +206,17 @@ int config_data_update(struct config_data *config, const char *key, const char *
 		return -1;
 	}
 
-	char *prop = str_array_remove(&key_components, key_components.len - 1);
-	struct config_data *current = config_data_lookup_section(config, &key_components, 0);
+	int status = config_data_insert_internal(config, &key_components, value);
+
 	str_array_release(&key_components);
+	return status;
+}
+
+static int config_data_update_internal(struct config_data *config,
+		struct str_array *key_components, const char *value)
+{
+	char *prop = str_array_remove(key_components, key_components->len - 1);
+	struct config_data *current = config_data_lookup_section(config, key_components, 0);
 
 	// if the section path does not exist, return
 	if (!current) {
@@ -213,7 +240,30 @@ int config_data_update(struct config_data *config, const char *key, const char *
 	return 0;
 }
 
-int config_data_delete(struct config_data *config, const char *key)
+int config_data_update_exp_key(struct config_data *config, const char *value, ...)
+{
+	va_list ap;
+
+	struct str_array key_components;
+	str_array_init(&key_components);
+
+	va_start(ap, value);
+	str_array_vpush(&key_components, ap);
+	va_end(ap);
+
+	int is_invalid = merge_config_key_components(&key_components, NULL);
+	if (is_invalid) {
+		str_array_release(&key_components);
+		return -1;
+	}
+
+	int status = config_data_update_internal(config, &key_components, value);
+
+	str_array_release(&key_components);
+	return status;
+}
+
+int config_data_update(struct config_data *config, const char *key, const char *value)
 {
 	struct str_array key_components;
 	str_array_init(&key_components);
@@ -224,9 +274,17 @@ int config_data_delete(struct config_data *config, const char *key)
 		return -1;
 	}
 
-	char *prop = str_array_remove(&key_components, key_components.len - 1);
-	struct config_data *current = config_data_lookup_section(config, &key_components, 0);
+	int status = config_data_update_internal(config, &key_components, value);
+
 	str_array_release(&key_components);
+	return status;
+}
+
+static int config_data_delete_internal(struct config_data *config,
+		struct str_array *key_components)
+{
+	char *prop = str_array_remove(key_components, key_components->len - 1);
+	struct config_data *current = config_data_lookup_section(config, key_components, 0);
 
 	// if the section path does not exist, return
 	if (!current) {
@@ -243,11 +301,33 @@ int config_data_delete(struct config_data *config, const char *key)
 		return 1;
 
 	str_array_delete(&current->entries, index, 1);
-
 	return 0;
 }
 
-const char *config_data_find(struct config_data *config, const char *key)
+int config_data_delete_exp_key(struct config_data *config, ...)
+{
+	va_list ap;
+
+	struct str_array key_components;
+	str_array_init(&key_components);
+
+	va_start(ap, config);
+	str_array_vpush(&key_components, ap);
+	va_end(ap);
+
+	int is_invalid = merge_config_key_components(&key_components, NULL);
+	if (is_invalid) {
+		str_array_release(&key_components);
+		return -1;
+	}
+
+	int status = config_data_delete_internal(config, &key_components);
+
+	str_array_release(&key_components);
+	return status;
+}
+
+int config_data_delete(struct config_data *config, const char *key)
 {
 	struct str_array key_components;
 	str_array_init(&key_components);
@@ -255,12 +335,20 @@ const char *config_data_find(struct config_data *config, const char *key)
 	int key_invalid = isolate_config_key_components(key, &key_components);
 	if (key_invalid) {
 		str_array_release(&key_components);
-		return NULL;
+		return -1;
 	}
 
-	char *prop = str_array_remove(&key_components, key_components.len - 1);
-	struct config_data *current = config_data_lookup_section(config, &key_components, 0);
+	int status = config_data_delete_internal(config, &key_components);
+
 	str_array_release(&key_components);
+	return status;
+}
+
+const char *config_data_find_internal(struct config_data *config,
+		struct str_array *key_components)
+{
+	char *prop = str_array_remove(key_components, key_components->len - 1);
+	struct config_data *current = config_data_lookup_section(config, key_components, 0);
 
 	// if the section path does not exist, return
 	if (!current) {
@@ -275,6 +363,46 @@ const char *config_data_find(struct config_data *config, const char *key)
 	if (!prop_entry)
 		return NULL;
 	return prop_entry->data;
+}
+
+const char *config_data_find_exp_key(struct config_data *config, ...)
+{
+	va_list ap;
+
+	struct str_array key_components;
+	str_array_init(&key_components);
+
+	va_start(ap, config);
+	str_array_vpush(&key_components, ap);
+	va_end(ap);
+
+	int is_invalid = merge_config_key_components(&key_components, NULL);
+	if (is_invalid) {
+		str_array_release(&key_components);
+		return NULL;
+	}
+
+	const char *value = config_data_find_internal(config, &key_components);
+
+	str_array_release(&key_components);
+	return value;
+}
+
+const char *config_data_find(struct config_data *config, const char *key)
+{
+	struct str_array key_components;
+	str_array_init(&key_components);
+
+	int key_invalid = isolate_config_key_components(key, &key_components);
+	if (key_invalid) {
+		str_array_release(&key_components);
+		return NULL;
+	}
+
+	const char *value = config_data_find_internal(config, &key_components);
+
+	str_array_release(&key_components);
+	return value;
 }
 
 int config_data_get_section_key(struct config_data *config, struct strbuf *key)

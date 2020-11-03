@@ -1,4 +1,4 @@
 [channel.master]
     name = master
     createdby =
-    description = General Channel
+    description = "General Channel"

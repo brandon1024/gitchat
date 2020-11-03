@@ -127,6 +127,34 @@ TEST_DEFINE(config_data_insert_valid_key_pass_test)
 	TEST_END();
 }
 
+TEST_DEFINE(config_data_insert_exp_key_test)
+{
+	struct config_data *config;
+
+	TEST_START() {
+		config_data_init(&config);
+
+		int status = config_data_insert_exp_key(config, "value1", "myprop", NULL);
+		assert_zero_msg(status, "config_data_insert_exp_key should successfully insert from exploded key");
+		const char *value = config_data_find(config, "myprop");
+		assert_string_eq("value1", value);
+
+		status = config_data_insert_exp_key(config, "value2", "section", "subsection", "prop", NULL);
+		assert_zero_msg(status, "config_data_insert_exp_key should successfully insert from exploded key");
+		value = config_data_find(config, "section.subsection.prop");
+		assert_string_eq("value2", value);
+
+		status = config_data_insert_exp_key(config, "value3", "section", "su bsection", "p\\r\"op", NULL);
+		assert_zero_msg(status, "config_data_insert_exp_key should successfully insert from exploded key");
+		value = config_data_find(config, "section.\"su bsection\".\"p\\\\r\\\"op\"");
+		assert_string_eq("value3", value);
+	}
+
+	config_data_release(&config);
+
+	TEST_END();
+}
+
 TEST_DEFINE(config_data_update_invalid_key_fail_test)
 {
 	struct config_data *config;
@@ -262,6 +290,40 @@ TEST_DEFINE(config_data_delete_invalid_key_fail_test)
 	TEST_END();
 }
 
+TEST_DEFINE(config_data_update_exp_key_test)
+{
+	struct config_data *config;
+
+	TEST_START() {
+		config_data_init(&config);
+
+		int status = config_data_insert(config, "myprop", "value1");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		status = config_data_update_exp_key(config, "value1-updated", "myprop", NULL);
+		assert_zero_msg(status, "config_data_update_exp_key failed to update existing config value");
+		const char *value = config_data_find(config, "myprop");
+		assert_string_eq("value1-updated", value);
+
+		status = config_data_insert(config, "section.subsection.prop", "value2");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		status = config_data_update_exp_key(config, "value2-updated", "section", "subsection", "prop", NULL);
+		assert_zero_msg(status, "config_data_update_exp_key failed to update existing config value");
+		value = config_data_find(config, "section.subsection.prop");
+		assert_string_eq("value2-updated", value);
+
+		status = config_data_insert(config, "section.\"su bsection\".\"p\\\\r\\\"op\"", "value3");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		status = config_data_update_exp_key(config, "value3-updated", "section", "su bsection", "p\\r\"op", NULL);
+		assert_zero_msg(status, "config_data_update_exp_key failed to update existing config value");
+		value = config_data_find(config, "section.\"su bsection\".\"p\\\\r\\\"op\"");
+		assert_string_eq("value3-updated", value);
+	}
+
+	config_data_release(&config);
+
+	TEST_END();
+}
+
 TEST_DEFINE(config_data_delete_no_create_paths_test)
 {
 	struct config_data *config;
@@ -344,6 +406,40 @@ TEST_DEFINE(config_data_delete_valid_key_pass_test)
 	TEST_END();
 }
 
+TEST_DEFINE(config_data_delete_exp_key_test)
+{
+	struct config_data *config;
+
+	TEST_START() {
+		config_data_init(&config);
+
+		int status = config_data_insert(config, "myprop", "value1");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		status = config_data_delete_exp_key(config, "myprop", NULL);
+		assert_zero_msg(status, "config_data_delete_exp_key failed to delete existing config value");
+		const char *value = config_data_find(config, "myprop");
+		assert_null_msg(value, "config_data_delete_exp_key did not delete property");
+
+		status = config_data_insert(config, "section.subsection.prop", "value2");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		status = config_data_delete_exp_key(config, "section", "subsection", "prop", NULL);
+		assert_zero_msg(status, "config_data_delete_exp_key failed to delete existing config value");
+		value = config_data_find(config, "section.subsection.prop");
+		assert_null_msg(value, "config_data_delete_exp_key did not delete property");
+
+		status = config_data_insert(config, "section.\"su bsection\".\"p\\\\r\\\"op\"", "value3");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		status = config_data_delete_exp_key(config, "section", "su bsection", "p\\r\"op", NULL);
+		assert_zero_msg(status, "config_data_delete_exp_key failed to delete existing config value");
+		value = config_data_find(config, "section.\"su bsection\".\"p\\\\r\\\"op\"");
+		assert_null_msg(value, "config_data_delete_exp_key did not delete property");
+	}
+
+	config_data_release(&config);
+
+	TEST_END();
+}
+
 TEST_DEFINE(config_data_find_no_create_paths_test)
 {
 	struct config_data *config;
@@ -392,6 +488,34 @@ TEST_DEFINE(config_data_find_found_return_value_test)
 
 		const char *property = config_data_find(config, key);
 		assert_nonnull_msg(property, "config property not found unexpectedly");
+	}
+
+	config_data_release(&config);
+
+	TEST_END();
+}
+
+TEST_DEFINE(config_data_find_exp_key_test)
+{
+	struct config_data *config;
+
+	TEST_START() {
+		config_data_init(&config);
+
+		int status = config_data_insert(config, "myprop", "value1");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		const char *value = config_data_find_exp_key(config, "myprop", NULL);
+		assert_string_eq("value1", value);
+
+		status = config_data_insert(config, "section.subsection.prop", "value2");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		value = config_data_find_exp_key(config, "section", "subsection", "prop", NULL);
+		assert_string_eq("value2", value);
+
+		status = config_data_insert(config, "section.\"su bsection\".\"p\\\\r\\\"op\"", "value3");
+		assert_zero_msg(status, "config_data_insert failed to insert value into config");
+		value = config_data_find_exp_key(config, "section", "su bsection", "p\\r\"op", NULL);
+		assert_string_eq("value3", value);
 	}
 
 	config_data_release(&config);
@@ -464,19 +588,23 @@ int test_suite(struct test_runner_instance *instance)
 			{ "attempting to insert value with invalid key should fail", config_data_insert_invalid_key_test },
 			{ "insertion should fail if duplicate already exists", config_data_insert_duplicate_fail_test },
 			{ "insertion should succeed with valid keys", config_data_insert_valid_key_pass_test },
+			{ "insertion with exploded keys should function as expected", config_data_insert_exp_key_test },
 			{ "attempting to update value with invalid key should fail", config_data_update_invalid_key_fail_test },
 			{ "new config paths should not be created when update fails because key missing", config_data_update_no_create_paths_test },
 			{ "update should fail if section does not exist already", config_data_update_missing_section_fails_test },
 			{ "update should fail if config property does not exist already", config_data_update_missing_property_fails_test },
 			{ "update should succeed with valid keys", config_data_update_valid_key_pass_test },
+			{ "update with exploded keys should function as expected", config_data_update_exp_key_test },
 			{ "attempting to delete value with invalid key should fail", config_data_delete_invalid_key_fail_test },
 			{ "new config paths should not be created when deleting config value", config_data_delete_no_create_paths_test },
 			{ "delete should fail if section does not exist already", config_data_delete_fail_section_missing_test },
 			{ "delete should fail if config property does not exist already", config_data_delete_fail_property_missing_test },
 			{ "delete should succeed with valid keys", config_data_delete_valid_key_pass_test },
+			{ "delete with exploded keys should function as expected", config_data_delete_exp_key_test },
 			{ "searching for config property should not create sections", config_data_find_no_create_paths_test },
 			{ "searching for config property should return NULL if not found", config_data_find_not_found_return_null_test },
 			{ "searching for config property should return pointer to property value if found", config_data_find_found_return_value_test },
+			{ "searching for config properties with exploded keys should function as expected", config_data_find_exp_key_test },
 			{ "config_data_get_section_key should correctly reconstruct section keys from arbitrary nodes", config_data_get_section_key_test },
 			{ NULL, NULL }
 	};

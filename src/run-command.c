@@ -122,10 +122,10 @@ int start_command(struct child_process_def *cmd)
 
 	if (cmd->args.arr.len) {
 		char *args_literal = argv_array_collapse(&cmd->args);
-		LOG_TRACE("executing shell process '%s %s'", executable_path, args_literal);
+		LOG_TRACE("executing process '%s %s'", executable_path, args_literal);
 		free(args_literal);
 	} else {
-		LOG_TRACE("executing shell process '%s'", executable_path);
+		LOG_TRACE("executing process '%s'", executable_path);
 	}
 
 	//args and env are duplicated so child_process_def is not modified.

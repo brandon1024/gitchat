@@ -7,27 +7,40 @@
 void git_str_to_oid(struct git_oid *oid, const char *str)
 {
 	for (size_t index = 0; index < GIT_RAW_OBJECT_ID; index++) {
-		char c1 = str[index * 2];
-		char c2 = str[index * 2 + 1];
+		unsigned char c1 = str[index * 2];
+		unsigned char c2 = str[index * 2 + 1];
 		if (!isxdigit(c1) || !isxdigit(c2))
 			DIE("illegal character encountered while parsing git object id: %.*s",
 					GIT_HEX_OBJECT_ID, str);
 
 		if (isdigit(c1))
-			c1 -= 0x30;
+			c1 = c1 - 0x30;
 		else if (isupper(c1))
-			c1 -= 0x41;
+			c1 = c1 - 0x41 + 10;
 		else
-			c1 -= 0x61;
+			c1 = c1 - 0x61 + 10;
 
 		if (isdigit(c2))
-			c1 -= 0x30;
+			c2 = c2 - 0x30;
 		else if (isupper(c2))
-			c1 -= 0x41;
+			c2 = c2 - 0x41 + 10;
 		else
-			c1 -= 0x61;
+			c2 = c2 - 0x61 + 10;
 
 		oid->id[index] = (c1 << 4) | (c2 & 0x0f);
+	}
+}
+
+void git_oid_to_str(struct git_oid *oid, char hex_buffer[GIT_HEX_OBJECT_ID])
+{
+	const char hex_digits[] = "0123456789abcdef";
+
+	for (size_t i = 0; i < GIT_RAW_OBJECT_ID; i++) {
+		unsigned char c1 = (oid->id[i] >> 4) & 0x0f;
+		unsigned char c2 = oid->id[i] & 0x0f;
+
+		hex_buffer[i * 2] = hex_digits[c1];
+		hex_buffer[i * 2 + 1] = hex_digits[c2];
 	}
 }
 

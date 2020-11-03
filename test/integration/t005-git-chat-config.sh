@@ -101,7 +101,7 @@ assert_success 'git chat config --set with invalid key should fail with message'
 	grep "invalid key" err
 '
 
-assert_success 'git chat config --unset with unknonwn key should exit with nonzero status' '
+assert_success 'git chat config --unset with unknown key should exit with nonzero status' '
 	! git chat config --unset unknown.config
 '
 
@@ -139,7 +139,7 @@ assert_success 'git chat config --unset should remove section if no entries exis
 	! grep "config1" .git-chat/config
 '
 
-assert_success 'git chat config with invalid comibnation of options should fail' '
+assert_success 'git chat config with invalid combination of options should fail' '
 	reset_trash_dir &&
 	git chat init &&
 	cat >.git-chat/config <<-\EOF

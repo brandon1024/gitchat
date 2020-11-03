@@ -33,6 +33,9 @@ int isolate_config_key_components(const char *key, struct str_array *components)
  *
  * Slashes and double quotes are escaped if encountered.
  *
+ * If `key` is NULL, the result is simply discarded (useful to verify that an
+ * exploded list of key components is a valid key).
+ *
  * Returns zero if successful, and non-zero if one or more key components are
  * invalid.
  * */

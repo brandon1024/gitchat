@@ -224,6 +224,10 @@ export TEST_RUNNER_PATH
 # Trick Git into thinking that the test trash directory is not in a git working tree
 export GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
 
+# Trick git into using an alternate gitconfig for tests
+export GIT_CONFIG=${TEST_RESOURCES_DIR}/.gitconfig
+export GIT_CONFIG_NOSYSTEM=1
+
 export GIT_AUTHOR_NAME="Test User"
 export GIT_AUTHOR_EMAIL="test.user@testing.com"
 export GIT_COMMITTER_NAME="Test User"

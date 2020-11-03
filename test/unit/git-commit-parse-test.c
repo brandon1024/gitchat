@@ -41,6 +41,27 @@ static int sig_empty(struct git_signature *sig)
 	return 1;
 }
 
+TEST_DEFINE(git_commit_oid_parse_test)
+{
+	const char *commit_id = "5e889844933ed0762335f69bcd91fa3174b29f7b";
+	const char *decoded = NULL;
+
+	TEST_START() {
+		struct git_oid oid;
+		git_str_to_oid(&oid, commit_id);
+
+		char tmp[GIT_HEX_OBJECT_ID + 1];
+		git_oid_to_str(&oid, tmp);
+		tmp[GIT_HEX_OBJECT_ID] = 0;
+
+		decoded = tmp;
+		assert_string_eq_msg(commit_id, decoded,
+				"unexpected commit id; expected %s but was %s", commit_id, decoded);
+	}
+
+	TEST_END();
+}
+
 TEST_DEFINE(git_commit_object_init_test)
 {
 	struct git_commit commit;
@@ -482,6 +503,7 @@ const char *suite_name = SUITE_NAME;
 int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
+			{ "git_str_to_oid and git_oid_to_str should correctly convert oid", git_commit_oid_parse_test },
 			{ "git_commit should initialize correctly", git_commit_object_init_test },
 			{ "git_commit should release correctly", git_commit_object_release_test },
 			{ "commit_parse should correctly parse simple commit object", commit_parse_simple_test },

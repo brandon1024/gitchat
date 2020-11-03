@@ -93,27 +93,33 @@ assert_success 'git chat init --description with description should set the spac
 
 assert_success 'git chat init should update config first with username' '
 	reset_trash_dir &&
-	git config --file ".gitconfig" user.username "test-username" &&
-	git config --file ".gitconfig" user.email "test.email@test.com" &&
-	git config --file ".gitconfig" user.name "test-name"
+	touch .gitconfig &&
+	GIT_CONFIG=$(pwd)/.gitconfig
+	git config --file "${GIT_CONFIG}" user.username "test-username" &&
+	git config --file "${GIT_CONFIG}" user.email "test.email@test.com" &&
+	git config --file "${GIT_CONFIG}" user.name "test-name"
 ' '
-	GIT_CONFIG=$(pwd)/.gitconfig GIT_CONFIG_NOSYSTEM=1 git chat init &&
+	git chat init &&
 	grep "createdby = \"test-username\"" .git-chat/config
 '
 
 assert_success 'git chat init should update config with email if no username found' '
 	reset_trash_dir &&
-	git config --file ".gitconfig" user.email "test.email@test.com" &&
-	git config --file ".gitconfig" user.name "test-name"
+	touch .gitconfig &&
+	GIT_CONFIG=$(pwd)/.gitconfig
+	git config --file "${GIT_CONFIG}" user.email "test.email@test.com" &&
+	git config --file "${GIT_CONFIG}" user.name "test-name"
 ' '
-	GIT_CONFIG=$(pwd)/.gitconfig GIT_CONFIG_NOSYSTEM=1 git chat init &&
+	git chat init &&
 	grep "createdby = \"test.email@test.com\"" .git-chat/config
 '
 
 assert_success 'git chat init should update config with name if no username or email found' '
 	reset_trash_dir &&
-	git config --file ".gitconfig" user.name "test-name"
+	touch .gitconfig &&
+	GIT_CONFIG=$(pwd)/.gitconfig
+	git config --file "${GIT_CONFIG}" user.name "test-name"
 ' '
-	GIT_CONFIG=$(pwd)/.gitconfig GIT_CONFIG_NOSYSTEM=1 git chat init &&
+	git chat init &&
 	grep "createdby = \"test-name\"" .git-chat/config
 '

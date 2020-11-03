@@ -70,7 +70,22 @@ usage: git chat import-key [--gpg-home <path>] [--] <key fpr>...
 ```
 
 ### git chat channel
-**IN PROGRESS** Create a new channel by branching off the current point in the conversation.
+Create a new channel by branching off the current point in the conversation.
+
+```
+usage: git chat channel create [(-n | --name) <alias>] [(-d | --description) <description>] <ref>
+   or: git chat channel switch <ref>
+   or: git chat channel delete <ref>
+   or: git chat channel list [(-a | --all)]
+   or: git chat channel [<subcommand>] [(-h | --help)]
+
+    create              create a new channel
+    switch              switch to another channel
+    delete              delete a channel
+    list                list channels
+    -h, --help          show usage and exit
+
+```
 
 ### git chat message
 Create a new message in the current channel. The message is encrypted with GPG. The message is not yet published, and needs to be pushed to the remote repository using `git chat publish`.

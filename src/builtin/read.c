@@ -108,7 +108,7 @@ static void pretty_print_message(struct git_commit *commit, struct strbuf *messa
 		strbuf_attach_fmt(&formatted_message, "\n\t%s", line);
 	}
 
-	printf("[%s]%s\n", meta.buff, formatted_message.buff);
+	printf("[%s]\n%s\n\n", meta.buff, formatted_message.buff);
 
 	str_array_release(&lines);
 	strbuf_release(&meta);

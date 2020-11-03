@@ -21,6 +21,11 @@ struct git_oid {
 void git_str_to_oid(struct git_oid *oid, const char *str);
 
 /**
+ * Format a git_oid as a 40-byte hex string.
+ * */
+void git_oid_to_str(struct git_oid *oid, char hex_buffer[GIT_HEX_OBJECT_ID]);
+
+/**
  * Attempt to fetch the user identify from their .gitconfig. The author's name
  * is chosen, in the following order:
  * 1. user.username

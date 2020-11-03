@@ -9,7 +9,7 @@ fi
 source ./test-lib.sh
 
 #
-# Verify Assertion Functions
+# Self Test: Verify Assertion Functions
 #
 assert_success 'reset_trash_dir should correctly clear trash directory contents' '
 	echo test >out &&

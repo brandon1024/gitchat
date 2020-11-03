@@ -1,10 +1,5 @@
-#ifndef GIT_CHAT_CONFIG_DEFAULTS_H
-#define GIT_CHAT_CONFIG_DEFAULTS_H
-
-struct config_def {
-	const char *key_pattern;
-	const char *default_value;
-};
+#ifndef GIT_CHAT_INCLUDE_CONFIG_CONFIG_DEFAULTS_H
+#define GIT_CHAT_INCLUDE_CONFIG_CONFIG_DEFAULTS_H
 
 /**
  * Fetch from the default configuration definitions the statically-allocated
@@ -21,4 +16,4 @@ const char *get_default_config_value(const char *key);
  * */
 int is_recognized_config_key(const char *key);
 
-#endif //GIT_CHAT_CONFIG_DEFAULTS_H
+#endif //GIT_CHAT_INCLUDE_CONFIG_CONFIG_DEFAULTS_H

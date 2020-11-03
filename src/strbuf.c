@@ -215,6 +215,6 @@ int strbuf_split(const struct strbuf *buff, const char *delim, struct str_array 
 
 void strbuf_clear(struct strbuf *buff)
 {
-	memset(buff->buff, 0, buff->alloc);
 	buff->len = 0;
+	buff->buff[0] = 0;
 }

@@ -68,7 +68,7 @@ assert_success 'git chat config --set with existing key should set the config fo
 	EOF
 ' '
 	git chat config --set config1.simple2 "new value" &&
-	grep "simple2 = new value" .git-chat/config &&
+	grep "simple2 = \"new value\"" .git-chat/config &&
 	! grep "simple2 = value" .git-chat/config &&
 	git chat config --get config1.simple2 >out &&
 	grep "new value" out
@@ -89,15 +89,16 @@ assert_success 'git chat config --set with invalid key should fail with message'
 	git chat init
 ' '
 	! git chat config --set '\''my.c$onfig.value'\'' "my config value" 2>err &&
-	grep "invalid config key" err &&
+	cat err &&
+	grep "invalid key" err &&
 	! git chat config --set "my.c onfig.value" "my config value" 2>err &&
-	grep "invalid config key" err &&
+	grep "invalid key" err &&
 	! git chat config --set my.c$onfig. "my config value" 2>err &&
-	grep "invalid config key" err &&
+	grep "invalid key" err &&
 	! git chat config --set my..value "my config value" 2>err &&
-	grep "invalid config key" err &&
+	grep "invalid key" err &&
 	! git chat config --set .my.value "my config value" 2>err &&
-	grep "invalid config key" err
+	grep "invalid key" err
 '
 
 assert_success 'git chat config --unset with unknonwn key should exit with nonzero status' '

@@ -1,3 +1,5 @@
+#include <inttypes.h>
+
 #include "test-lib.h"
 #include "str-array.h"
 
@@ -485,6 +487,36 @@ TEST_DEFINE(str_array_remove_test)
 	TEST_END();
 }
 
+TEST_DEFINE(str_array_delete_test)
+{
+	struct str_array str_a;
+	str_array_init(&str_a);
+
+	TEST_START() {
+		str_array_push(&str_a, "str1", "str2", "str3", "str4", "str5", NULL);
+
+		str_array_delete(&str_a, 1, 2);
+		assert_eq_msg(3, str_a.len, "unexpected str_array length");
+		assert_string_eq("str1", str_array_get(&str_a, 0));
+		assert_string_eq("str4", str_array_get(&str_a, 1));
+		assert_string_eq("str5", str_array_get(&str_a, 2));
+
+		// if this test hangs forever, it's failing to calculate the stopping condition
+		str_array_push(&str_a, "str1", "str2", "str3", "str4", "str5", NULL);
+		str_array_delete(&str_a, 1, SIZE_MAX);
+		assert_eq_msg(1, str_a.len, "unexpected str_array length");
+		assert_string_eq("str1", str_array_get(&str_a, 0));
+
+		str_array_delete(&str_a, 1, 0);
+		assert_eq_msg(1, str_a.len, "unexpected str_array length");
+		assert_string_eq("str1", str_array_get(&str_a, 0));
+	}
+
+	str_array_release(&str_a);
+
+	TEST_END();
+}
+
 TEST_DEFINE(str_array_detach_test)
 {
 	struct str_array str_a;
@@ -608,6 +640,7 @@ int str_array_test(struct test_runner_instance *instance)
 			{ "reversing an str-array with an odd number of elements should reverse correctly", str_array_reverse_odd },
 			{ "reversing an str-array with an even number of elements should reverse correctly", str_array_reverse_even },
 			{ "removing element from str-array should shift elements correctly", str_array_remove_test },
+			{ "deleting elements from str-array should shift elements correctly", str_array_delete_test },
 			{ "detaching strings from str-array should correctly detach", str_array_detach_test },
 			{ "detaching data from str-array should correctly detach data", str_array_detach_data_test },
 			{ "clearing an str-array should remove all entries but not reallocate array", str_array_clear_test },

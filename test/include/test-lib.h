@@ -127,15 +127,7 @@
 
 #define assert_string_eq_msg(a, b, ...) \
 	do { \
-		if ((a) && !(b)) { \
-			print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
-			__ret = 1; \
-			goto __test_end; \
-		} else if (!(a) && (b)) { \
-			print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
-			__ret = 1; \
-			goto __test_end; \
-		} else if (strcmp((a), (b)) != 0) { \
+		if (((a) && !(b)) || (!(a) && (b)) || (strcmp((a), (b)) != 0)) { \
 			print_assertion_failure_message(__FILE__, __LINE__, __func__, __VA_ARGS__); \
 			__ret = 1; \
 			goto __test_end; \
@@ -150,7 +142,7 @@
             print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected different strings, but both were NULL.", (a)); \
             __ret = 1; \
             goto __test_end; \
-        } else if (a == b || !strcmp((a), (b))) { \
+        } else if ((a) == (b) || !strcmp((a), (b))) { \
             print_assertion_failure_message(__FILE__, __LINE__, __func__, "Expected '%s' but got '%s'.", (a), (b)); \
             __ret = 1; \
             goto __test_end; \

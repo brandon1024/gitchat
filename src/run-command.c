@@ -1,10 +1,10 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <assert.h>
 
 #include "run-command.h"
 #include "fs-utils.h"
@@ -368,6 +368,8 @@ static void merge_env(struct str_array *deltaenv, struct str_array *result)
 
 static NORETURN void child_exit_routine(int status)
 {
-	write(child_failure_fd, &status, sizeof(status));
+	ssize_t ret = write(child_failure_fd, &status, sizeof(status));
+	assert(ret);
+	(void) ret;
 	_exit(status);
 }

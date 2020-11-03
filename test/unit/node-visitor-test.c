@@ -71,7 +71,8 @@ TEST_DEFINE(node_visitor_preorder_traveral_test)
 	TEST_END();
 }
 
-int node_visitor_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "node_visitor_next should return root node when first invoked", node_visitor_first_invocation_returns_root_test },

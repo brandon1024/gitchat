@@ -228,7 +228,8 @@ TEST_DEFINE(argv_array_collapse_delim_test)
 	TEST_END();
 }
 
-int argv_array_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "argv-array should initialize correctly", argv_array_init_test },

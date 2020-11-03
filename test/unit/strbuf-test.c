@@ -456,7 +456,8 @@ TEST_DEFINE(strbuf_clear_test)
 	TEST_END();
 }
 
-int strbuf_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "strbuf should initialize correctly", strbuf_init_test },

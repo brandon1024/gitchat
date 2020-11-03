@@ -456,7 +456,8 @@ TEST_DEFINE(config_data_get_section_key_test)
 	TEST_END();
 }
 
-int config_data_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "config_data_init should initialize with expected defaults", config_data_init_test },

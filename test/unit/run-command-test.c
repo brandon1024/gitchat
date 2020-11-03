@@ -410,7 +410,8 @@ TEST_DEFINE(run_command_chain_processes)
 	TEST_END();
 }
 
-int run_command_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "child_process_def_stdin() should only set stdin flags", child_process_def_set_stdin },

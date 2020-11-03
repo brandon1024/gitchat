@@ -1,0 +1,47 @@
+name: CI/PR
+on: [push, pull_request]
+env:
+  BUILD_TYPE: Release
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: sudo apt -qy install libgpgme-dev git valgrind
+
+      - name: Configure
+        run: cmake -B ${{github.workspace}}/build -S ${GITHUB_WORKSPACE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+
+      - name: Build
+        run: make -C ${{github.workspace}}/build all
+
+      - name: Package
+        run: make -C ${{github.workspace}}/build package
+
+      - name: Install
+        run: sudo apt -qy install ${{github.workspace}}/build/git-chat*.deb
+
+      - name: Unit Tests
+        run: make -C ${{github.workspace}}/build test ARGS='-T memcheck -V'
+
+      - name: Integration Tests
+        env:
+          TOOL_OPTIONS: "--suppressions=${{github.workspace}}/test/valgrind.supp"
+          TEST_VALGRIND: "ya boi"
+        run: make -C ${{github.workspace}}/build integration
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: integration-out
+          path: ${{github.workspace}}/build/test/out.log
+          retention-days: 1
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v2
+        if: ${{ success() }}
+        with:
+          name: Debian Package
+          path: ${{github.workspace}}/build/git-chat*.deb*

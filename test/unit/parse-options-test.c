@@ -521,7 +521,8 @@ TEST_DEFINE(parse_options_combined_short_arg_test)
 	TEST_END();
 }
 
-int parse_options_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "short boolean option directive should parse argument correctly", parse_options_short_bool_test },

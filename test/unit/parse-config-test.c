@@ -1073,7 +1073,8 @@ TEST_DEFINE(is_config_invalid_unrecognized_key_test)
 	TEST_END();
 }
 
-int parse_config_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "parse_config: empty or blank lines should be ignored when parsing config files", parse_config_ignore_empty_lines_test },

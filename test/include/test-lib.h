@@ -327,17 +327,12 @@
 
 struct test_runner_instance;
 
-struct suite_test {
-	const char *test_name;
-	int (*fn)(struct test_runner_instance *);
-};
-
 struct unit_test {
 	const char *test_name;
 	int (*fn)();
 };
 
-int execute_suite(struct suite_test tests[], int verbose, int immediate);
+int execute_suite(int (*fn)(struct test_runner_instance *), const char *suite_name, int immediate);
 int execute_tests(struct test_runner_instance *instance, struct unit_test *tests);
 void print_assertion_failure_message(const char *file_path, int line_number,
 		const char *func_name, const char *fmt, ...);

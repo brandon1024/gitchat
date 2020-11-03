@@ -8,8 +8,8 @@ usage: integration-runner.sh [options]
 
 Options:
 	--from-dir <directory>
-		By default, tests are executed from 'trash/' directory relative to this
-		script. This command is used to override this.
+		By default, tests are executed relative to the current working directory.
+		This command is used to override this.
 
 	--git-chat-installed <path>
 		If git-chat is installed in an alternate directory, use that installation
@@ -67,13 +67,13 @@ Environment:
 EOS
 }
 
-TEST_RUNNER_PATH="$( cd "$(dirname "${0}")" ; pwd -P )"
+TEST_RUNNER_PATH="$(pwd)"
 TEST_PATTERN="${TEST_PATTERN:-t[0-9][0-9][0-9]*.sh}"
 
 while [[ ${#} -gt 0 ]]; do
 	case "${1}" in
 		--from-dir)
-			TEST_TRASH_DIR=${2}
+			TEST_RUNNER_PATH=${2}
 			shift
 			shift
 			;;
@@ -156,7 +156,6 @@ if [[ ! -d "${TEST_RUNNER_PATH}/integration" ]]; then
 	exit 1
 fi
 
-export PATH="${TEST_RUNNER_PATH}/integration/bin:${PATH}"
 if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	# When running integration tests under valgrind memcheck, we wrap the git-chat
 	# executable in valgrind.sh, which accepts the same arguments as git-chat.
@@ -167,14 +166,18 @@ if [[ -n "${TEST_VALGRIND+x}" ]]; then
 		exit 1
 	fi
 
+	# this might exist from prior runs
+	rm -f "${TEST_RUNNER_PATH}/integration/bin/git-chat"
+
 	if [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 		export VALGRIND_TARGET="${TEST_GIT_CHAT_INSTALLED}/git-chat"
 	else
 		export VALGRIND_TARGET="$(which git-chat)"
 	fi
 
-	rm -f "${TEST_RUNNER_PATH}/integration/bin/git-chat"
 	ln -s "${TEST_RUNNER_PATH}/integration/bin/valgrind.sh" "${TEST_RUNNER_PATH}/integration/bin/git-chat"
+
+	export PATH="${TEST_RUNNER_PATH}/integration/bin:${PATH}"
 elif [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 	export PATH="${TEST_GIT_CHAT_INSTALLED}:${PATH}"
 fi
@@ -220,6 +223,11 @@ export TEST_RUNNER_PATH
 
 # Trick Git into thinking that the test trash directory is not in a git working tree
 export GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
+
+export GIT_AUTHOR_NAME="Test User"
+export GIT_AUTHOR_EMAIL="test.user@testing.com"
+export GIT_COMMITTER_NAME="Test User"
+export GIT_COMMITTER_EMAIL="test.user@testing.com"
 
 # Test Execution
 #

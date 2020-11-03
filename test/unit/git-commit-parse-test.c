@@ -478,7 +478,8 @@ TEST_DEFINE(commit_parse_skip_unknown_headers_test)
 	TEST_END();
 }
 
-int git_commit_parse_test(struct test_runner_instance *instance)
+const char *suite_name = SUITE_NAME;
+int test_suite(struct test_runner_instance *instance)
 {
 	struct unit_test tests[] = {
 			{ "git_commit should initialize correctly", git_commit_object_init_test },

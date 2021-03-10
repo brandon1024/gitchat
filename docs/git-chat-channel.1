@@ -1,0 +1,65 @@
+.TH git-chat-channel 1 "@CMAKE_COMPILATION_DATE@" "git-chat @CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@.@CMAKE_PROJECT_VERSION_PATCH@" "git-chat manual"
+
+.SH NAME
+git-chat-channel \- create, switch to, list and remove channels
+
+
+.SH SYNOPSIS
+.sp
+.nf
+\fIgit-chat-channel\fR (create | new) [(\-n | \-\-name) <alias>] [(\-d | \-\-description) <description>] <ref>
+\fIgit-chat-channel\fR (switch | sw) <ref>
+\fIgit-chat-channel\fR (delete | rm) <ref>
+\fIgit-chat-channel\fR (list | ls) [(\-a | \-\-all)]
+\fIgit-chat-channel\fR [<subcommand>] [(\-h | \-\-help)]
+
+.SH DESCRIPTION
+Interact with local channels (branches).
+
+This command can be used to create new channels, list local and remote channels, switch to another channel, and delete channels.
+
+.SH COMMANDS
+.TP
+create, new
+Branch from the current point in the chat history in a new channel. The channel will be created with the ref \fB<ref>\fR.
+
+.TP
+switch, sw
+Switch to another existing channel with ref \fB<ref>\fR.
+
+.TP
+delete, rm
+Delete a local channel with ref \fB<ref>\fR.
+
+.TP
+list, ls
+List all local or remote channels. By default, any remote channels that are up to date with a local channel are filtered, unless the \fI--all\fR option is supplied.
+
+.SH OPTIONS
+.TP
+\-n, \-\-name
+When creating a new channel, assign a name \fB<alias>\fR.
+
+.TP
+\-d, \-\-description
+When creating a new channel, provide a short description \fB<description>\fR.
+
+.TP
+\-a, \-\-all
+List all local and remove channels, even remote channels that are up to date with local channels.
+
+.TP
+\-h, \-\-help
+Print a simple synopsis and exit.
+
+
+.SH SEE ALSO
+\fBgit-chat-message\fR(1)
+
+
+.SH REPORTING BUGS
+@DOCS_REPORTING_BUGS_SECTION@
+
+
+.SH AUTHOR
+@DOCS_AUTHORS_SECTION@

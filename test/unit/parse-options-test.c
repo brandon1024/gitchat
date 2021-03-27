@@ -521,6 +521,30 @@ TEST_DEFINE(parse_options_combined_short_arg_test)
 	TEST_END();
 }
 
+TEST_DEFINE(parse_options_empty_argument_test)
+{
+	int quiet = 0;
+	char *file = NULL;
+
+	options[1].arg_value = &quiet;
+	options[3].arg_value = &file;
+
+	TEST_START() {
+		const int argc = 5;
+		char *argv[] = {"myprog", "-F", "my file", "", "-q"};
+		int new_argc = parse_options(argc, argv, options, 1, 0);
+		assert_eq_msg(0, new_argc, "parse_options did not skip empty args");
+
+		assert_string_eq_msg("my file", file, "unexpected arg value");
+		assert_true_msg(quiet, "boolean arg not set");
+	}
+
+	options[1].arg_value = NULL;
+	options[3].arg_value = NULL;
+
+	TEST_END();
+}
+
 const char *suite_name = SUITE_NAME;
 int test_suite(struct test_runner_instance *instance)
 {
@@ -541,6 +565,7 @@ int test_suite(struct test_runner_instance *instance)
 			{ "parse_options with skip_first enabled should ignore first argument in arg vector", parse_options_skip_first_arg_test },
 			{ "parse_options with stop_on_unknown enabled should stop if unknown arg found in arg vector", parse_options_unknown_arg_test },
 			{ "combined short options should parse correctly", parse_options_combined_short_arg_test },
+			{ "providing an empty string to parse-options should simply ignore the arg", parse_options_empty_argument_test },
 			{ NULL, NULL }
 	};
 

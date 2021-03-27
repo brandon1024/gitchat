@@ -5,13 +5,14 @@
 #include <stdarg.h>
 
 enum opt_type {
-	OPTION_BOOL_T,
-	OPTION_INT_T,
-	OPTION_STRING_T,
-	OPTION_STRING_LIST_T,
-	OPTION_COMMAND_T,
-	OPTION_GROUP_T,
-	OPTION_END
+	OPTION_BOOL_T = (1 << 0),
+	OPTION_INT_T = (1 << 1),
+	OPTION_STRING_T = (1 << 2),
+	OPTION_STRING_LIST_T = (1 << 3),
+	OPTION_COMMAND_T = (1 << 4),
+	OPTION_GROUP_T = (1 << 5),
+	OPTION_HIDDEN_T = (1 << 6),
+	OPTION_END = (1 << 6)
 };
 
 struct command_option;
@@ -20,8 +21,8 @@ struct command_option {
 	const char *l_flag;
 	const char *str_name;
 	const char *desc;
-	enum opt_type type;
 	void *arg_value;
+	enum opt_type type;
 };
 
 struct usage_string;
@@ -29,22 +30,38 @@ struct usage_string {
 	const char *usage_desc;
 };
 
-#define OPT_SHORT_BOOL(S,D,V)			{ (S), NULL,  NULL, (D), OPTION_BOOL_T, (V) }
-#define OPT_SHORT_INT(S,D,V)			{ (S), NULL,  NULL, (D), OPTION_INT_T, (V) }
-#define OPT_SHORT_STRING(S,N,D,V)		{ (S), NULL,  (N), (D), OPTION_STRING_T, (V) }
-#define OPT_SHORT_STRING_LIST(S,N,D,V)		{ (S), NULL,  (N), (D), OPTION_STRING_LIST_T, (V) }
-#define OPT_LONG_BOOL(L,D,V)			{ 0, (L),  NULL, (D), OPTION_BOOL_T, (V) }
-#define OPT_LONG_INT(L,D,V)				{ 0, (L),  NULL, (D), OPTION_INT_T, (V) }
-#define OPT_LONG_STRING(L,N,D,V)		{ 0, (L),  (N), (D), OPTION_STRING_T, (V) }
-#define OPT_LONG_STRING_LIST(L,N,D,V)		{ 0, (L),  (N), (D), OPTION_STRING_LIST_T, (V) }
-#define OPT_BOOL(S,L,D,V)				{ (S), (L), NULL, (D), OPTION_BOOL_T, (V) }
-#define OPT_INT(S,L,D,V)				{ (S), (L), NULL, (D), OPTION_INT_T, (V) }
-#define OPT_STRING(S,L,N,D,V)			{ (S), (L), (N), (D), OPTION_STRING_T, (V) }
-#define OPT_STRING_LIST(S,L,N,D,V)			{ (S), (L), (N), (D), OPTION_STRING_LIST_T, (V) }
-#define OPT_CMD(N,D,V)					{ 0, NULL, (N), (D), OPTION_COMMAND_T, (V) }
-#define OPT_GROUP(N)					{ 0, NULL, NULL, N, OPTION_GROUP_T, NULL }
-#define OPT_END()						{ 0, NULL, NULL, NULL, OPTION_END, NULL }
-
+#define OPT_HIDDEN(S,L,V,T) \
+		{ (S), (L), NULL, NULL, (V), OPTION_HIDDEN_T | (T) }
+#define OPT_SHORT_BOOL(S,D,V) \
+		{ (S), NULL, NULL, (D), (V), OPTION_BOOL_T }
+#define OPT_SHORT_INT(S,D,V) \
+		{ (S), NULL, NULL, (D), (V), OPTION_INT_T }
+#define OPT_SHORT_STRING(S,N,D,V) \
+		{ (S), NULL, (N), (D), (V), OPTION_STRING_T }
+#define OPT_SHORT_STRING_LIST(S,N,D,V) \
+		{ (S), NULL, (N), (D), (V), OPTION_STRING_LIST_T }
+#define OPT_LONG_BOOL(L,D,V) \
+		{ 0, (L), NULL, (D), (V), OPTION_BOOL_T }
+#define OPT_LONG_INT(L,D,V) \
+		{ 0, (L), NULL, (D), (V), OPTION_INT_T }
+#define OPT_LONG_STRING(L,N,D,V) \
+		{ 0, (L), (N), (D), (V), OPTION_STRING_T }
+#define OPT_LONG_STRING_LIST(L,N,D,V) \
+		{ 0, (L), (N), (D), (V), OPTION_STRING_LIST_T }
+#define OPT_BOOL(S,L,D,V) \
+		{ (S), (L), NULL, (D), (V), OPTION_BOOL_T }
+#define OPT_INT(S,L,D,V) \
+		{ (S), (L), NULL, (D), (V), OPTION_INT_T }
+#define OPT_STRING(S,L,N,D,V) \
+		{ (S), (L), (N), (D), (V), OPTION_STRING_T }
+#define OPT_STRING_LIST(S,L,N,D,V) \
+		{ (S), (L), (N), (D), (V), OPTION_STRING_LIST_T }
+#define OPT_CMD(N,D,V) \
+		{ 0, NULL, (N), (D), (V), OPTION_COMMAND_T }
+#define OPT_GROUP(N) \
+		{ 0, NULL, NULL, (N), NULL, OPTION_GROUP_T }
+#define OPT_END() \
+		{ 0, NULL, NULL, NULL, NULL, OPTION_END }
 #define USAGE(DESC)					{ (DESC) }
 #define USAGE_END()					{ NULL }
 

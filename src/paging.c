@@ -53,7 +53,33 @@ static void pager_stop_signal(int sig)
 	raise(sig);
 }
 
-void pager_start(void)
+static void configure_pager_env(struct str_array *env_arr, int pager_opts)
+{
+	char less_opts[10] = "LESS=";
+	char more_opts[10] = "MORE=";
+	size_t index = 5;
+
+	if (pager_opts & GIT_CHAT_PAGER_CLR_SCRN) {
+		less_opts[index] = 'C';
+		more_opts[index++] = 'c';
+	}
+	if (pager_opts & GIT_CHAT_PAGER_EXIT_FULL_WRITE) {
+		less_opts[index] = 'F';
+		more_opts[index++] = 'F';
+	}
+	if (pager_opts & GIT_CHAT_PAGER_RAW_CTRL_CHR) {
+		less_opts[index] = 'R';
+		more_opts[index++] = 'R';
+	}
+	if (pager_opts & GIT_CHAT_PAGER_NO_TERMCAP_INIT) {
+		less_opts[index] = 'X';
+		more_opts[index] = 'X';
+	}
+
+	str_array_push(env_arr, less_opts, "LV=-c", more_opts, NULL);
+}
+
+void pager_start(int pager_opts)
 {
 	if (!isatty(STDOUT_FILENO))
 		return;
@@ -65,7 +91,7 @@ void pager_start(void)
 		FATAL("unable to display paged output; no pager executable could be found.");
 
 	child_process_def_init(&cmd);
-	str_array_push(&cmd.env, "LESS=FRX", "LV=-c", "MORE=FRX", NULL);
+	configure_pager_env(&cmd.env, pager_opts);
 	cmd.executable = pager_executable.buff;
 
 	child_process_def_stdin(&cmd, STDIN_PROVISIONED);

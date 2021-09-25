@@ -25,7 +25,7 @@ static int write_conf_to_fd(const char data[], size_t len)
 static int read_fd_to_strbuf(int fd, struct strbuf *buff)
 {
 	char tmp[1024];
-	ssize_t bytes_read = 0;
+	ssize_t bytes_read;
 	while ((bytes_read = xread(fd, tmp, 1024)) > 0)
 		strbuf_attach(buff, tmp, bytes_read);
 

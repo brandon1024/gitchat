@@ -105,20 +105,20 @@ usage: git chat message [(--recipient <alias>)...] (-m | --message) <message>
 ```
 
 ### git chat publish
-**IN PROGRESS** Push a any new messages to the remote repository.
+This feature is not implemented. Messages can be published with `git push`. Consider creating a `git chat publish` alias.
 
 ### git chat read
 Read messages in the current channel.
 
 ```
-usage: git chat read [<commit hash>]
+usage: git chat read  [(-n | --max-count) <n>] [--no-color] [<commit hash>]
    or: git chat read (-h | --help)
 
     -h, --help          show usage and exit
 ```
 
 ### git chat get
-**IN PROGRESS** Fetch any new messages from the remote repository.
+This feature is not implemented. Messages can be fetched with `git pull --ff-only`. Consider creating a `git chat get` alias.
 
 ### git chat config
 ```

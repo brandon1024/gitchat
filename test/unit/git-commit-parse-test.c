@@ -6,8 +6,6 @@
 #define HEADER_PREFIX_PARENT "parent "
 #define HEADER_PREFIX_AUTHOR "author "
 #define HEADER_PREFIX_COMMITTER "committer "
-#define HEADER_PREFIX_CUSTOM_1 "userdef1 "
-#define HEADER_PREFIX_CUSTOM_2 "userdef2 "
 
 #define OID_VALID "e4854A7f9bca6ac1bcaee3f1e8587f6953d542c0"
 #define SIGNATURE_NAME "Brandon Richardson"

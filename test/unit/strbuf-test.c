@@ -152,7 +152,7 @@ TEST_DEFINE(strbuf_trim_test) {
 	struct strbuf buf;
 	strbuf_init(&buf);
 
-	int ret = 0;
+	int ret;
 	TEST_START() {
 		//entirely whitespace
 		char *str = "  \t    \r\v  \n \f";

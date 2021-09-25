@@ -28,11 +28,14 @@
  * If any of those pagers are not available (i.e. cannot be found, or not executable),
  * then git-chat will default to "less", "more", or in dire cases, "cat".
  *
+ * When starting the pager, the caller can provide additional options to
+ * configure the pager.
+ *
  * paging usage:
  *
  * int main(void) {
  *     // initializes the pager
- *     pager_start();
+ *     pager_start(GIT_CHAT_PAGER_DEFAULT);
  *
  *     printf("large string... is paged");
  *     fprintf(stderr, "this is also paged");
@@ -45,11 +48,50 @@
  * */
 
 /**
+ * Clear screen and paint from top down. Equivalent to the '-c' option
+ * recognized by `less` and `more`.
+ */
+#define GIT_CHAT_PAGER_CLR_SCRN (1 << 0)
+
+/**
+ * Exit if the entire contents can be written to the first terminal screen.
+ * Equivalent to the '-F' option recognized by `less` and `more`.
+ */
+#define GIT_CHAT_PAGER_EXIT_FULL_WRITE (1 << 1)
+
+/**
+ * Output raw ANSI color escape sequences in raw form. Equivalent to the '-R'
+ * option recognized by `less` and `more`.
+ */
+#define GIT_CHAT_PAGER_RAW_CTRL_CHR (1 << 2)
+
+/**
+ * Disable termcap initialization. Equivalent to the '-X' option recognized by
+ * `less` and `more`.
+ */
+#define GIT_CHAT_PAGER_NO_TERMCAP_INIT (1 << 3)
+
+/**
+ * Common pager options. Equivalent to the following:
+ * - GIT_CHAT_PAGER_EXIT_FULL_WRITE
+ * - GIT_CHAT_PAGER_RAW_CTRL_CHR
+ * - GIT_CHAT_PAGER_NO_TERMCAP_INIT
+ */
+#define GIT_CHAT_PAGER_DEFAULT (\
+		GIT_CHAT_PAGER_EXIT_FULL_WRITE | \
+		GIT_CHAT_PAGER_RAW_CTRL_CHR | \
+		GIT_CHAT_PAGER_NO_TERMCAP_INIT)
+
+/**
  * Initialize the pager.
  *
- * Standard output stream must by a TTY. If the underlying paging application
+ * The caller can provide bit-wise OR'ed options, which can manipulate the
+ * behaviour of the pager (if the underlying pager supports such features).
+ *
+ * Standard output stream must by a TTY. If the output stream is not a TTY,
+ * this function simply returns. If the underlying paging application
  * terminates, git-chat will also exit.
  * */
-void pager_start(void);
+void pager_start(int pager_opts);
 
 #endif //GIT_CHAT_PAGING_H

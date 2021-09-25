@@ -16,48 +16,27 @@
 #define READ 0
 #define WRITE 1
 #define BUFF_LEN 1024
-#define NONCE_LEN 16
+#define DELIM_LEN 16
+
+enum message_type {
+	PLAINTEXT,
+	DECRYPTED,
+	UNKNOWN_ERROR
+};
+
+struct object_summary {
+	char oid[GIT_HEX_OBJECT_ID];
+	long object_len;
+	size_t summary_line_len;
+};
 
 static const struct usage_string read_cmd_usage[] = {
-		USAGE("git chat read [<commit hash>]"),
+		USAGE("git chat read [(-n | --max-count) <n>] [--no-color] [<commit hash>]"),
 		USAGE("git chat read (-h | --help)"),
 		USAGE_END()
 };
 
-static int read_messages(const char *);
-static void str_template_generate_nonce(char[], char[], size_t);
-static int parse_git_cat_file_output(struct str_array *, struct strbuf *,
-		char[NONCE_LEN]);
-
-int cmd_read(int argc, char *argv[])
-{
-	int show_help = 0;
-
-	const struct command_option options[] = {
-			OPT_BOOL('h', "help", "show usage and exit", &show_help),
-			OPT_END()
-	};
-
-	argc = parse_options(argc, argv, options, 1, 1);
-	if (show_help) {
-		show_usage_with_options(read_cmd_usage, options, 0, NULL);
-		return 0;
-	}
-
-	if (argc > 1) {
-		show_usage_with_options(read_cmd_usage, options, 1,
-				"error: only one message may be read at a time.");
-		return 1;
-	}
-
-	if (!is_inside_git_chat_space())
-		DIE("Where are you? It doesn't look like you're in the right directory.");
-
-	if (argc)
-		return read_messages(argv[0]);
-	else
-		return read_messages(NULL);
-}
+static int no_color = 0;
 
 /**
  * Pretty-print a single message.
@@ -68,7 +47,7 @@ int cmd_read(int argc, char *argv[])
  *   <message>...
  * */
 static void pretty_print_message(struct git_commit *commit, struct strbuf *message,
-		int flag)
+		enum message_type type)
 {
 	struct strbuf meta, formatted_message;
 	strbuf_init(&meta);
@@ -76,20 +55,28 @@ static void pretty_print_message(struct git_commit *commit, struct strbuf *messa
 
 	time_t epoch = commit->author.timestamp.time;
 
+	const char *color_enable;
 	const char *flag_str;
-	switch (flag) {
-		case 0:
+	switch (type) {
+		case DECRYPTED:
 			flag_str = "DEC";
+			color_enable = ANSI_COLOR_GREEN;
 			break;
-		case 1:
+		case PLAINTEXT:
 			flag_str = "PLN";
+			color_enable = ANSI_COLOR_CYAN;
 			break;
-		case 2:
+		case UNKNOWN_ERROR:
 			flag_str = "ERR";
+			color_enable = ANSI_COLOR_RED;
 			break;
 		default:
 			flag_str = "???";
+			color_enable = ANSI_COLOR_RED;
 	}
+
+	color_enable = no_color ? "" : color_enable;
+	const char *color_reset = no_color ? "" : ANSI_COLOR_RESET;
 
 	struct tm *info;
 	info = localtime(&epoch);
@@ -108,7 +95,8 @@ static void pretty_print_message(struct git_commit *commit, struct strbuf *messa
 		strbuf_attach_fmt(&formatted_message, "\n\t%s", line);
 	}
 
-	printf("[%s]\n%s\n\n", meta.buff, formatted_message.buff);
+	printf("%s[%s]%s\n%s\n\n", color_enable, meta.buff, color_reset,
+			formatted_message.buff);
 
 	str_array_release(&lines);
 	strbuf_release(&meta);
@@ -116,156 +104,13 @@ static void pretty_print_message(struct git_commit *commit, struct strbuf *messa
 }
 
 /**
- * Decrypt and display messages in reverse-chronological order. If the commit_id
- * argument is NULL, displays all messages, otherwise simply displays the specific
- * message.
- *
- * Returns zero if successful, and non-zero otherwise.
- * */
-static int read_messages(const char *commit_id)
-{
-	struct child_process_def rev_list;
-	struct child_process_def cat_file;
-	struct strbuf cat_file_out_buf;
-	struct str_array parsed_commits;
-
-	struct gc_gpgme_ctx ctx;
-
-	gpgme_context_init(&ctx, 0);
-
-	ssize_t bytes_read;
-	int rev_list_exit, cat_file_exit;
-
-	strbuf_init(&cat_file_out_buf);
-	str_array_init(&parsed_commits);
-
-	/* git-rev-list to read commit objects in reverse chronological order.
-	 *
-	 * Traverse the commit graph following the first parent if merge commits are
-	 * encountered, and skipping such merge commits. We are relying on having a
-	 * pretty clean commit graph here, and this might start to break down if the
-	 * user tries to mess with the commit graph (introducing merges, for instance).
-	 */
-	child_process_def_init(&rev_list);
-	rev_list.git_cmd = 1;
-
-	child_process_def_stdout(&rev_list, STDOUT_PROVISIONED);
-	if (pipe(rev_list.out_fd) < 0)
-		FATAL("invocation of pipe() system call failed.");
-
-	argv_array_push(&rev_list.args, "rev-list", NULL);
-	if (commit_id)
-		argv_array_push(&rev_list.args, "--max-count=1", commit_id, NULL);
-	else
-		argv_array_push(&rev_list.args, "--first-parent", "--no-merges", "HEAD", NULL);
-
-	/*
-	 * git-cat-file in batch mode to print commit object for commit ids read from git-rev-list.
-	 *
-	 * The git-cat-file child process is chained to the git-rev-list child process,
-	 * such that the output from git-rev-list is fed into the input of git-cat-file.
-	 * With this configuration, we only need to read commit object data from
-	 * the cat-file output stream.
-	 * */
-	child_process_def_init(&cat_file);
-	cat_file.git_cmd = 1;
-
-	child_process_def_stdin(&cat_file, STDIN_PROVISIONED);
-	cat_file.in_fd[READ] = rev_list.out_fd[READ];
-	cat_file.in_fd[WRITE] = rev_list.out_fd[WRITE];
-
-	child_process_def_stdout(&cat_file, STDOUT_PROVISIONED);
-	if (pipe(cat_file.out_fd) < 0)
-		FATAL("invocation of pipe() system call failed.");
-
-	/* A nonce is generated and used to securely delimit cat-file output.
-	 * Without it, specially crafted commit messages could be used to trick
-	 * the parser into doing something it's not supposed to.
-	 * */
-	char nonce[NONCE_LEN];
-	char format_arg[] = "--batch=XXXXXXXXXXXXXXXX %(objectname) %(objecttype) %(objectsize)";
-	str_template_generate_nonce(format_arg, nonce, NONCE_LEN);
-	argv_array_push(&cat_file.args, "cat-file", format_arg, NULL);
-
-	start_command(&rev_list);
-	start_command(&cat_file);
-	close(cat_file.in_fd[READ]);
-	close(cat_file.in_fd[WRITE]);
-	close(cat_file.out_fd[WRITE]);
-
-	pager_start();
-
-	do {
-		char tmp[BUFF_LEN];
-
-		bytes_read = xread(cat_file.out_fd[READ], tmp, BUFF_LEN);
-		if (bytes_read < 0)
-			FATAL("failed to read from git-cat-file process");
-		if (bytes_read > 0)
-			strbuf_attach(&cat_file_out_buf, tmp, bytes_read);
-
-		if (parse_git_cat_file_output(&parsed_commits, &cat_file_out_buf, nonce))
-			FATAL("failed to parse batched git-cat-file output");
-		for (size_t i = 0; i < parsed_commits.len; i++) {
-			struct str_array_entry *entry = str_array_get_entry(&parsed_commits, i);
-			struct git_commit *commit = (struct git_commit *) entry->data;
-
-			// attempt to decrypt message
-			struct strbuf decrypted_message;
-			strbuf_init(&decrypted_message);
-
-			int ret = decrypt_asymmetric_message(&ctx, &commit->body, &decrypted_message);
-			if (!ret) {
-				// decryption successful
-				pretty_print_message(commit, &decrypted_message, 0);
-			} else if (ret > 0) {
-				// commit body is not gpg message; print commit message body
-				pretty_print_message(commit, &commit->body, 1);
-			} else {
-				strbuf_clear(&decrypted_message);
-				strbuf_attach_str(&decrypted_message, "message could not be decrypted.");
-				pretty_print_message(commit, &decrypted_message, 2);
-			}
-
-			fflush(stdout);
-
-			strbuf_release(&decrypted_message);
-			git_commit_object_release(commit);
-			free(entry->data);
-		}
-
-		str_array_clear(&parsed_commits);
-	} while (bytes_read > 0 || cat_file_out_buf.len > 0);
-
-	close(rev_list.out_fd[WRITE]);
-	rev_list_exit = finish_command(&rev_list);
-	child_process_def_release(&rev_list);
-
-	close(cat_file.out_fd[READ]);
-	cat_file_exit = finish_command(&cat_file);
-	child_process_def_release(&cat_file);
-
-	strbuf_release(&cat_file_out_buf);
-	str_array_release(&parsed_commits);
-
-	gpgme_context_release(&ctx);
-
-	if (rev_list_exit)
-		return rev_list_exit;
-	if (cat_file_exit)
-		return cat_file_exit;
-
-	return 0;
-}
-
-/**
  * Replace 'X' characters in a null-terminated template string with randomly
  * generated printable hexadecimal digits.
  *
- * If nonce is non-null, it is updated with the characters set in the template
+ * If delim is non-null, it is updated with the characters set in the template
  * string, up to 'len' characters.
  * */
-static void str_template_generate_nonce(char str[], char nonce[], size_t len)
+static void str_template_generate_delimiter(char *str, char *delim, size_t len)
 {
 	struct timeval time;
 	if (gettimeofday(&time, NULL))
@@ -274,32 +119,26 @@ static void str_template_generate_nonce(char str[], char nonce[], size_t len)
 	srandom((unsigned)time.tv_sec ^ (unsigned)time.tv_usec);
 
 	const char *hex_digits = "0123456789abcdef";
-	size_t nonce_index = 0;
+	size_t delim_index = 0;
 	for (char *current = strchr(str, 'X'); current != NULL; current = strchr(current, 'X')) {
 		*current = hex_digits[random() % 16];
 
-		if (nonce && nonce_index < len) {
-			nonce[nonce_index++] = *current;
+		if (delim && delim_index < len) {
+			delim[delim_index++] = *current;
 		}
 	}
 }
 
-struct object_summary {
-	char oid[GIT_HEX_OBJECT_ID];
-	long object_len;
-	size_t summary_line_len;
-};
-
 /**
  * Parse the summary line of batched git-cat-file output for commit id,
  * object length. Verify that the summary line is prefixed with the correct
- * nonce.
+ * delimiter.
  *
  * Returns zero if successful, negative if parsing failed, and positive if
  * not enough data has been read into the buffer.
  * */
 static int parse_git_cat_file_output_summary_line(char *output, size_t len,
-		struct object_summary *summary, char nonce[NONCE_LEN])
+		struct object_summary *summary, char delim[DELIM_LEN])
 {
 	const char *expected_object_type = "commit";
 
@@ -308,30 +147,30 @@ static int parse_git_cat_file_output_summary_line(char *output, size_t len,
 	char *object_type = NULL;
 	char *object_len_str = NULL;
 	char *tailptr = NULL;
-	size_t line_len = 0;
-	size_t object_type_str_len = 0;
+	size_t line_len;
+	size_t object_type_str_len;
 
 	// isolate object information line
 	lf = memchr(output, '\n', len);
 	if (!lf)
 		return 1;
 
-	// verify nonce
+	// verify delim
 	line_len = lf - output;
-	if (line_len < NONCE_LEN) {
-		LOG_ERROR("failed to parse git-cat-file output; line not prefixed with nonce");
+	if (line_len < DELIM_LEN) {
+		LOG_ERROR("failed to parse git-cat-file output; line not prefixed with delim");
 		return -1;
 	}
 
-	if (memcmp(nonce, output, NONCE_LEN) != 0) {
+	if (memcmp(delim, output, DELIM_LEN) != 0) {
 		LOG_ERROR("failed to parse git-cat-file output; "
-				  "invalid nonce, expected '%.*s' but was '%.*s'",
-				NONCE_LEN, nonce, NONCE_LEN, output);
+				  "invalid delim, expected '%.*s' but was '%.*s'",
+				DELIM_LEN, delim, DELIM_LEN, output);
 		return -1;
 	}
 
 	// parse commit id
-	commit_id = output + NONCE_LEN + 1;
+	commit_id = output + DELIM_LEN + 1;
 	if (commit_id >= lf || (lf - commit_id) < GIT_HEX_OBJECT_ID) {
 		LOG_ERROR("failed to parse git-cat-file output; no commit id present");
 		return -1;
@@ -379,29 +218,29 @@ static int parse_git_cat_file_output_summary_line(char *output, size_t len,
  * <commit id> <object type> <object size>
  * <object content>
  *
- * The expected format is quite similar, but introduces a nonce to verify that
- * specially crafted commit messages cannot be used to mislead the parser. The
- * new git-cat-file output has the format:
- * <nonce> <commit id> <object type> <object size>
+ * The expected format is quite similar, but introduces a random delimiter to
+ * ensure that specially crafted commit messages cannot be used to mislead the
+ * parser. The new git-cat-file output has the format:
+ * <delim> <commit id> <object type> <object size>
  * <object content>
  *
  * This function attempts to parse commit objects from batched git-cat-file output,
  * stopping if an object is only partially read, or the parser failed to interpret
  * the output.
  *
- * As commit objects are read from the output buffer, the parsed data is removed,
- * and any unparsed data is left in the buffer.
+ * As commit objects are read from the output buffer, the parsed data is removed
+ * and any remaining data is left in the buffer.
  *
  * Returns zero if successful, and non-zero if the parser was unable to interpret
  * the data, or critical information couldn't be read from the object summary line.
  * */
 static int parse_git_cat_file_output(struct str_array *commits,
-		struct strbuf *cat_file_out_buf, char nonce[NONCE_LEN])
+		struct strbuf *cat_file_out_buf, char delim[DELIM_LEN])
 {
 	do {
 		struct object_summary summary;
 		int ret = parse_git_cat_file_output_summary_line(cat_file_out_buf->buff,
-				cat_file_out_buf->len, &summary, nonce);
+				cat_file_out_buf->len, &summary, delim);
 		if (ret < 0)
 			return 1;
 		if (ret > 0)
@@ -429,4 +268,191 @@ static int parse_git_cat_file_output(struct str_array *commits,
 	} while (1);
 
 	return 0;
+}
+
+/**
+ *
+ */
+static ssize_t read_messages_single_pass(struct gc_gpgme_ctx *ctx,
+		int object_stream, struct strbuf *buffer, char delim[DELIM_LEN])
+{
+	struct str_array parsed_commits;
+	str_array_init(&parsed_commits);
+	char tmp[BUFF_LEN];
+
+	ssize_t bytes_read = xread(object_stream, tmp, BUFF_LEN);
+	if (bytes_read < 0)
+		FATAL("failed to read from git-cat-file process");
+	if (bytes_read > 0)
+		strbuf_attach(buffer, tmp, bytes_read);
+
+	if (parse_git_cat_file_output(&parsed_commits, buffer, delim))
+		FATAL("failed to parse batched git-cat-file output");
+	for (size_t i = 0; i < parsed_commits.len; i++) {
+		struct str_array_entry *entry = str_array_get_entry(&parsed_commits, i);
+		struct git_commit *commit = (struct git_commit *) entry->data;
+
+		// attempt to decrypt message
+		struct strbuf decrypted_message;
+		strbuf_init(&decrypted_message);
+
+		int ret = decrypt_asymmetric_message(ctx, &commit->body, &decrypted_message);
+		if (!ret) {
+			// decryption successful
+			pretty_print_message(commit, &decrypted_message, DECRYPTED);
+		} else if (ret > 0) {
+			// commit body is not gpg message; print commit message body
+			pretty_print_message(commit, &commit->body, PLAINTEXT);
+		} else {
+			strbuf_clear(&decrypted_message);
+			strbuf_attach_str(&decrypted_message, "message could not be decrypted.");
+			pretty_print_message(commit, &decrypted_message, UNKNOWN_ERROR);
+		}
+
+		fflush(stdout);
+
+		strbuf_release(&decrypted_message);
+		git_commit_object_release(commit);
+		free(entry->data);
+	}
+
+	str_array_release(&parsed_commits);
+
+	return bytes_read;
+}
+
+/**
+ * Decrypt and display messages in reverse-chronological order. If the commit_id
+ * argument is NULL, displays all messages (up to limit, or all if negative),
+ * otherwise simply displays the specific message.
+ *
+ * Returns zero if successful, and non-zero otherwise.
+ * */
+static int read_messages(const char *commit_id, int limit)
+{
+	struct child_process_def rev_list_proc, cat_file_proc;
+	struct gc_gpgme_ctx ctx;
+	int rev_list_exit, cat_file_exit;
+
+	gpgme_context_init(&ctx, 0);
+
+	/* git-rev-list to read commit objects in reverse chronological order.
+	 *
+	 * Traverse the commit graph following the first parent if merge commits are
+	 * encountered, and skipping such merge commits. We are relying on having a
+	 * pretty clean commit graph here, and this might start to break down if the
+	 * user tries to mess with the commit graph (introducing merges, for instance).
+	 */
+	child_process_def_init(&rev_list_proc);
+	rev_list_proc.git_cmd = 1;
+
+	child_process_def_stdout(&rev_list_proc, STDOUT_PROVISIONED);
+	if (pipe(rev_list_proc.out_fd) < 0)
+		FATAL("invocation of pipe() system call failed.");
+
+	struct strbuf count;
+	strbuf_init(&count);
+	strbuf_attach_fmt(&count, "%d", limit);
+
+	argv_array_push(&rev_list_proc.args, "rev-list", "--first-parent", "--no-merges",
+			"--max-count", commit_id ? "1" : count.buff, commit_id ? commit_id : "HEAD", NULL);
+
+	/*
+	 * git-cat-file in batch mode to print commit object for commit ids read from git-rev-list.
+	 *
+	 * The git-cat-file child process is chained to the git-rev-list child process,
+	 * such that the output from git-rev-list is fed into the input of git-cat-file.
+	 * With this configuration, we only need to read commit object data from
+	 * the cat-file output stream.
+	 * */
+	child_process_def_init(&cat_file_proc);
+	cat_file_proc.git_cmd = 1;
+
+	child_process_def_stdin(&cat_file_proc, STDIN_PROVISIONED);
+	cat_file_proc.in_fd[READ] = rev_list_proc.out_fd[READ];
+	cat_file_proc.in_fd[WRITE] = rev_list_proc.out_fd[WRITE];
+
+	child_process_def_stdout(&cat_file_proc, STDOUT_PROVISIONED);
+	if (pipe(cat_file_proc.out_fd) < 0)
+		FATAL("invocation of pipe() system call failed.");
+
+	/* A delimiter is generated and used to securely delimit cat-file output.
+	 * Without it, specially crafted commit messages could be used to trick
+	 * the parser into doing something it's not supposed to.
+	 * */
+	char delim[DELIM_LEN];
+	char format_arg[] = "--batch=XXXXXXXXXXXXXXXX %(objectname) %(objecttype) %(objectsize)";
+	str_template_generate_delimiter(format_arg, delim, DELIM_LEN);
+	argv_array_push(&cat_file_proc.args, "cat-file", format_arg, NULL);
+
+	start_command(&rev_list_proc);
+	start_command(&cat_file_proc);
+	close(cat_file_proc.in_fd[READ]);
+	close(cat_file_proc.in_fd[WRITE]);
+	close(cat_file_proc.out_fd[WRITE]);
+
+	pager_start(GIT_CHAT_PAGER_RAW_CTRL_CHR | GIT_CHAT_PAGER_CLR_SCRN);
+
+	struct strbuf cat_file_out_buf;
+	strbuf_init(&cat_file_out_buf);
+
+	ssize_t bytes_read;
+	do {
+		bytes_read = read_messages_single_pass(&ctx,
+				cat_file_proc.out_fd[READ], &cat_file_out_buf, delim);
+	} while (bytes_read > 0 || cat_file_out_buf.len > 0);
+
+	strbuf_release(&cat_file_out_buf);
+
+	close(rev_list_proc.out_fd[WRITE]);
+	rev_list_exit = finish_command(&rev_list_proc);
+	child_process_def_release(&rev_list_proc);
+
+	strbuf_release(&count);
+
+	close(cat_file_proc.out_fd[READ]);
+	cat_file_exit = finish_command(&cat_file_proc);
+	child_process_def_release(&cat_file_proc);
+
+	gpgme_context_release(&ctx);
+
+	if (rev_list_exit)
+		return rev_list_exit;
+	if (cat_file_exit)
+		return cat_file_exit;
+
+	return 0;
+}
+
+int cmd_read(int argc, char *argv[])
+{
+	int limit = -1;
+	int show_help = 0;
+
+	const struct command_option options[] = {
+			OPT_INT('n', "max-count", "limit number of messages shown", &limit),
+			OPT_LONG_BOOL("no-color", "turn off colored message headers", &no_color),
+			OPT_BOOL('h', "help", "show usage and exit", &show_help),
+			OPT_END()
+	};
+
+	argc = parse_options(argc, argv, options, 1, 1);
+	if (show_help) {
+		show_usage_with_options(read_cmd_usage, options, 0, NULL);
+		return 0;
+	}
+
+	if (argc > 1) {
+		show_usage_with_options(read_cmd_usage, options, 1,
+				"error: only one message may be read at a time.");
+		return 1;
+	}
+
+	if (!is_inside_git_chat_space())
+		DIE("Where are you? It doesn't look like you're in the right directory.");
+
+	if (!isatty(STDOUT_FILENO))
+		no_color = 1;
+
+	return read_messages(argc ? argv[0] : NULL, limit);
 }

@@ -89,7 +89,25 @@ static int filter_gpg_keylist_by_fingerprints(struct _gpgme_key *key, void *data
 	return 0;
 }
 
-static void publish_keys(void);
+/**
+ * Commit the contents of the index, with a plain commit message indicating
+ * the author of the message and the owner of the keys being committed.
+ * */
+static void commit_keys_from_index(void)
+{
+	struct strbuf message;
+	strbuf_init(&message);
+
+	if (get_author_identity(&message))
+		strbuf_attach_str(&message, "unknown user");
+
+	strbuf_attach_str(&message, " joined the channel.");
+
+	if (git_commit_index_with_options(message.buff, "--no-gpg-sign", "--no-verify", NULL))
+		DIE("unable to commit exported gpg key(s) to tree");
+
+	strbuf_release(&message);
+}
 
 /**
  * Import a set of keys (identified by their fingerprints) into the git-chat keyring.
@@ -179,7 +197,7 @@ static int import_keys_from_keyring(int fpr_count, char *fpr[],
 	gpgme_context_release(&ctx);
 	gpgme_context_release(&gc_ctx);
 
-	publish_keys();
+	commit_keys_from_index();
 
 	return 0;
 }
@@ -246,23 +264,7 @@ static int import_key_from_files(struct str_array *key_files)
 	strbuf_release(&keys_dir);
 	strbuf_release(&key_path);
 
-	publish_keys();
+	commit_keys_from_index();
 
 	return 0;
-}
-
-static void publish_keys(void)
-{
-	struct strbuf message;
-	strbuf_init(&message);
-
-	if (get_author_identity(&message))
-		strbuf_attach_str(&message, "unknown user");
-
-	strbuf_attach_str(&message, " joined the channel.");
-
-	if (git_commit_index_with_options(message.buff, "--no-gpg-sign", "--no-verify", NULL))
-		DIE("unable to commit exported gpg key(s) to tree");
-
-	strbuf_release(&message);
 }

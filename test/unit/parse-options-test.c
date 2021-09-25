@@ -83,10 +83,10 @@ TEST_DEFINE(parse_options_short_bool_test)
 TEST_DEFINE(parse_options_short_int_test)
 {
 	int bool_val_1 = 0;
-	long int_val_1 = 0;
-	long int_val_2 = 0;
-	long int_val_3 = 0;
-	long int_val_4 = 0;
+	int int_val_1 = 0;
+	int int_val_2 = 0;
+	int int_val_3 = 0;
+	int int_val_4 = 0;
 	options[1].arg_value = &bool_val_1;
 	options[38].arg_value = &int_val_1;
 	options[48].arg_value = &int_val_2;
@@ -211,8 +211,8 @@ TEST_DEFINE(parse_options_long_bool_test)
 
 TEST_DEFINE(parse_options_long_int_test)
 {
-	long int_val_1 = 0;
-	long int_val_2 = 0;
+	int int_val_1 = 0;
+	int int_val_2 = 0;
 	options[37].arg_value = &int_val_1;
 	options[39].arg_value = &int_val_2;
 
@@ -320,8 +320,8 @@ TEST_DEFINE(parse_options_bool_test)
 TEST_DEFINE(parse_options_int_test)
 {
 	int bool_val_1 = 0;
-	long int_val_1 = 0;
-	long int_val_2 = 0;
+	int int_val_1 = 0;
+	int int_val_2 = 0;
 	options[1].arg_value = &bool_val_1;
 	options[22].arg_value = &int_val_1;
 	options[40].arg_value = &int_val_2;

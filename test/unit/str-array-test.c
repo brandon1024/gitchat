@@ -226,7 +226,7 @@ TEST_DEFINE(str_array_push_test)
 {
 	struct str_array str_a;
 	str_array_init(&str_a);
-	int ret = 0;
+	int ret;
 
 	TEST_START() {
 		ret = str_array_push(&str_a, NULL);
@@ -268,7 +268,7 @@ int str_array_vpush_test_helper(size_t args, ...)
 {
 	struct str_array str_a;
 	str_array_init(&str_a);
-	int ret = 0;
+	int ret ;
 
 	TEST_START() {
 		va_list ap;

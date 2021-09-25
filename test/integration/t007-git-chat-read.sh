@@ -63,3 +63,38 @@ assert_success 'git chat read should print ciphertext when cannot be decrypted' 
 	grep -v "hello world" out &&
 	grep "message could not be decrypted" out
 '
+
+assert_success 'git chat read with message limit should print no more than that number of messages' '
+	reset_trash_dir &&
+	setup_test_gpg &&
+	git chat init &&
+	git chat import-key -f "$TEST_RESOURCES_DIR/gpgkeys/test_user.pub.gpg"
+' '
+	git chat message -m "hello world 1" &&
+	git chat message -m "hello world 2" &&
+	PAGER=/usr/bin/cat git chat --passphrase password read --max-count 1 >out &&
+	grep "hello world 2" out &&
+	grep -v "hello world 1" out
+'
+
+assert_success 'git chat read with message limit less than zero should print all messages' '
+	setup_test_gpg
+' '
+	PAGER=/usr/bin/cat git chat --passphrase password read --max-count -1 >out &&
+	grep "hello world 1" out &&
+	grep "hello world 2" out
+'
+
+assert_success 'git chat read should print colored headers when output is a tty' '
+	setup_test_gpg
+' '
+	GIT_CHAT_PAGER=/usr/bin/cat script -qec "git chat --passphrase password read --max-count 1" out &&
+	grep -P "\033\[32m\[.*DEC.*\]\033\[0m" out
+'
+
+assert_success 'git chat read should print colored headers when output is a tty' '
+	setup_test_gpg
+' '
+	GIT_CHAT_PAGER=/usr/bin/cat git chat --passphrase password read --max-count 1 >out &&
+	grep -v -P "\033\[32m\[.*DEC.*\]\033\[0m" out
+'

@@ -7,7 +7,7 @@ git-chat-read \- decrypt and show messages
 .SH SYNOPSIS
 .sp
 .nf
-\fIgit-chat-read\fR [<commit hash>]
+\fIgit-chat-read\fR [(-n | --max-count) <n>] [--no-color] [<commit hash>]
 \fIgit-chat-read\fR (\-h | \-\-help)
 
 
@@ -35,6 +35,14 @@ When a commit hash is provided, only that message is shown.
 
 
 .SH OPTIONS
+.TP
+\-n, \-\-max\-count
+Limit the number of messages shown.
+
+.TP
+\-\-no\-color
+Suppress ANSI color escape sequences from output. Defaults to true when output is a TTY.
+
 .TP
 \-h, \-\-help
 Print a simple synopsis and exit.

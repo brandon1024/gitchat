@@ -14,10 +14,6 @@
 #include "utils.h"
 #include "working-tree.h"
 
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
-
 static const struct usage_string channel_cmd_usage[] = {
 		USAGE("git chat channel list [(-a | --all)]"),
 		USAGE_END()
@@ -586,7 +582,7 @@ int channel_list(int argc, char *argv[])
 	struct table_dimensions dims;
 	calculate_table_dimensions(&channel_refs, &dims);
 
-	pager_start();
+	pager_start(GIT_CHAT_PAGER_DEFAULT);
 
 	// print local channels
 	printf("local channels\n");

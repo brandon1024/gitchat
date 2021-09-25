@@ -14,6 +14,14 @@
 #define FILE_WRITE_FAILED "failed to write to file '%s'"
 
 /**
+ * Frequently used macro constants should be defined here.
+ * */
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
+/**
  * Simple assertion function. Invoking this function will print a message to
  * stderr, and exit with status EXIT_FAILURE.
  *

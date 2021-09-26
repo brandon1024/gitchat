@@ -14,12 +14,7 @@
 #include "config/parse-config.h"
 #include "fs-utils.h"
 #include "utils.h"
-
-static const char *template_dirs[] = {
-		"/usr/share/git-chat/templates",
-		"/usr/local/share/git-chat/templates",
-		NULL
-};
+#include "version.h"
 
 static const struct usage_string init_cmd_usage[] = {
 		USAGE("git chat init [(-n | --name) <name>] [(-d | --description) <desc>]"),
@@ -109,8 +104,7 @@ static void update_space_description(char *, const char *);
 /**
  * Try to find where the templates directory is installed. The following
  * directories are checked, in order of precedence:
- * - template_dirs[0]
- * - template_dirs[1]
+ * - {GIT_CHAT_INSTALL_PREFIX}/share/git-chat/templates
  * - ${HOME}/share/git-chat/templates
  *
  * Returns zero if template directory was found, and non-zero otherwise.
@@ -119,11 +113,10 @@ static int find_templates_dir(struct strbuf *templates_dir)
 {
 	struct stat sb;
 
-	for (const char * const *dir_ptr = template_dirs; *dir_ptr; dir_ptr++) {
-		if (stat(*dir_ptr, &sb) != -1) {
-			strbuf_attach_str(templates_dir, *dir_ptr);
-			return 0;
-		}
+	const char *global_templates_dir = GIT_CHAT_INSTALL_PREFIX "/share/git-chat/templates";
+	if (stat(global_templates_dir, &sb) != -1) {
+		strbuf_attach_str(templates_dir, global_templates_dir);
+		return 0;
 	}
 
 	const char *home = getenv("HOME");
@@ -157,7 +150,7 @@ static void prepare_git_chat(const char *channel_name, const char *description, 
 	if (find_templates_dir(&templates_dir_path)) {
 		DIE("Something's not quite right with your installation.\n"
 			"Could not find templates directory, typically located under %s.\n",
-			template_dirs[0]);
+			GIT_CHAT_INSTALL_PREFIX "/share/git-chat/templates");
 	}
 
 	// copy templates directory and update config

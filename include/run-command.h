@@ -6,18 +6,6 @@
 #include "argv-array.h"
 #include "strbuf.h"
 
-#define STDIN_INHERITED		(1 << 0)
-#define STDIN_PROVISIONED	(1 << 1)
-#define STDIN_NULL			(1 << 2)
-
-#define STDOUT_INHERITED	(1 << 4)
-#define STDOUT_PROVISIONED	(1 << 5)
-#define STDOUT_NULL			(1 << 6)
-
-#define STDERR_INHERITED	(1 << 8)
-#define STDERR_PROVISIONED	(1 << 9)
-#define STDERR_NULL			(1 << 10)
-
 /**
  * run-command api
  *
@@ -68,6 +56,18 @@
  * descriptors in the child_process_def structure (in_fd, out_fd, err_fd).
  * - If NULL, the standard streams for the child process are redirected to/from /dev/null.
  * */
+
+#define STDIN_INHERITED		(1 << 0)
+#define STDIN_PROVISIONED	(1 << 1)
+#define STDIN_NULL			(1 << 2)
+
+#define STDOUT_INHERITED	(1 << 4)
+#define STDOUT_PROVISIONED	(1 << 5)
+#define STDOUT_NULL			(1 << 6)
+
+#define STDERR_INHERITED	(1 << 8)
+#define STDERR_PROVISIONED	(1 << 9)
+#define STDERR_NULL			(1 << 10)
 
 struct child_process_def_internal {
 	int notify_pipe[2];

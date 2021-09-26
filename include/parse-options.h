@@ -4,6 +4,88 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+/**
+ * parse-options api
+ *
+ * The parse-options api provides a standardized interface for interpreting
+ * command-line options and providing usage information to the user.
+ *
+ * Options are represented as an array of `command_option` structs which
+ * describe each option, like the option type (boolean, integer, string, etc.)
+ * and a pointer to the location in memory where the value of the option is
+ * set if that option is provided. This array of command_options is supplied
+ * to the `parse_options` and `show_usage` functions.
+ *
+ * Usage strings are used to provide a simple synopsis of the command to the
+ * user, to help describe how the command can be used.
+ *
+ *
+ * Defining Command Options:
+ * Options can have any of the following types:
+ * - boolean
+ *   - short or long format, value of type `int`
+ *   - e.g. `$ my-command -b --boolean`
+ * - integer
+ *   - short or long format, value of type `int`
+ *   - e.g. `$ my-command -n 15 -c1 --count=105 --index=0x45`
+ * - string
+ *   - short or long format, value of type `const char *`
+ *   - e.g. `$ my-command -s "my string" --string="my string" --key value`
+ * - string list
+ *   - short or long format, value of type `struct str_array *`
+ *   - e.g. `$ my-command -f file1 -f file2 --file file3`
+ *
+ * In addition, the following pseudo-options are defined:
+ * - command
+ *   - a subcommand
+ *   - e.g. `$ my-command subcommand`
+ * - groups,
+ *   - used to group similar options together in usage output
+ * - end
+ *   - used to terminate a list of options
+ *
+ * Option macros can be used to easily define the list of options recognized
+ * by a program or builtin, as shown in the example below:
+ *
+ *     char *gpg_home_dir = NULL;
+ *     struct str_array key_paths;
+ *     int show_help = 0;
+ *
+ *     const struct command_option options[] = {
+ *         OPT_LONG_STRING("gpg-home", "path", "path to the gpg home directory", &gpg_home_dir),
+ *         OPT_STRING_LIST('f', "file", "path", "path to exported public key file", &key_paths),
+ *         OPT_BOOL('h', "help", "show usage and exit", &show_help),
+ *         OPT_END()
+ *     };
+ *
+ * Defining Usage Information:
+ * Usage strings help describe to the user what features your command or builtin
+ * supports. The syntax is quite simple, as described by the following in
+ * Backus-Naur Form:
+ *
+ *     <usage>            ::= <command> <subcommand> <options> <arguments>
+ *     <command>          ::= <string> | <command> " " <string>
+ *     <subcommand>       ::= " " <string> | " (" <string> " | " <string> ")" | E
+ *     <options>          ::= " " <singleoption> <options> | E
+ *     <arguments>        ::= " " <args> | " -- " <args> | " [--] " <args> | E
+ *
+ *     <singleoption>     ::= <option> | "[" <option> "]"
+ *     <option>           ::= <booleanoption> | <integeroption> | <stringoption> | <stringlistoption>
+ *     <args>             ::= <optionvalue> | "[" <optionvalue> "]" | <optionvalue> | <args> <optionvalue> | <args> "..."
+ *
+ *     <shortoption>      ::= "-" <letter>
+ *     <longoption>       ::= "--" <string>
+ *     <optionvalue>      ::= "<" <string> ">"
+ *
+ *     <booleanoption>    ::= <shortoption> | <longoption> | "(" <shortoption> " | " <longoption> ")"
+ *     <integeroption>    ::= <shortoption> " " <optionvalue> | <longoption> " " <optionvalue> | "(" <shortoption> " | " <longoption> ") " <optionvalue>
+ *     <stringoption>     ::= <shortoption> " " <optionvalue> | <longoption> " " <optionvalue> | "(" <shortoption> " | " <longoption> ") " <optionvalue>
+ *     <stringlistoption> ::= <shortoption> " " <optionvalue> "..." | <longoption> " " <optionvalue> "..." | "(" <shortoption> " | " <longoption> ") " <optionvalue> "..."
+ *
+ *     <string>           ::= <string> <letter> | <string> "-" <letter> | <letter>
+ *     <letter>           ::= [a-z]
+ */
+
 enum opt_type {
 	OPTION_BOOL_T,
 	OPTION_INT_T,

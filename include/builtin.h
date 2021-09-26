@@ -8,11 +8,11 @@
  * - Create <builtin>.c in builtin/
  * - In <builtin>.c, define a function with the following signature:
  *
- * 		int cmd_<builtin>(int argc, char *argv[])
+ *     int cmd_<builtin>(int argc, char *argv[])
  *
  * - Add extern function prototype to builtin.h
  * - Register builtin by adding new member of registered_builtins struct:
- * 		{ "<builtin>", cmd_<builtin> },
+ *     { "<builtin>", cmd_<builtin> },
  * */
 
 struct cmd_builtin {

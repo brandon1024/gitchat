@@ -12,7 +12,7 @@ jobs:
         run: sudo apt -qy install libgpgme-dev git valgrind
 
       - name: Configure
-        run: cmake -B ${{github.workspace}}/build -S ${GITHUB_WORKSPACE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        run: cmake -B ${{github.workspace}}/build -S ${{github.workspace}} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/usr
 
       - name: Build
         run: make -C ${{github.workspace}}/build all

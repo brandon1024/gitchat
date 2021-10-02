@@ -65,6 +65,13 @@ NORETURN void DIE(const char *fmt, ...);
 void WARN(const char *fmt, ...);
 
 /**
+ * Function used to inform the user.
+ *
+ * The message is printed to stderr.
+ * */
+void INFO(const char *fmt, ...);
+
+/**
  * Configure which routine should be invoked to exit the current process.
  *
  * By default, exit(int) is used as the exit routine. However, this cannot be

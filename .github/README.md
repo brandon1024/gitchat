@@ -91,7 +91,8 @@ usage: git chat channel create [(-n | --name) <alias>] [(-d | --description) <de
 Create a new message in the current channel. The message is encrypted with GPG. The message is not yet published, and needs to be pushed to the remote repository using `git chat publish`.
 
 ```
-usage: git chat message [(--recipient <alias>)...] (-m | --message) <message>
+usage: git chat message [(--recipient <alias>)...] [(--reply | --compose <n>)]
+   or: git chat message [(--recipient <alias>)...] (-m | --message) <message>
    or: git chat message [(--recipient <alias>)...] (-f | --file) <filename>
    or: git chat message (-h | --help)
 
@@ -101,7 +102,10 @@ usage: git chat message [(--recipient <alias>)...] (-m | --message) <message>
                         provide the message contents
     -f, --file <filename>
                         read message contents from file
+    --reply             show the last message when composing new messages
+    --compose=<n>       show last messages when composing new messages
     -h, --help          show usage and exit
+
 ```
 
 ### git chat publish

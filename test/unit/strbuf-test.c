@@ -1,5 +1,8 @@
+#include <unistd.h>
+
 #include "test-lib.h"
 #include "strbuf.h"
+#include "utils.h"
 
 static int is_null_terminated(struct strbuf *buff)
 {
@@ -145,6 +148,56 @@ TEST_DEFINE(strbuf_attach_fmt_test)
 	}
 
 	strbuf_release(&buf);
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_attach_fd_test) {
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	int fd[2];
+
+	TEST_START() {
+		assert_false_msg(pipe(fd) < 0, "pipe allocation failed");
+
+		// happy path
+		const char *str = "my string message";
+		size_t str_len = strlen(str);
+		assert_eq_msg(str_len, xwrite(fd[1], str, str_len), "pipe write failed");
+		close(fd[1]);
+
+		strbuf_attach_fd(&buf, fd[0]);
+		assert_string_eq(str, buf.buff);
+	}
+
+	strbuf_release(&buf);
+	close(fd[0]);
+
+	TEST_END();
+}
+
+TEST_DEFINE(strbuf_attach_fd_stop_first_null_test) {
+	struct strbuf buf;
+	strbuf_init(&buf);
+
+	int fd[2];
+
+	TEST_START() {
+		assert_false_msg(pipe(fd) < 0, "pipe allocation failed");
+
+		// happy path
+		const char *str = "my string message\0hello world\0hi";
+		size_t str_len = 32;
+		assert_eq_msg(str_len, xwrite(fd[1], str, str_len), "pipe write failed");
+		close(fd[1]);
+
+		strbuf_attach_fd(&buf, fd[0]);
+		assert_string_eq("my string message", buf.buff);
+	}
+
+	strbuf_release(&buf);
+	close(fd[0]);
+
 	TEST_END();
 }
 
@@ -466,6 +519,8 @@ int test_suite(struct test_runner_instance *instance)
 			{ "attaching string to strbuf should grow the strbuf appropriately", strbuf_attach_test },
 			{ "attaching character to strbuf should grow the strbuf appropriately", strbuf_attach_chr_test },
 			{ "attaching a formatted string to strbuf should format the buffer correctly", strbuf_attach_fmt_test },
+			{ "attaching string to a strbuf from a file descriptor should consume data from file descriptor", strbuf_attach_fd_test },
+			{ "attaching string to a strbuf from a file descriptor should consume data up to the first null byte", strbuf_attach_fd_stop_first_null_test },
 			{ "trimming whitespace from strbuf should trim correct number of characters", strbuf_trim_test },
 			{ "detaching string from strbuf should return correct string", strbuf_detach_test },
 			{ "splitting a strbuf on a simple delimiter should split as expected", strbuf_split_simple_delim_test },

@@ -1,13 +1,14 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "git/commit.h"
 #include "run-command.h"
 #include "utils.h"
-
 
 void git_commit_object_init(struct git_commit *commit)
 {
@@ -90,8 +91,8 @@ int git_commit_index_with_options(const char *commit_message, ...)
  * to the next character in the buffer after the line feed at the end of the
  * header line.
  * */
-static const char *parse_commit_header_oid(struct git_oid *oid, const char *data,
-		size_t len, const char *header_prefix)
+static const char *parse_commit_header_oid(struct git_oid *oid,
+		const char *data, size_t len, const char *header_prefix)
 {
 	const char *current = data;
 	size_t current_len = len;
@@ -119,7 +120,8 @@ static const char *parse_commit_header_oid(struct git_oid *oid, const char *data
  *
  * Returns non-zero if an object ID can be parsed, and zero if not.
  * */
-static int has_commit_header_oid(const char *data, size_t len, const char *header_prefix)
+static int has_commit_header_oid(const char *data, size_t len,
+		const char *header_prefix)
 {
 	return parse_commit_header_oid(NULL, data, len, header_prefix) != NULL;
 }
@@ -131,8 +133,8 @@ static int has_commit_header_oid(const char *data, size_t len, const char *heade
  * to the next character in the buffer after the line feed at the end of the
  * header line.
  * */
-static const char *parse_commit_header_signature(struct git_signature *sig, const char *data,
-		size_t len, const char *header_prefix)
+static const char *parse_commit_header_signature(struct git_signature *sig,
+		const char *data, size_t len, const char *header_prefix)
 {
 	const char *current = data;
 	size_t current_len = len;
@@ -171,12 +173,12 @@ static const char *parse_commit_header_signature(struct git_signature *sig, cons
 			unix_epoch = 0;
 
 		if (tailptr + 1 < lf) {
-			offset = strtoumax(tailptr + 1, &tailptr, 10);
+			offset = strtoimax(tailptr + 1, &tailptr, 10);
 			if (!tailptr || !isspace(*tailptr))
 				return NULL;
 
 			// if invalid, just assume zero
-			if (offset == INTMAX_MAX || offset == INTMAX_MIN)
+			if (offset < -2400 || offset > 2400)
 				offset = 0;
 		}
 	}
@@ -195,7 +197,8 @@ static const char *parse_commit_header_signature(struct git_signature *sig, cons
 
 		// offsets are in the format (+|-)hhmm, so we need to massage
 		// the value a bit
-		sig->timestamp.offset = (offset / 100 * 60) + (offset % 100);
+		sig->timestamp.offset =
+				((int) offset / 100 * 60) + ((int) offset % 100);
 	}
 
 	return lf + 1;
@@ -210,11 +213,12 @@ static const char *parse_commit_header_signature(struct git_signature *sig, cons
 static int has_commit_header_signature(const char *data, size_t len,
 		const char *header_prefix)
 {
-	return parse_commit_header_signature(NULL, data, len, header_prefix) != NULL;
+	return parse_commit_header_signature(NULL, data, len, header_prefix)
+			!= NULL;
 }
 
-int commit_parse(struct git_commit *commit, const char commit_id[GIT_HEX_OBJECT_ID],
-		const char *data, size_t len)
+int commit_parse(struct git_commit *commit,
+		const char commit_id[GIT_HEX_OBJECT_ID], const char *data, size_t len)
 {
 	const char *current = data;
 	size_t current_len = len;
@@ -222,7 +226,8 @@ int commit_parse(struct git_commit *commit, const char commit_id[GIT_HEX_OBJECT_
 	git_str_to_oid(&commit->commit_id, commit_id);
 
 	// parse tree id (there should only ever be a single tree)
-	current = parse_commit_header_oid(&commit->tree_id, current, current_len, "tree ");
+	current = parse_commit_header_oid(&commit->tree_id, current, current_len,
+			"tree ");
 	if (!current)
 		return 1;
 
@@ -241,24 +246,28 @@ int commit_parse(struct git_commit *commit, const char commit_id[GIT_HEX_OBJECT_
 		// 90% of the time, only one parent commit exists, so growing the
 		// array by one is sufficient
 		commit->parents_commit_ids_len += 1;
-		commit->parents_commit_ids = (struct git_oid *) realloc(commit->parents_commit_ids,
+		commit->parents_commit_ids = (struct git_oid *) realloc(
+				commit->parents_commit_ids,
 				commit->parents_commit_ids_len * sizeof(struct git_oid));
 		if (!commit->parents_commit_ids)
 			FATAL(MEM_ALLOC_FAILED);
 
-		commit->parents_commit_ids[commit->parents_commit_ids_len - 1] = parent_id;
+		commit->parents_commit_ids[commit->parents_commit_ids_len
+				- 1] = parent_id;
 	}
 
 	// parse author
 	// might appear more than once, we'll just skip the extras
-	current = parse_commit_header_signature(&commit->author, current, current_len, "author ");
+	current = parse_commit_header_signature(&commit->author, current,
+			current_len, "author ");
 	if (!current)
 		return 1;
 
 	current_len = data + len - current;
 
 	while (has_commit_header_signature(current, current_len, "author ")) {
-		current = parse_commit_header_signature(NULL, current, current_len, "author ");
+		current = parse_commit_header_signature(NULL, current, current_len,
+				"author ");
 		if (!current)
 			break;
 
@@ -266,7 +275,8 @@ int commit_parse(struct git_commit *commit, const char commit_id[GIT_HEX_OBJECT_
 	}
 
 	// parse committer
-	current = parse_commit_header_signature(&commit->committer, current, current_len, "committer ");
+	current = parse_commit_header_signature(&commit->committer, current,
+			current_len, "committer ");
 	if (!current)
 		return 1;
 
@@ -290,4 +300,110 @@ int commit_parse(struct git_commit *commit, const char commit_id[GIT_HEX_OBJECT_
 	strbuf_attach(&commit->body, current, current_len);
 	strbuf_trim(&commit->body);
 	return 0;
+}
+
+/**
+ * Format the header for a message, and copy the result to `header_buff`.
+ * */
+static void format_pretty_message_header(struct strbuf *header_buff,
+		struct git_commit *commit, enum message_type type, int no_color)
+{
+	const char *color_reset = no_color ? "" : ANSI_COLOR_RESET;
+	const char *color_enable = no_color ? "" : ANSI_COLOR_RED;
+	const char *flag_str = "???";
+
+	// if colored output is enabled, determine the color based on the message type
+	switch (type) {
+		case DECRYPTED:
+			flag_str = "DEC";
+			color_enable = ANSI_COLOR_GREEN;
+			break;
+		case PLAINTEXT:
+			flag_str = "PLN";
+			color_enable = ANSI_COLOR_CYAN;
+			break;
+		case UNKNOWN_ERROR:
+			flag_str = "ERR";
+			color_enable = ANSI_COLOR_RED;
+			break;
+		default:
+			flag_str = "???";
+			color_enable = ANSI_COLOR_RED;
+	}
+
+	color_enable = no_color ? "" : color_enable;
+
+	struct strbuf meta;
+	strbuf_init(&meta);
+
+	time_t epoch = commit->author.timestamp.time;
+	struct tm *info;
+	info = localtime(&epoch);
+
+	strbuf_attach_fmt(&meta, "%s", asctime(info));
+	strbuf_trim(&meta);
+	strbuf_attach_fmt(&meta, " %s %s", flag_str, commit->author.name.buff);
+	strbuf_trim(&meta);
+
+	strbuf_attach_fmt(header_buff, "%s[%s]%s\n", color_enable, meta.buff,
+			color_reset);
+
+	strbuf_release(&meta);
+}
+
+/**
+ * Format `message` and write the formatted message to `body_buff`.
+ * */
+static void format_pretty_message_body(struct strbuf *body_buff,
+		struct strbuf *message)
+{
+	struct strbuf tmp_message_buff;
+	struct str_array lines;
+
+	strbuf_init(&tmp_message_buff);
+	str_array_init(&lines);
+
+	// copy `message` to temporary buffer and trim whitespace
+	strbuf_attach(&tmp_message_buff, message->buff, message->len);
+	strbuf_trim(&tmp_message_buff);
+
+	// split message into lines
+	int line_count = strbuf_split(&tmp_message_buff, "\n", &lines);
+	strbuf_clear(&tmp_message_buff);
+
+	// indent lines
+	for (int i = 0; i < line_count; i++) {
+		char *line = str_array_get(&lines, i);
+		strbuf_attach_fmt(&tmp_message_buff, "\n\t%s", line);
+	}
+
+	str_array_release(&lines);
+
+	// finally attach to result buffer
+	strbuf_attach_fmt(body_buff, "%s\n\n", tmp_message_buff.buff);
+
+	strbuf_release(&tmp_message_buff);
+}
+
+void pretty_print_message(struct git_commit *commit, struct strbuf *message,
+		enum message_type type, int no_color, int output_fd)
+{
+	struct strbuf header, body;
+	strbuf_init(&header);
+	strbuf_init(&body);
+
+	// format header
+	format_pretty_message_header(&header, commit, type, no_color);
+
+	// format body
+	format_pretty_message_body(&body, message);
+
+	// write to file descriptor
+	if (xwrite(output_fd, header.buff, header.len) != header.len)
+		FATAL("failed to write to file descriptor");
+	if (xwrite(output_fd, body.buff, body.len) != body.len)
+		FATAL("failed to write to file descriptor");
+
+	strbuf_release(&header);
+	strbuf_release(&body);
 }

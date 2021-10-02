@@ -55,6 +55,15 @@ void WARN(const char *fmt, ...)
 	va_end(varargs);
 }
 
+void INFO(const char *fmt, ...)
+{
+	va_list varargs;
+
+	va_start(varargs, fmt);
+	print_message(stderr, "info", fmt, varargs);
+	va_end(varargs);
+}
+
 static void print_message(FILE *output_stream, const char *prefix,
 		const char *fmt, va_list varargs)
 {
@@ -80,10 +89,6 @@ static void print_message(FILE *output_stream, const char *prefix,
 	}
 
 	fputs(message_buffer.buff, output_stream);
-
-	if (errno > 0)
-		fprintf(stderr, "%s\n", strerror(errno));
-
 	strbuf_release(&message_buffer);
 }
 

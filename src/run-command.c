@@ -86,14 +86,7 @@ int capture_command(struct child_process_def *cmd, struct strbuf *buffer)
 	start_command(cmd);
 	close(cmd->out_fd[WRITE]);
 
-	char out_buffer[BUFF_LEN];
-	ssize_t bytes_read = 0;
-	while ((bytes_read = xread(cmd->out_fd[READ], out_buffer, BUFF_LEN)) > 0)
-		strbuf_attach(buffer, out_buffer, bytes_read);
-
-	if (bytes_read < 0)
-		FATAL("failed to read from pipe to child process.");
-
+	strbuf_attach_fd(buffer, cmd->out_fd[READ]);
 	close(cmd->out_fd[READ]);
 
 	return finish_command(cmd);

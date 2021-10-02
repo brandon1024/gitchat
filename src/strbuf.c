@@ -80,16 +80,27 @@ void strbuf_attach_vfmt(struct strbuf *buff, const char *fmt, va_list varargs)
 	// calculate required buffer size
 	ssize_t len = vsnprintf(NULL, 0, fmt, varargs_cpy);
 	if (len < 0)
-		FATAL("Unexpected error from vsnprintf()");
+		FATAL("unexpected error from vsnprintf()");
 
 	va_end(varargs_cpy);
 
 	strbuf_grow(buff, buff->alloc + len + 1);
 	len = vsnprintf(buff->buff + buff->len, len + 1, fmt, varargs);
 	if (len < 0)
-		FATAL("Unexpected error from vsnprintf()");
+		FATAL("unexpected error from vsnprintf()");
 
 	buff->len += len;
+}
+
+void strbuf_attach_fd(struct strbuf *buff, int fd)
+{
+	char temp_buffer[1024];
+	ssize_t bytes_read;
+	while ((bytes_read = xread(fd, temp_buffer, 1024)) > 0)
+		strbuf_attach(buff, temp_buffer, bytes_read);
+
+	if (bytes_read < 0)
+		FATAL("pipe read failure");
 }
 
 int strbuf_trim(struct strbuf *buff)

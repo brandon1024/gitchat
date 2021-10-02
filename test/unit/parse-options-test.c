@@ -61,8 +61,8 @@ TEST_DEFINE(parse_options_short_bool_test)
 {
 	int bool_val_1 = 0;
 	int bool_val_2 = 0;
-	options[15].arg_value = &bool_val_1;
-	options[35].arg_value = &bool_val_2;
+	options[15].arg_value.int_ptr = &bool_val_1;
+	options[35].arg_value.int_ptr = &bool_val_2;
 
 	TEST_START() {
 		const int argc = 1;
@@ -75,8 +75,8 @@ TEST_DEFINE(parse_options_short_bool_test)
 		assert_false(bool_val_2);
 	}
 
-	options[15].arg_value = NULL;
-	options[35].arg_value = NULL;
+	options[15].arg_value.int_ptr = NULL;
+	options[35].arg_value.int_ptr = NULL;
 	TEST_END();
 }
 
@@ -87,11 +87,11 @@ TEST_DEFINE(parse_options_short_int_test)
 	int int_val_2 = 0;
 	int int_val_3 = 0;
 	int int_val_4 = 0;
-	options[1].arg_value = &bool_val_1;
-	options[38].arg_value = &int_val_1;
-	options[48].arg_value = &int_val_2;
-	options[49].arg_value = &int_val_3;
-	options[22].arg_value = &int_val_4;
+	options[1].arg_value.int_ptr = &bool_val_1;
+	options[38].arg_value.int_ptr = &int_val_1;
+	options[48].arg_value.int_ptr = &int_val_2;
+	options[49].arg_value.int_ptr = &int_val_3;
+	options[22].arg_value.int_ptr = &int_val_4;
 
 	TEST_START() {
 		int argc = 7;
@@ -121,10 +121,10 @@ TEST_DEFINE(parse_options_short_int_test)
 	}
 
 	// test teardown
-	options[1].arg_value = NULL;
-	options[38].arg_value = NULL;
-	options[48].arg_value = NULL;
-	options[49].arg_value = NULL;
+	options[1].arg_value.int_ptr = NULL;
+	options[38].arg_value.int_ptr = NULL;
+	options[48].arg_value.int_ptr = NULL;
+	options[49].arg_value.int_ptr = NULL;
 
 	TEST_END();
 }
@@ -134,8 +134,8 @@ TEST_DEFINE(parse_options_short_string_test)
 	char *str_1 = NULL;
 	char *str_2 = NULL;
 
-	options[8].arg_value = &str_1;
-	options[13].arg_value = &str_2;
+	options[8].arg_value.str_ptr = &str_1;
+	options[13].arg_value.str_ptr = &str_2;
 
 	TEST_START() {
 		int argc = 5;
@@ -149,8 +149,8 @@ TEST_DEFINE(parse_options_short_string_test)
 		assert_string_eq("-c", argv[0]);
 	}
 
-	options[8].arg_value = NULL;
-	options[13].arg_value = NULL;
+	options[8].arg_value.str_ptr = NULL;
+	options[13].arg_value.str_ptr = NULL;
 
 	TEST_END();
 }
@@ -160,7 +160,7 @@ TEST_DEFINE(parse_options_short_string_list_test)
 	struct str_array strings;
 	str_array_init(&strings);
 
-	options[46].arg_value = &strings;
+	options[46].arg_value.str_array_ptr = &strings;
 
 	TEST_START() {
 		int argc = 5;
@@ -175,7 +175,7 @@ TEST_DEFINE(parse_options_short_string_list_test)
 		assert_string_eq("-D", argv[0]);
 	}
 
-	options[46].arg_value = NULL;
+	options[46].arg_value.str_array_ptr = NULL;
 	str_array_release(&strings);
 
 	TEST_END();
@@ -186,9 +186,9 @@ TEST_DEFINE(parse_options_long_bool_test)
 	int bool_val_1 = 0;
 	int bool_val_2 = 0;
 	int bool_val_3 = 0;
-	options[14].arg_value = &bool_val_1;
-	options[20].arg_value = &bool_val_2;
-	options[26].arg_value = &bool_val_3;
+	options[14].arg_value.int_ptr = &bool_val_1;
+	options[20].arg_value.int_ptr = &bool_val_2;
+	options[26].arg_value.int_ptr = &bool_val_3;
 
 	TEST_START() {
 		const int argc = 3;
@@ -203,9 +203,9 @@ TEST_DEFINE(parse_options_long_bool_test)
 		assert_string_eq("--unknown-op", argv[0]);
 	}
 
-	options[14].arg_value = NULL;
-	options[20].arg_value = NULL;
-	options[26].arg_value = NULL;
+	options[14].arg_value.int_ptr = NULL;
+	options[20].arg_value.int_ptr = NULL;
+	options[26].arg_value.int_ptr = NULL;
 	TEST_END();
 }
 
@@ -213,8 +213,8 @@ TEST_DEFINE(parse_options_long_int_test)
 {
 	int int_val_1 = 0;
 	int int_val_2 = 0;
-	options[37].arg_value = &int_val_1;
-	options[39].arg_value = &int_val_2;
+	options[37].arg_value.int_ptr = &int_val_1;
+	options[39].arg_value.int_ptr = &int_val_2;
 
 	TEST_START() {
 		const int argc = 3;
@@ -227,8 +227,8 @@ TEST_DEFINE(parse_options_long_int_test)
 		assert_eq(int_val_2, -9);
 	}
 
-	options[37].arg_value = NULL;
-	options[39].arg_value = NULL;
+	options[37].arg_value.int_ptr = NULL;
+	options[39].arg_value.int_ptr = NULL;
 	TEST_END();
 }
 
@@ -237,9 +237,9 @@ TEST_DEFINE(parse_options_long_string_test)
 	char *string_val_1 = NULL;
 	char *string_val_2 = NULL;
 	char *string_val_3 = NULL;
-	options[4].arg_value = &string_val_1;
-	options[5].arg_value = &string_val_2;
-	options[16].arg_value = &string_val_3;
+	options[4].arg_value.str_ptr = &string_val_1;
+	options[5].arg_value.str_ptr = &string_val_2;
+	options[16].arg_value.str_ptr = &string_val_3;
 
 	TEST_START() {
 		const int argc = 6;
@@ -254,9 +254,9 @@ TEST_DEFINE(parse_options_long_string_test)
 		assert_string_eq("--reuse-message", argv[0]);
 	}
 
-	options[4].arg_value = NULL;
-	options[5].arg_value = NULL;
-	options[9].arg_value = NULL;
+	options[4].arg_value.str_ptr = NULL;
+	options[5].arg_value.str_ptr = NULL;
+	options[16].arg_value.str_ptr = NULL;
 	TEST_END();
 }
 
@@ -265,7 +265,7 @@ TEST_DEFINE(parse_options_long_string_list_test)
 	struct str_array strings;
 	str_array_init(&strings);
 
-	options[47].arg_value = &strings;
+	options[47].arg_value.str_array_ptr = &strings;
 
 	TEST_START() {
 		int argc = 5;
@@ -280,7 +280,7 @@ TEST_DEFINE(parse_options_long_string_list_test)
 		assert_string_eq("another string", str_array_get(&strings, 2));
 	}
 
-	options[47].arg_value = NULL;
+	options[47].arg_value.str_array_ptr = NULL;
 	str_array_release(&strings);
 
 	TEST_END();
@@ -292,10 +292,10 @@ TEST_DEFINE(parse_options_bool_test)
 	int bool_val_2 = 0;
 	int bool_val_3 = 0;
 	int bool_val_4 = 0;
-	options[1].arg_value = &bool_val_1;
-	options[2].arg_value = &bool_val_2;
-	options[10].arg_value = &bool_val_3;
-	options[23].arg_value = &bool_val_4;
+	options[1].arg_value.int_ptr = &bool_val_1;
+	options[2].arg_value.int_ptr = &bool_val_2;
+	options[10].arg_value.int_ptr = &bool_val_3;
+	options[23].arg_value.int_ptr = &bool_val_4;
 
 	TEST_START() {
 		const int argc = 3;
@@ -310,10 +310,10 @@ TEST_DEFINE(parse_options_bool_test)
 		assert_true(bool_val_4);
 	}
 
-	options[1].arg_value = NULL;
-	options[2].arg_value = NULL;
-	options[10].arg_value = NULL;
-	options[23].arg_value = NULL;
+	options[1].arg_value.int_ptr = NULL;
+	options[2].arg_value.int_ptr = NULL;
+	options[10].arg_value.int_ptr = NULL;
+	options[23].arg_value.int_ptr = NULL;
 	TEST_END();
 }
 
@@ -322,9 +322,9 @@ TEST_DEFINE(parse_options_int_test)
 	int bool_val_1 = 0;
 	int int_val_1 = 0;
 	int int_val_2 = 0;
-	options[1].arg_value = &bool_val_1;
-	options[22].arg_value = &int_val_1;
-	options[40].arg_value = &int_val_2;
+	options[1].arg_value.int_ptr = &bool_val_1;
+	options[22].arg_value.int_ptr = &int_val_1;
+	options[40].arg_value.int_ptr = &int_val_2;
 
 	TEST_START() {
 		const int argc = 4;
@@ -338,9 +338,9 @@ TEST_DEFINE(parse_options_int_test)
 		assert_eq(0xa1, int_val_2);
 	}
 
-	options[1].arg_value = NULL;
-	options[22].arg_value = NULL;
-	options[40].arg_value = NULL;
+	options[1].arg_value.int_ptr = NULL;
+	options[22].arg_value.int_ptr = NULL;
+	options[40].arg_value.int_ptr = NULL;
 	TEST_END();
 }
 
@@ -350,9 +350,9 @@ TEST_DEFINE(parse_options_string_test)
 	char *str_2 = NULL;
 
 	int bool_val_1 = 0;
-	options[1].arg_value = &bool_val_1;
-	options[3].arg_value = &str_1;
-	options[7].arg_value = &str_2;
+	options[1].arg_value.int_ptr = &bool_val_1;
+	options[3].arg_value.str_ptr = &str_1;
+	options[7].arg_value.str_ptr = &str_2;
 
 	TEST_START() {
 		const int argc = 4;
@@ -366,9 +366,9 @@ TEST_DEFINE(parse_options_string_test)
 		assert_string_eq("0xa1", str_2);
 	}
 
-	options[1].arg_value = NULL;
-	options[3].arg_value = NULL;
-	options[7].arg_value = NULL;
+	options[1].arg_value.int_ptr = NULL;
+	options[3].arg_value.str_ptr = NULL;
+	options[7].arg_value.str_ptr = NULL;
 
 	TEST_END();
 }
@@ -378,7 +378,7 @@ TEST_DEFINE(parse_options_string_list_test)
 	struct str_array strings;
 	str_array_init(&strings);
 
-	options[45].arg_value = &strings;
+	options[45].arg_value.str_array_ptr = &strings;
 
 	TEST_START() {
 		int argc = 5;
@@ -393,7 +393,7 @@ TEST_DEFINE(parse_options_string_list_test)
 		assert_string_eq("another string", str_array_get(&strings, 2));
 	}
 
-	options[45].arg_value = NULL;
+	options[45].arg_value.str_array_ptr = NULL;
 	str_array_release(&strings);
 
 	TEST_END();
@@ -403,8 +403,8 @@ TEST_DEFINE(parse_options_cmd_test)
 {
 	int bool_val_1 = 0;
 	int cmd_val_1 = 0;
-	options[1].arg_value = &bool_val_1;
-	options[43].arg_value = &cmd_val_1;
+	options[1].arg_value.int_ptr = &bool_val_1;
+	options[43].arg_value.int_ptr = &cmd_val_1;
 
 	TEST_START() {
 		int argc = 5;
@@ -430,7 +430,8 @@ TEST_DEFINE(parse_options_cmd_test)
 		assert_string_eq("another string", argv1[3]);
 	}
 
-	options[1].arg_value = NULL;
+	options[1].arg_value.int_ptr = NULL;
+	options[43].arg_value.int_ptr = NULL;
 
 	TEST_END();
 }
@@ -439,8 +440,8 @@ TEST_DEFINE(parse_options_skip_first_arg_test)
 {
 	int bool_val_1 = 0;
 	int bool_val_2 = 0;
-	options[15].arg_value = &bool_val_1;
-	options[35].arg_value = &bool_val_2;
+	options[15].arg_value.int_ptr = &bool_val_1;
+	options[35].arg_value.int_ptr = &bool_val_2;
 
 	TEST_START() {
 		const int argc = 2;
@@ -453,8 +454,8 @@ TEST_DEFINE(parse_options_skip_first_arg_test)
 		assert_true(bool_val_2);
 	}
 
-	options[15].arg_value = NULL;
-	options[35].arg_value = NULL;
+	options[15].arg_value.int_ptr = NULL;
+	options[35].arg_value.int_ptr = NULL;
 	TEST_END();
 }
 
@@ -464,9 +465,9 @@ TEST_DEFINE(parse_options_unknown_arg_test)
 	char *str_2 = NULL;
 
 	int bool_val_1 = 0;
-	options[1].arg_value = &bool_val_1;
-	options[3].arg_value = &str_1;
-	options[7].arg_value = &str_2;
+	options[1].arg_value.int_ptr = &bool_val_1;
+	options[3].arg_value.str_ptr = &str_1;
+	options[7].arg_value.str_ptr = &str_2;
 
 	TEST_START() {
 		const int argc = 4;
@@ -479,9 +480,9 @@ TEST_DEFINE(parse_options_unknown_arg_test)
 		assert_string_eq("my file", str_1);
 	}
 
-	options[1].arg_value = NULL;
-	options[3].arg_value = NULL;
-	options[7].arg_value = NULL;
+	options[1].arg_value.int_ptr = NULL;
+	options[3].arg_value.str_ptr = NULL;
+	options[7].arg_value.str_ptr = NULL;
 
 	TEST_END();
 }
@@ -491,11 +492,11 @@ TEST_DEFINE(parse_options_combined_short_arg_test)
 	int bool_val_1 = 0, bool_val_2 = 0, bool_val_3 = 0, bool_val_4 = 0;
 	char *string = NULL;
 
-	options[1].arg_value = &bool_val_1;
-	options[2].arg_value = &bool_val_2;
-	options[10].arg_value = &bool_val_3;
-	options[11].arg_value = &bool_val_4;
-	options[13].arg_value = &string;
+	options[1].arg_value.int_ptr = &bool_val_1;
+	options[2].arg_value.int_ptr = &bool_val_2;
+	options[10].arg_value.int_ptr = &bool_val_3;
+	options[11].arg_value.int_ptr = &bool_val_4;
+	options[13].arg_value.str_ptr = &string;
 
 	TEST_START() {
 		const int argc = 2;
@@ -512,11 +513,11 @@ TEST_DEFINE(parse_options_combined_short_arg_test)
 		assert_string_eq("test string", string);
 	}
 
-	options[1].arg_value = NULL;
-	options[2].arg_value = NULL;
-	options[10].arg_value = NULL;
-	options[11].arg_value = NULL;
-	options[13].arg_value = NULL;
+	options[1].arg_value.int_ptr = NULL;
+	options[2].arg_value.int_ptr = NULL;
+	options[10].arg_value.int_ptr = NULL;
+	options[11].arg_value.int_ptr = NULL;
+	options[13].arg_value.str_ptr = NULL;
 
 	TEST_END();
 }

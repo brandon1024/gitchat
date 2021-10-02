@@ -74,7 +74,7 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 		// if the argument is a boolean arg, set value to one and return
 		if (op->type == OPTION_BOOL_T && !strcmp(arg, op->l_flag)) {
 			array_shift(argv, arg_index, &new_len, 1);
-			*(int *) op->arg_value = 1;
+			*(int *) op->arg_value.int_ptr = 1;
 			break;
 		}
 
@@ -100,18 +100,18 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 				// verify that integer was parsed successfully
 				if (tailptr == (arg + strlen(arg))) {
 					array_shift(argv, arg_index, &new_len, 2);
-					*(int *) op->arg_value = (int) arg_value;
+					*(int *) op->arg_value.int_ptr = (int) arg_value;
 					break;
 				}
 			} else if (op->type == OPTION_STRING_T) {
 				array_shift(argv, arg_index, &new_len, 2);
 
-				*(char **) op->arg_value = arg;
+				*(char **) op->arg_value.str_ptr = arg;
 				break;
 			} else if (op->type == OPTION_STRING_LIST_T) {
 				array_shift(argv, arg_index, &new_len, 2);
 
-				str_array_push(op->arg_value, arg, NULL);
+				str_array_push(op->arg_value.str_array_ptr, arg, NULL);
 				break;
 			}
 		} else if (strlen(arg) > flag_len && arg[flag_len] == '=') {
@@ -125,18 +125,18 @@ static int parse_long_option(int argc, char *argv[], int arg_index,
 				// verify that integer was parsed successfully
 				if (tailptr == (arg + strlen(arg))) {
 					array_shift(argv, arg_index, &new_len, 1);
-					*(int *) op->arg_value = (int) arg_value;
+					*(int *) op->arg_value.int_ptr = (int) arg_value;
 					break;
 				}
 			} else if (op->type == OPTION_STRING_T) {
 				array_shift(argv, arg_index, &new_len, 1);
 
-				*(char **) op->arg_value = arg;
+				*(char **) op->arg_value.str_ptr = arg;
 				break;
 			} else if (op->type == OPTION_STRING_LIST_T) {
 				array_shift(argv, arg_index, &new_len, 1);
 
-				str_array_push(op->arg_value, arg, NULL);
+				str_array_push(op->arg_value.str_array_ptr, arg, NULL);
 				break;
 			}
 		}
@@ -163,7 +163,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 			}
 
 			if (op->type == OPTION_BOOL_T) {
-				*(int *) op->arg_value = 1;
+				*(int *) op->arg_value.int_ptr = 1;
 				break;
 			}
 
@@ -189,7 +189,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 					// verify that integer was parsed successfully
 					if (tailptr == (arg + strlen(arg))) {
 						array_shift(argv, arg_index, &new_len, 1);
-						*(int *) op->arg_value = (int) arg_value;
+						*(int *) op->arg_value.int_ptr = (int) arg_value;
 					}
 				} else {
 					arg = argv[arg_index + 1];
@@ -198,7 +198,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 					// verify that integer was parsed successfully
 					if (tailptr == (arg + strlen(arg))) {
 						array_shift(argv, arg_index, &new_len, 2);
-						*(int *) op->arg_value = (int) arg_value;
+						*(int *) op->arg_value.int_ptr = (int) arg_value;
 					}
 				}
 
@@ -209,7 +209,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 				arg = argv[arg_index + 1];
 				array_shift(argv, arg_index, &new_len, 2);
 
-				*(char **) op->arg_value = arg;
+				*(char **) op->arg_value.str_ptr = arg;
 				return argc - new_len;
 			}
 
@@ -217,7 +217,7 @@ static int parse_short_option(int argc, char *argv[], int arg_index,
 				arg = argv[arg_index + 1];
 				array_shift(argv, arg_index, &new_len, 2);
 
-				str_array_push(op->arg_value, arg, NULL);
+				str_array_push(op->arg_value.str_array_ptr, arg, NULL);
 				return argc - new_len;
 			}
 		}
@@ -236,8 +236,8 @@ static int parse_subcommand(char *argv[], int arg_index,
 
 		char *arg = argv[arg_index];
 		if (!strcmp(arg, op->str_name)) {
-			if (op->arg_value) {
-				*(int *) op->arg_value = 1;
+			if (op->arg_value.int_ptr) {
+				*(int *) op->arg_value.int_ptr = 1;
 			}
 
 			return 1;

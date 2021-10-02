@@ -420,8 +420,8 @@ int cmd_message(int argc, char *argv[])
 	int show_help = 0;
 	int reply = 0, compose = 0;
 	struct str_array recipients;
-	const char *message = NULL;
-	const char *file = NULL;
+	char *message = NULL;
+	char *file = NULL;
 
 	const struct command_option message_cmd_options[] = {
 			OPT_LONG_STRING_LIST("recipient", "alias", "specify one or more recipients that may read the message", &recipients),

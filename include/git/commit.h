@@ -33,6 +33,12 @@ struct git_commit {
 	struct strbuf body;
 };
 
+enum message_type {
+	PLAINTEXT,
+	DECRYPTED,
+	UNKNOWN_ERROR
+};
+
 /**
  * Allocate memory and initialize members of a commit object to their defaults.
  * */
@@ -68,5 +74,27 @@ int git_commit_index_with_options(const char *commit_message, ...);
  * */
 int commit_parse(struct git_commit *commit, const char commit_id[GIT_HEX_OBJECT_ID],
 		const char *data, size_t len);
+
+/**
+ * Pretty-print a single message and write to the file descriptor `output_fd`.
+ *
+ * `commit` is the raw commit, as read from `commit_parse()`.
+ *
+ * `message` represents a raw or externally-decrypted message. `message_type`
+ * is used to indicate the format of the message, either:
+ * - plain text message,
+ * - decrypted message, or
+ * - the raw message when decryption fails unexpectedly.
+ *
+ * `no_color` is used to control whether raw ANSI color control sequences are
+ * written to the output.
+ *
+ * Messages are displayed in the following format:
+ * [<timestamp> <ENC | PLN> <author>]
+ *   <message>...
+ *   <message>...
+ * */
+void pretty_print_message(struct git_commit *commit, struct strbuf *message,
+		enum message_type type, int no_color, int output_fd);
 
 #endif //GIT_CHAT_COMMIT_H

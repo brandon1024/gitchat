@@ -76,6 +76,11 @@ void strbuf_attach_fmt(struct strbuf *buff, const char *fmt, ...);
 void strbuf_attach_vfmt(struct strbuf *buff, const char *fmt, va_list varargs);
 
 /**
+ * Read and attach data from an open file descriptor to a strbuf.
+ * */
+void strbuf_attach_fd(struct strbuf *buff, int fd);
+
+/**
  * Trim leading and trailing whitespace from an strbuf, returning the number of
  * characters removed from the buffer.
  *

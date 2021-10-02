@@ -1,11 +1,12 @@
 .TH git-chat-message 1 "@CMAKE_COMPILATION_DATE@" "git-chat @CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@.@CMAKE_PROJECT_VERSION_PATCH@" "git-chat manual"
 
 .SH NAME
-git-chat-message \- Encrypt plaintext messages and commit them to the git history
+git-chat-message \- encrypt plaintext messages and commit them to the git history
 
 .SH SYNOPSIS
 .sp
 .nf
+\fIgit-chat-message\fR [(\-\-recipient <alias>)...] [(--reply | --compose <n>)]
 \fIgit-chat-message\fR [(\-\-recipient <alias>)...] (\-m | \-\-message) <message>
 \fIgit-chat-message\fR [(\-\-recipient <alias>)...] (\-f | \-\-file) <filename>
 \fIgit-chat-message\fR (\-h | \-\-help)
@@ -14,7 +15,7 @@ git-chat-message \- Encrypt plaintext messages and commit them to the git histor
 .SH DESCRIPTION
 \fIgit-chat\fR supports asymmetric encryption of plaintext messages through \fBGNU Privacy Guard\fR (gpg).
 
-New messages are created as empty commit objects in the Git database. If successful, new message commits are created on the tip of the current branch. You can manually decrypt messages by piping the commit message body into gpg:
+New messages are created as empty commit objects in the Git database. If successful, new message commits are created on the tip of the current channel. You can manually decrypt messages by piping the commit message body into gpg:
 
 .PP
 .in +4n
@@ -58,6 +59,10 @@ Provide the message at the command line.
 .TP
 \-f, \-\-file <file>
 Provide the message as the content of a file. Use \fI-\fR to read the message from the standard input.
+
+.TP
+\-\-reply, \-\-compose <n>
+When composing new messages in the editor, decrypt and show the last <n> messages from the current channel in a horizontal split window. \fI\-\-reply\fR is an alias to \fI\-\-compose=1\fR.
 
 .TP
 \-h, \-\-help

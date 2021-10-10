@@ -7,8 +7,7 @@ git-chat-import-key \- import GnuPG public keys into a channel
 .SH SYNOPSIS
 .sp
 .nf
-\fIgit-chat-import-key\fR [\-\-gpg\-home <path>] [\-\-] <key fpr>...
-\fIgit-chat-import-key\fR (\-f | \-\-file) <path>
+\fIgit chat import-key [\-\-gpg\-home <path>] [((\-f | \-\-file) <path>)...] [\-\-] <key fpr>...
 \fIgit-chat-import-key\fR (\-h | \-\-help)
 
 
@@ -16,6 +15,8 @@ git-chat-import-key \- import GnuPG public keys into a channel
 To ensure that other users can include you as a recipient to messages sent in a particular channel, it might be necessary to import your GnuPG public key into that channel. In general, your GnuPG public keys should be imported if \fB.git-chat/keys\fR does not contain a file whose name is the fingerprint of your public key.
 
 When a key is imported into the channel, a new commit at the tip of the channel branch is created and must be published.
+
+Public keys can only be imported if they are valid and usable. Expired, revoked and disabled keys are filtered. Previously imported keys are ignored.
 
 
 .SH OPTIONS
@@ -34,6 +35,7 @@ Print a simple synopsis and exit.
 
 .SH SEE ALSO
 \fBgit-chat-channel\fR(1)
+\fBgit-chat-message\fR(1)
 
 
 .SH REPORTING BUGS

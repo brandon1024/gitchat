@@ -25,10 +25,10 @@ void init_gpgme_openpgp_engine(void)
 	gpgme_error_t err;
 	int errsv = errno;
 
-	LOG_INFO("Initializing GPGME with GPGME_PROTOCOL_OpenPGP engine");
+	LOG_INFO("initializing GPGME with GPGME_PROTOCOL_OpenPGP engine");
 
 	const char *version = gpgme_check_version(NULL);
-	LOG_INFO("Using installed GPGME version %s", version);
+	LOG_INFO("using installed GPGME version %s", version);
 
 	setlocale(LC_ALL, "");
 	err = gpgme_set_locale(NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));

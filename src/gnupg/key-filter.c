@@ -3,7 +3,7 @@
 #include "gnupg/gpg-common.h"
 
 int filter_gpg_keys_by_predicate(struct gpg_key_list *keys,
-		int (*predicate)(struct _gpgme_key *, void *), void *optional_data)
+		int (*predicate)(gpgme_key_t, void *), void *optional_data)
 {
 	int filtered_keys = 0;
 	struct gpg_key_list_node *node = keys->head;
@@ -35,7 +35,7 @@ int filter_gpg_keys_by_predicate(struct gpg_key_list *keys,
 	return filtered_keys;
 }
 
-int filter_gpg_unusable_keys(struct _gpgme_key *key, void *data)
+int filter_gpg_unusable_keys(gpgme_key_t key, void *data)
 {
 	// Unused
 	(void) data;
@@ -46,6 +46,8 @@ int filter_gpg_unusable_keys(struct _gpgme_key *key, void *data)
 		return 0;
 	if (key->invalid)
 		return 0;
+	if (key->revoked)
+		return 0;
 
 	if (!key->can_encrypt)
 		return 0;
@@ -53,7 +55,7 @@ int filter_gpg_unusable_keys(struct _gpgme_key *key, void *data)
 	return 1;
 }
 
-int filter_gpg_secret_keys(struct _gpgme_key *key, void *data)
+int filter_gpg_secret_keys(gpgme_key_t key, void *data)
 {
 	// Unused
 	(void) data;

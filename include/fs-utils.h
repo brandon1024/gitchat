@@ -71,7 +71,8 @@ int get_symlink_target(const char *symlink_path, struct strbuf *result, size_t s
 int get_cwd(struct strbuf *buff);
 
 /**
- * Create a new directory with the given base path and directory name.
+ * Create a new directory with the given base path and directory name, if no such
+ * directory exists.
  *
  * `base_path` and `dir` must be null terminated strings.
  *

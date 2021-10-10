@@ -11,7 +11,7 @@ void asymmetric_encrypt_plaintext_message(struct gc_gpgme_ctx *ctx,
 	gpgme_error_t err;
 	int errsv = errno;
 
-	LOG_INFO("Encrypting plaintext message");
+	LOG_INFO("encrypting plaintext message");
 
 	struct str_array keys;
 	str_array_init(&keys);
@@ -22,13 +22,13 @@ void asymmetric_encrypt_plaintext_message(struct gc_gpgme_ctx *ctx,
 		struct str_array_entry *entry = str_array_insert_nodup(&keys, NULL, keys.len);
 		entry->data = node->key;
 
-		LOG_TRACE("Recipient gpg key fingerprint: %s", node->key->fpr);
+		LOG_TRACE("recipient gpg key fingerprint: %s", node->key->fpr);
 
 		node = node->next;
 	}
 
 	size_t keys_len = 0;
-	struct _gpgme_key **keys_array = (struct _gpgme_key **)str_array_detach_data(&keys, &keys_len);
+	gpgme_key_t *keys_array = (gpgme_key_t *)str_array_detach_data(&keys, &keys_len);
 	if (!keys_len)
 		BUG("no gpg keys given to asymmetric_encrypt_plaintext_message()");
 
@@ -84,6 +84,6 @@ void asymmetric_encrypt_plaintext_message(struct gc_gpgme_ctx *ctx,
 	gpgme_data_release(message_in);
 	gpgme_data_release(message_out);
 
-	LOG_INFO("Successfully encrypted message");
+	LOG_INFO("successfully encrypted message");
 	errno = errsv;
 }

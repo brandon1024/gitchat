@@ -35,18 +35,16 @@ assert_success 'git-chat import-key should correctly import key from file' '
 	GNUPGHOME="$(pwd)/.git/.gnupg" gpg --list-keys 41C4155B702593BFF6D7D140AB4F26E5A765DFDC
 '
 
-assert_success 'git-chat import-key should fail when given file paths and fingerprints' '
+assert_success 'git-chat import-key should support import from keys and fingerprints' '
 	reset_trash_dir &&
 	git chat init &&
 	setup_test_gpg &&
 	gpg --import $TEST_RESOURCES_DIR/gpgkeys/*.pub.gpg
 ' '
-	! git chat import-key -f $TEST_RESOURCES_DIR/gpgkeys/ajones_noexpire.pub.gpg 41C4155B702593BFF6D7D140AB4F26E5A765DFDC 2>err &&
-	grep "mutually exclusive operations" err &&
-	git chat import-key 41C4155B702593BFF6D7D140AB4F26E5A765DFDC --file $TEST_RESOURCES_DIR/gpgkeys/ajones_noexpire.pub.gpg 2>err >out &&
-	grep "could not find public gpg key with fingerprint" err &&
-	grep "41C4155B702593BFF6D7D140AB4F26E5A765DFDC" out &&
-	GNUPGHOME="$(pwd)/.git/.gnupg" gpg --list-keys 41C4155B702593BFF6D7D140AB4F26E5A765DFDC
+	git chat import-key -f $TEST_RESOURCES_DIR/gpgkeys/ajones_noexpire.pub.gpg 41C4155B702593BFF6D7D140AB4F26E5A765DFDC &&
+	git show -s --format=%B >commit_msg &&
+	grep "49A9FED4003D28CB5D8CF96748F6785D011F494B" commit_msg &&
+	grep "41C4155B702593BFF6D7D140AB4F26E5A765DFDC" commit_msg
 '
 
 assert_success 'git-chat import-key should fail if key is already imported' '

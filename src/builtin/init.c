@@ -62,7 +62,7 @@ static int init(const char *channel_name, const char *space_desc)
 	if (is_inside_git_chat_space())
 		DIE("a git-chat space cannot be reinitialized.");
 
-	LOG_INFO("Initializing new space '%s' with master channel name '%s'",
+	LOG_INFO("initializing new space '%s' with master channel name '%s'",
 			 space_desc, channel_name);
 
 	// execute 'git init' as child process
@@ -83,7 +83,7 @@ static int init(const char *channel_name, const char *space_desc)
 			 "Is your user configured through .gitconfig?");
 	}
 
-	LOG_DEBUG("Found user details (%s) from global .gitconfig", author.buff);
+	LOG_DEBUG("found user details (%s) from global .gitconfig", author.buff);
 
 	// create .git-chat dir
 	prepare_git_chat(channel_name, space_desc, author.buff);
@@ -158,7 +158,7 @@ static void prepare_git_chat(const char *channel_name, const char *description, 
 		FATAL("failed to obtain .git-chat dir");
 	copy_dir(templates_dir_path.buff, path.buff);
 
-	LOG_DEBUG("Copied directory from '%s' to '%s'", templates_dir_path.buff,
+	LOG_DEBUG("copied directory from '%s' to '%s'", templates_dir_path.buff,
 			  path.buff);
 
 	update_config(path.buff, channel_name, author);
@@ -170,7 +170,7 @@ static void prepare_git_chat(const char *channel_name, const char *description, 
 		FATAL("failed to obtain git-chat keys dir");
 	
 	safe_create_dir(path.buff, NULL, S_IRWXU | S_IRGRP | S_IROTH);
-	LOG_DEBUG("Created directory for gpg keys '%s'", path.buff);
+	LOG_DEBUG("created directory for gpg keys '%s'", path.buff);
 
 	// create chat cache directory
 	strbuf_clear(&path);
@@ -178,7 +178,7 @@ static void prepare_git_chat(const char *channel_name, const char *description, 
 		FATAL("failed to obtain chat cache dir");
 
 	safe_create_dir(path.buff, NULL, S_IRWXU | S_IRGRP | S_IROTH);
-	LOG_DEBUG("Created chat cache directory '%s'", path.buff);
+	LOG_DEBUG("created chat cache directory '%s'", path.buff);
 
 	strbuf_release(&path);
 	strbuf_release(&templates_dir_path);
@@ -221,7 +221,7 @@ static void update_config(char *base, const char *channel_name, const char *auth
 	strbuf_release(&config_path);
 	config_data_release(&conf);
 
-	LOG_INFO("Updated master channel configuration");
+	LOG_INFO("updated master channel configuration");
 }
 
 /**
@@ -250,7 +250,7 @@ static void update_space_description(char *base, const char *description)
 	close(desc_fd);
 	strbuf_release(&desc_path);
 
-	LOG_INFO("Updated space description to '%s'", description);
+	LOG_INFO("updated space description to '%s'", description);
 }
 
 /**
@@ -295,5 +295,5 @@ static void initialize_channel_root()
 	if (ret)
 		DIE("failed to commit index to the tree; git exited with status %d", ret);
 
-	LOG_DEBUG("Successfully created channel root commit");
+	LOG_DEBUG("successfully created channel root commit");
 }

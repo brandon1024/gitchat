@@ -22,7 +22,7 @@ int decrypt_asymmetric_message(struct gc_gpgme_ctx *ctx,
 	// if decryption failed, we won't die FATAL, we will just notify the caller
 	err = gpgme_op_decrypt(ctx->gpgme_ctx, message_in, message_out);
 	if (err) {
-		LOG_WARN("GPG decryption failed unexpectedly: %d %s\n",
+		LOG_WARN("gpg decryption failed unexpectedly: %d %s\n",
 				gpgme_err_code(err), gpgme_strerror(err));
 
 		ret = gpgme_err_code(err) == GPG_ERR_NO_DATA ? 1 : -1;

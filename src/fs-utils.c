@@ -101,7 +101,7 @@ ssize_t copy_file(const char *dest, const char *src, mode_t mode)
 	close(in_fd);
 	close(out_fd);
 
-	LOG_TRACE("File copied from '%s' to '%s'", src, dest);
+	LOG_TRACE("file copied from '%s' to '%s'", src, dest);
 
 	return bytes_written;
 }
@@ -178,9 +178,9 @@ void safe_create_dir(const char *base_path, char *dir, unsigned int mode)
 			FATAL("unable to create directory '%s'", buff.buff);
 
 		errno = errsv;
-		LOG_WARN("Directory '%s' already exists", buff.buff);
+		LOG_WARN("directory '%s' already exists", buff.buff);
 	} else {
-		LOG_TRACE("Created new directory '%s'", buff.buff);
+		LOG_TRACE("created new directory '%s'", buff.buff);
 	}
 
 	strbuf_release(&buff);

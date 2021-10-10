@@ -16,7 +16,7 @@ struct gpg_key_list {
 };
 
 struct gpg_key_list_node {
-	struct _gpgme_key *key;
+	gpgme_key_t key;
 	struct gpg_key_list_node *next;
 	struct gpg_key_list_node *prev;
 };

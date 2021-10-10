@@ -18,13 +18,13 @@ int is_inside_git_chat_space()
 
 	struct stat sb;
 	if (stat(GIT_CHAT_DIR, &sb) == -1 || !S_ISDIR(sb.st_mode)) {
-		LOG_DEBUG("Cannot stat .git-chat directory; %s", strerror(errno));
+		LOG_DEBUG("cannot stat .git-chat directory; %s", strerror(errno));
 		errno = errsv;
 		return 0;
 	}
 
 	if (stat(".git", &sb) == -1 || !S_ISDIR(sb.st_mode)) {
-		LOG_DEBUG("Cannot stat .git directory; %s", strerror(errno));
+		LOG_DEBUG("cannot stat .git directory; %s", strerror(errno));
 		errno = errsv;
 		return 0;
 	}

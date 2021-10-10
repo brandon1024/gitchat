@@ -16,7 +16,7 @@
  * Returns the number of keys (list nodes) filtered.
  * */
 int filter_gpg_keys_by_predicate(struct gpg_key_list *keys,
-		int (*predicate)(struct _gpgme_key *key, void *data), void *optional_data);
+		int (*predicate)(gpgme_key_t key, void *data), void *optional_data);
 
 /**
  * Predefined filter function which can be used to filter gpg keys that are either:
@@ -25,11 +25,11 @@ int filter_gpg_keys_by_predicate(struct gpg_key_list *keys,
  * - invalid,
  * - or cannot be used for encryption.
  * */
-int filter_gpg_unusable_keys(struct _gpgme_key *key, void *data);
+int filter_gpg_unusable_keys(gpgme_key_t key, void *data);
 
 /**
  * Predefined filter function used to filter secret keys from a key list.
  * */
-int filter_gpg_secret_keys(struct _gpgme_key *key, void *data);
+int filter_gpg_secret_keys(gpgme_key_t key, void *data);
 
 #endif //GIT_CHAT_KEY_FILTER_H

@@ -229,7 +229,7 @@ static void read_message_from_file(const char *file_path, struct strbuf *buff)
  * - no recipients match any subkey comment field
  * - no recipients match any subkey address field
  * */
-static int filter_gpg_keylist_by_recipients(struct _gpgme_key *key, void *data)
+static int filter_gpg_keylist_by_recipients(gpgme_key_t key, void *data)
 {
 	struct str_array *recipients = (struct str_array *)data;
 
@@ -288,7 +288,7 @@ static int encrypt_message_asym(struct gc_gpgme_ctx *ctx, struct str_array *reci
 
 		// if there is not a 1-1 mapping of recipients to gpg keys, fail
 		if ((size_t)key_count != recipients->len) {
-			LOG_ERROR("Some recipients defined cannot be mapped to GPG keys");
+			LOG_ERROR("some recipients defined cannot be mapped to GPG keys");
 
 			release_gpg_key_list(&gpg_keys);
 			return -1;

@@ -1,7 +1,7 @@
 #ifndef GIT_CHAT_STR_ARRAY_H
 #define GIT_CHAT_STR_ARRAY_H
 
-#include <stddef.h>
+#include <sys/types.h>
 #include <stdarg.h>
 
 /**
@@ -140,7 +140,8 @@ int str_array_vpush(struct str_array *str_a, va_list args);
  * This function returns a pointer to the str_array_entry, which can be used to
  * set the `data` member.
  * */
-struct str_array_entry *str_array_insert(struct str_array *str_a, const char *str, size_t pos);
+struct str_array_entry *str_array_insert(struct str_array *str_a,
+		const char *str, size_t pos);
 
 /**
  * Insert a string into a given position in the str_array. The string is not
@@ -160,7 +161,8 @@ struct str_array_entry *str_array_insert(struct str_array *str_a, const char *st
  * This function returns a pointer to the str_array_entry, which can be used to
  * set the `data` member.
  * */
-struct str_array_entry *str_array_insert_nodup(struct str_array *str_a, char *str, size_t pos);
+struct str_array_entry *str_array_insert_nodup(struct str_array *str_a,
+		char *str, size_t pos);
 
 /**
  * Sort all entries in the str_array in 'strcmp()' order.
@@ -206,7 +208,8 @@ void str_array_delete(struct str_array *str_a, size_t pos, size_t n);
  *
  * Returns zero if the entry was removed successfully. Otherwise, returns non-zero.
  * */
-int str_array_remove_entry(struct str_array *str_a, size_t pos, struct str_array_entry *entry);
+int str_array_remove_entry(struct str_array *str_a, size_t pos,
+		struct str_array_entry *entry);
 
 /**
  * Remove all strings for the str_array.

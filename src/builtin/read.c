@@ -2,6 +2,7 @@
 
 #include "git/graph-traversal.h"
 #include "gnupg/gpg-common.h"
+#include "gnupg/decryption.h"
 #include "working-tree.h"
 #include "parse-options.h"
 #include "paging.h"
@@ -18,6 +19,12 @@ struct graph_traversal_context {
 	struct gc_gpgme_ctx *gpg_ctx;
 };
 
+/**
+ * Commit traversal callback that attempts to decrypt the commit message body
+ * and pretty-prints the message to standard output.
+ *
+ * Returns zero.
+ * */
 static int commit_traversal_cb(struct git_commit *commit, void *data)
 {
 	struct graph_traversal_context *ctx = (struct graph_traversal_context *) data;
@@ -47,6 +54,13 @@ static int commit_traversal_cb(struct git_commit *commit, void *data)
 	return 0;
 }
 
+/**
+ * Read messages in the configured pager, starting at the given `commit`. If
+ * limit is a positive integer, at most `limit` messages are shown. If `no_color`
+ * is non-zero, ANSI color escape sequences are not written to output.
+ *
+ * Returns zero.
+ * */
 static int read_messages(const char *commit, int limit, int no_color)
 {
 	struct gc_gpgme_ctx gpg_ctx;

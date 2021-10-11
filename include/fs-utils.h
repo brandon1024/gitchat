@@ -1,7 +1,7 @@
 #ifndef GIT_CHAT_FS_UTILS_H
 #define GIT_CHAT_FS_UTILS_H
 
-#include <stddef.h>
+#include <sys/types.h>
 
 #include "strbuf.h"
 

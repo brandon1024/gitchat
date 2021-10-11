@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "parse-options.h"
 
 static const struct usage_string get_cmd_usage[] = {

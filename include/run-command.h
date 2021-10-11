@@ -4,6 +4,7 @@
 #include <sys/types.h>
 
 #include "argv-array.h"
+#include "str-array.h"
 #include "strbuf.h"
 
 /**

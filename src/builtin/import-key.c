@@ -1,8 +1,9 @@
-#include <string.h>
 #include <fcntl.h>
 
 #include "parse-options.h"
 #include "gnupg/gpg-common.h"
+#include "gnupg/key-filter.h"
+#include "gnupg/key-manager.h"
 #include "git/git.h"
 #include "git/index.h"
 #include "git/commit.h"
@@ -27,21 +28,8 @@ static const struct usage_string import_key_cmd_usage[] = {
  * */
 static int gpg_keylist_filter_predicate(gpgme_key_t key, void *data)
 {
-	struct str_array *fingerprints = (struct str_array *) data;
-	struct str_array_entry *entry = NULL;
-
-	// lookup the str_array entry with a matching fingerprint
-	for (size_t i = 0; i < fingerprints->len; i++) {
-		struct str_array_entry *current = str_array_get_entry(fingerprints, i);
-
-		if (!strcmp(key->fpr, current->string)) {
-			entry = current;
-			break;
-		}
-	}
-
-	// filter keys by fingerprint
-	if (!entry)
+	// filter by fingerprints
+	if (!filter_gpg_keys_by_fingerprint(key, data))
 		return 0;
 
 	// filter secret keys
@@ -205,13 +193,22 @@ static int import_keys_from_keyring(char *fingerprints[], int len,
 	return 0;
 }
 
+/**
+ * Import keys into the GPG keyring from a list of exported key files and from
+ * a list of fingerprints for keys in the users GPGHOME (or the provided one).
+ *
+ * If `gpg_home` is non-null, it is used as the GPGHOME to export keys from.
+ * Otherwise, the default GPGHOME is used.
+ *
+ * Returns zero if successful, and non-zero if no keys were imported.
+ * */
 static int import_keys(struct str_array *key_paths, char *fingerprints[],
 		int len, const char *gpg_home)
 {
 	struct gc_gpgme_ctx gc_ctx;
 	struct str_array imported_keys;
 	struct strbuf gc_keys_dir, key_path;
-	int ret = 0;
+	int ret;
 
 	if (!is_inside_git_chat_space())
 		DIE("Where are you? It doesn't look like you're in the right directory.");
@@ -273,6 +270,7 @@ static int import_keys(struct str_array *key_paths, char *fingerprints[],
 	}
 
 	commit_keys_from_index(&imported_keys);
+	ret = 0;
 
 fail:
 	strbuf_release(&gc_keys_dir);

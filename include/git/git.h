@@ -1,8 +1,6 @@
 #ifndef GIT_CHAT_GIT_H
 #define GIT_CHAT_GIT_H
 
-#include <inttypes.h>
-
 #include "str-array.h"
 #include "strbuf.h"
 

@@ -3,6 +3,7 @@
 .SH NAME
 git-chat-message \- encrypt plaintext messages and commit them to the git history
 
+
 .SH SYNOPSIS
 .sp
 .nf
@@ -28,7 +29,9 @@ $ git show --format="%B" HEAD | gpg --decrypt
 
 If the message, or a file containing the message, is not provided as a command line argument, the \fBvim\fR editor is invoked so that the user can compose the message. Multiple \fI-m\fR or \fI-f\fR are not supported at this time.
 
-Messages may only be decrypted by message recipients given either implicitly or with the \fI--recipient\fR option. Each recipient, including the user who authored the message, must export their public key in ASCII-armored format into a file in the \fI.keys\fR directory within the git-chat space (see \fIgit-chat-import-key\fR). By default, messages are encrypted with all public keys in the \fI.keys\fR directory if no recipients are explicitly defined.
+Messages may only be decrypted by message recipients given either implicitly or with the \fI--recipient\fR option. Each recipient, including the user who authored the message, must export their public key in ASCII-armored format into a file in the \fI.keys\fR directory within the git-chat space (see \fIgit-chat-import-key(1)\fR). By default, messages are encrypted with all public keys in the \fI.keys\fR directory if no recipients are explicitly defined.
+
+To protect against accidental communication of sensitive messages to untrusted parties, users may opt to maintain a trust list. If a file \fI.git/.trusted-keys\fR exists, each line is treated as a trusted GPG key fingerprint. Only trusted recipients will be included in new messages. Users should include their own key fingerprints in the trust list, otherwise they may not be able to decrypt their own messages.
 
 \fIgit-chat\fR manages an internal gpg keyring and trust store which is intentionally kept separate from the user's gpg home directory. The internal gpg home directory is located within the \fI.git\fR directory under \fI.git/.gnupg\fR. It is ill advised to manipulate the git-chat gpg home directory manually.
 
@@ -67,6 +70,7 @@ When composing new messages in the editor, decrypt and show the last <n> message
 .TP
 \-h, \-\-help
 Print a simple synopsis and exit.
+
 
 .SH SEE ALSO
 \fBgit-chat-init\fR(1)

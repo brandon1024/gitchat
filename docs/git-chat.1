@@ -3,6 +3,7 @@
 .SH NAME
 git-chat \- use a Git repository as a chatroom
 
+
 .SH SYNOPSIS
 .sp
 .nf
@@ -82,6 +83,7 @@ Display and format messages in a channel.
 .SH FILE/DIRECTORY LAYOUT
 @DOCS_FILE_DIRECTORY_LAYOUT_SECTION@
 
+
 .SH CONFIGURATION
 The config file has a format similar to INI or TOML, but simplified. It consists of key-value pairs, organized in sections.
 
@@ -133,6 +135,7 @@ NONE
 .TP
 \fBGIT_CHAT_PAGER\fR, \fBGIT_PAGER\fR, \fBPAGER\fR
 When output is being paged (\fIgit-chat-read\fR, for example), these environment variables may be used to specify an alternate paging program. The variable value must be the absolute path to the executable (e.g. /usr/bin/cat).
+
 
 .SH EXTENDING GIT-CHAT
 \fIgit-chat\fR follows a similar extension model to Git, where executables located on the PATH that are prefixed with \fBgit-chat-\fR will be invoked when \fBgit chat <extension name>\fR is run at the command line. This allows you to build custom plugins in your language of choice.

@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "git/index.h"
 #include "run-command.h"
 

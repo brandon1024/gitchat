@@ -1,4 +1,4 @@
-\fIgit-chat\fR uses a rather simple directory structure. When a repository is initialized, three directories are created at the root of the working tree: \fB.git\fR, \fB.git-chat\fR, and \fB.keys\fR.
+\fIgit-chat\fR uses a rather simple directory structure. When a repository is initialized, two directories are created at the root of the working tree: \fB.git\fR abd \fB.git-chat\fR.
 
 .TP
 .B .git
@@ -6,4 +6,22 @@ This directory is created by \fIgit-init\fR, and is largely untouched by git-cha
 
 .TP
 .B .git-chat
-This directory is created by \fIgit-chat-init\fR. It contains channel metadata, such as the channel name and description. Exported GPG keys are located under \fB.git-chat/keys\fR. These files are tracked, and are therefore public to all users.
+This directory is created by \fIgit-chat-init\fR. It contains channel metadata, such as the channel name and description. Channel GPG keys are located under \fB.git-chat/keys\fR. These files are tracked, and are therefore public to all users.
+
+.TP
+.B .git/.trusted-keys
+Optional file containing trusted GPG key fingerprints. To protect against accidental communication of sensitive messages to untrusted parties, users may opt to maintain this list of trusted GPG key fingerprints. If the file exists, each line is treated as a trusted GPG key fingerprint. Only trusted recipients will be included in new messages.
+
+When managing a trusted keys list, it's important to include your GPG fingerprint as well, otherwise you will not be able to decrypt your own messages.
+
+.TP
+.B .git-chat/keys
+GPG public key files for all members of the current channel.
+
+.TP
+.B .git-chat/config
+Channel configuration file.
+
+.TP
+.B .git-chat/description
+Generic description file for this git\-chat space.

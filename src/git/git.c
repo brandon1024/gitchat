@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <ctype.h>
 
 #include "git/git.h"

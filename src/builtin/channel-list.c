@@ -32,6 +32,10 @@ struct channel_details {
 	unsigned current: 1;
 };
 
+/**
+ * Initialize a channel details structure. Must be released with
+ * `channel_details_release` after use.
+ * */
 static void channel_details_init(struct channel_details *channel,
 		struct git_oid *oid, unsigned is_remote, unsigned is_current)
 {
@@ -47,6 +51,9 @@ static void channel_details_init(struct channel_details *channel,
 	channel->origin = NULL;
 }
 
+/**
+ * Release a channel details structure.
+ * */
 static void channel_details_release(struct channel_details *channel)
 {
 	memset(channel->object_id.id, 0, GIT_RAW_OBJECT_ID);
@@ -361,11 +368,19 @@ fail:
 	return status;
 }
 
+/**
+ * Fetch all channels with the refname pattern `refs/heads`. Refer to
+ * `fetch_channels` implementation for further details.
+ * */
 static int fetch_local_channels(struct str_array *channel_refs)
 {
 	return fetch_channels(channel_refs, "refs/heads", 0);
 }
 
+/**
+ * Fetch all channels with the refname pattern `refs/remotes`. Refer to
+ * `fetch_channels` implementation for further details.
+ * */
 static int fetch_remote_channels(struct str_array *channel_refs)
 {
 	return fetch_channels(channel_refs, "refs/remotes", 1);
@@ -425,6 +440,10 @@ struct table_dimensions {
 	int channel_name;
 };
 
+/**
+ * Calculate the width (in characters) for each column. Needed when displaying
+ * channels in a tablulated format.
+ * */
 static void calculate_table_dimensions(struct str_array *channels,
 		struct table_dimensions *dims)
 {

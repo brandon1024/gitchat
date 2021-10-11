@@ -1,6 +1,9 @@
 #ifndef GIT_CHAT_COMMIT_H
 #define GIT_CHAT_COMMIT_H
 
+#include <inttypes.h>
+
+#include "strbuf.h"
 #include "git/git.h"
 
 struct git_time {

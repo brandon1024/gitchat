@@ -20,10 +20,195 @@ static struct usage_string usage[] = {
 		USAGE_END()
 };
 
-static int config_query_value(const char *, int);
-static int config_set_value(const char *, const char *);
-static int editor_edit_config_file();
-static int is_config_file_valid();
+/**
+ * Search the git-chat config file for a `key` and write the value to stdout.
+ * If `fallback_default` is non-zero, if the a config entry is not found with
+ * that key, a default value is printed if such a default exists for that
+ * particular key.
+ *
+ * Returns zero if a config value was found for that key, and non-zero otherwise.
+ * */
+static int config_query_value(const char *key, int fallback_default)
+{
+	struct strbuf cwd_path,  config_path;
+	struct config_data *conf;
+
+	if (!is_inside_git_chat_space())
+		DIE("Where are you? It doesn't look like you're in the right directory.");
+
+	strbuf_init(&cwd_path);
+	if (get_cwd(&cwd_path))
+		FATAL("unable to obtain the current working directory from getcwd()");
+
+	strbuf_init(&config_path);
+	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
+
+	config_data_init(&conf);
+	int ret = parse_config(conf, config_path.buff);
+	if (ret < 0)
+		DIE("unable to query config from '%s'; cannot access file", config_path);
+	if (ret > 0)
+		DIE("unable to query config from '%s'; file contains syntax errors", config_path);
+
+	const char *value = config_data_find(conf, key);
+	if (value)
+		fprintf(stdout, "%s\n", value);
+
+	strbuf_release(&config_path);
+	strbuf_release(&cwd_path);
+	config_data_release(&conf);
+
+	// if no entry was found, and fallback on default, then show default value
+	if (!value && fallback_default) {
+		const char *default_val = get_default_config_value(key);
+		if (!default_val)
+			return 1;
+
+		fprintf(stdout, "%s\n", default_val);
+		return 0;
+	}
+
+	return value == NULL;
+}
+
+/**
+ * Set `value` for a `key` in the git-chat config file.
+ *
+ * If `value` is null, the config option with the key `key` is deleted.
+ * Otherwise, the config option with the key `key` is inserted or updated.
+ *
+ * Returns zero if the value was successfully removed, inserted or updated, and
+ * non-zero if tried to removed a config key that does not exist in the config
+ * file.
+ * */
+static int config_set_value(const char *key, const char *value)
+{
+	struct strbuf cwd_path, config_path;
+	struct config_data *conf;
+
+	if (!is_inside_git_chat_space())
+		DIE("Where are you? It doesn't look like you're in the right directory.");
+
+	strbuf_init(&cwd_path);
+	if (get_cwd(&cwd_path))
+		FATAL("unable to obtain the current working directory from getcwd()");
+
+	strbuf_init(&config_path);
+	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
+
+	config_data_init(&conf);
+	int ret = parse_config(conf, config_path.buff);
+	if (ret < 0)
+		FATAL("unable to update config '%s'; cannot access file", config_path);
+	if (ret > 0)
+		DIE("malformed config file '%s'", config_path);
+
+	const char *old_value = config_data_find(conf, key);
+	if (!value) {
+		// unset config
+		if (old_value) {
+			int status = config_data_delete(conf, key);
+			if (status < 0)
+				DIE("invalid key '%s'", key);
+			if (status > 0)
+				DIE("no such config for key '%s'", key);
+		} else {
+			WARN("config with key '%s' does not exist", key);
+		}
+	} else if (!old_value) {
+		// create if entry doesn't exist
+		int status = config_data_insert(conf, key, value);
+		if (status < 0)
+			DIE("invalid key '%s'", key);
+		if (status > 0)
+			DIE("config already exists for key '%s'", key);
+	} else {
+		// set value if exists
+		int status = config_data_update(conf, key, value);
+		if (status < 0)
+			DIE("invalid key '%s'", key);
+		if (status > 0)
+			DIE("config with key '%s' does not exist", key);
+	}
+
+	ret = write_config(conf, config_path.buff);
+	if (ret < 0)
+		FATAL("failed to open destination file '%s' for writing", config_path.buff);
+	if (ret > 0)
+		DIE("could not write malformed config", config_path.buff);
+
+	strbuf_release(&config_path);
+	strbuf_release(&cwd_path);
+	config_data_release(&conf);
+
+	// return 1 if --unset and entry not found
+	return !value && !old_value;
+}
+
+/**
+ * Launch vim to edit the config file.
+ *
+ * Returns zero if the editor was launched successfully and exited with a zero
+ * exit status.
+ * */
+static int editor_edit_config_file()
+{
+	struct strbuf cwd_path, config_path;
+	struct child_process_def cmd;
+
+	if (!is_inside_git_chat_space())
+		DIE("Where are you? It doesn't look like you're in the right directory.");
+
+	strbuf_init(&cwd_path);
+	if (get_cwd(&cwd_path))
+		FATAL("unable to obtain the current working directory from getcwd()");
+
+	strbuf_init(&config_path);
+	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
+
+	child_process_def_init(&cmd);
+	cmd.executable = "vim";
+	argv_array_push(&cmd.args, "-c", "set nobackup nowritebackup", "-n",
+			config_path.buff, NULL);
+
+	int status = run_command(&cmd);
+	if (status)
+		DIE("Vim editor failed with exit status '%d'", status);
+
+	child_process_def_release(&cmd);
+
+	strbuf_release(&config_path);
+	strbuf_release(&cwd_path);
+
+	return 0;
+}
+
+/**
+ * Check if the git-chat config file format is valid.
+ *
+ * Return zero if the file is valid, otherwise return non-zero.
+ * */
+static int is_config_file_valid()
+{
+	struct strbuf cwd_path, config_path;
+
+	if (!is_inside_git_chat_space())
+		DIE("Where are you? It doesn't look like you're in the right directory.");
+
+	strbuf_init(&cwd_path);
+	if (get_cwd(&cwd_path))
+		FATAL("unable to obtain the current working directory from getcwd()");
+
+	strbuf_init(&config_path);
+	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
+
+	int is_invalid = is_config_invalid(config_path.buff, 1);
+
+	strbuf_release(&config_path);
+	strbuf_release(&cwd_path);
+
+	return !is_invalid;
+}
 
 int cmd_config(int argc, char *argv[])
 {
@@ -132,165 +317,4 @@ int cmd_config(int argc, char *argv[])
 	}
 
 	return 1;
-}
-
-static int config_query_value(const char *key, int fallback_default)
-{
-	struct strbuf cwd_path,  config_path;
-	struct config_data *conf;
-
-	if (!is_inside_git_chat_space())
-		DIE("Where are you? It doesn't look like you're in the right directory.");
-
-	strbuf_init(&cwd_path);
-	if (get_cwd(&cwd_path))
-		FATAL("unable to obtain the current working directory from getcwd()");
-
-	strbuf_init(&config_path);
-	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
-
-	config_data_init(&conf);
-	int ret = parse_config(conf, config_path.buff);
-	if (ret < 0)
-		DIE("unable to query config from '%s'; cannot access file", config_path);
-	if (ret > 0)
-		DIE("unable to query config from '%s'; file contains syntax errors", config_path);
-
-	const char *value = config_data_find(conf, key);
-	if (value)
-		fprintf(stdout, "%s\n", value);
-
-	strbuf_release(&config_path);
-	strbuf_release(&cwd_path);
-	config_data_release(&conf);
-
-	// if no entry was found, and fallback on default, then show default value
-	if (!value && fallback_default) {
-		const char *default_val = get_default_config_value(key);
-		if (!default_val)
-			return 1;
-
-		fprintf(stdout, "%s\n", default_val);
-		return 0;
-	}
-
-	return value == NULL;
-}
-
-static int config_set_value(const char *key, const char *value)
-{
-	struct strbuf cwd_path, config_path;
-	struct config_data *conf;
-
-	if (!is_inside_git_chat_space())
-		DIE("Where are you? It doesn't look like you're in the right directory.");
-
-	strbuf_init(&cwd_path);
-	if (get_cwd(&cwd_path))
-		FATAL("unable to obtain the current working directory from getcwd()");
-
-	strbuf_init(&config_path);
-	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
-
-	config_data_init(&conf);
-	int ret = parse_config(conf, config_path.buff);
-	if (ret < 0)
-		FATAL("unable to update config '%s'; cannot access file", config_path);
-	if (ret > 0)
-		DIE("malformed config file '%s'", config_path);
-
-	const char *old_value = config_data_find(conf, key);
-	if (!value) {
-		// unset config
-		if (old_value) {
-			int status = config_data_delete(conf, key);
-			if (status < 0)
-				DIE("invalid key '%s'", key);
-			if (status > 0)
-				DIE("no such config for key '%s'", key);
-		} else {
-			WARN("config with key '%s' does not exist", key);
-		}
-	} else if (!old_value) {
-		// create if entry doesn't exist
-		int status = config_data_insert(conf, key, value);
-		if (status < 0)
-			DIE("invalid key '%s'", key);
-		if (status > 0)
-			DIE("config already exists for key '%s'", key);
-	} else {
-		// set value if exists
-		int status = config_data_update(conf, key, value);
-		if (status < 0)
-			DIE("invalid key '%s'", key);
-		if (status > 0)
-			DIE("config with key '%s' does not exist", key);
-	}
-
-	ret = write_config(conf, config_path.buff);
-	if (ret < 0)
-		FATAL("failed to open destination file '%s' for writing", config_path.buff);
-	if (ret > 0)
-		DIE("could not write malformed config", config_path.buff);
-
-	strbuf_release(&config_path);
-	strbuf_release(&cwd_path);
-	config_data_release(&conf);
-
-	// return 1 if --unset and entry not found
-	return !value && !old_value;
-}
-
-static int editor_edit_config_file()
-{
-	struct strbuf cwd_path, config_path;
-	struct child_process_def cmd;
-
-	if (!is_inside_git_chat_space())
-		DIE("Where are you? It doesn't look like you're in the right directory.");
-
-	strbuf_init(&cwd_path);
-	if (get_cwd(&cwd_path))
-		FATAL("unable to obtain the current working directory from getcwd()");
-
-	strbuf_init(&config_path);
-	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
-
-	child_process_def_init(&cmd);
-	cmd.executable = "vim";
-	argv_array_push(&cmd.args, "-c", "set nobackup nowritebackup", "-n",
-			config_path.buff, NULL);
-
-	int status = run_command(&cmd);
-	if (status)
-		DIE("Vim editor failed with exit status '%d'", status);
-
-	child_process_def_release(&cmd);
-
-	strbuf_release(&config_path);
-	strbuf_release(&cwd_path);
-
-	return 0;
-}
-
-static int is_config_file_valid()
-{
-	struct strbuf cwd_path, config_path;
-
-	if (!is_inside_git_chat_space())
-		DIE("Where are you? It doesn't look like you're in the right directory.");
-
-	strbuf_init(&cwd_path);
-	if (get_cwd(&cwd_path))
-		FATAL("unable to obtain the current working directory from getcwd()");
-
-	strbuf_init(&config_path);
-	strbuf_attach_fmt(&config_path, "%s/.git-chat/config", cwd_path.buff);
-
-	int is_invalid = is_config_invalid(config_path.buff, 1);
-
-	strbuf_release(&config_path);
-	strbuf_release(&cwd_path);
-
-	return !is_invalid;
 }

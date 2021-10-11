@@ -96,3 +96,16 @@ assert_success 'passing inexistent file to --file should fail' '
 	! git chat message --file unknownfile 2>err &&
 	grep "failed to open file '\''unknownfile'\''" err
 '
+
+assert_success 'existence of a .trusted-keys file should filter recipients' '
+	setup_test_gpg
+' '
+	echo "49A9FED4003D28CB5D8CF96748F6785D011F494B" >.git/.trusted-keys &&
+	echo "41C4155B702593BFF6D7D140AB4F26E5A765DFDC" >>.git/.trusted-keys &&
+	git chat message -m "hello world" &&
+	git show -s --format="%B" HEAD >commit_msg &&
+	echo password | gpg2 --pinentry-mode=loopback --passphrase-fd 0 --batch --decrypt commit_msg >out &&
+	grep "hello world" out &&
+	gpg2 --list-only --list-packets <commit_msg 2>message_details &&
+	grep "C5E184648F6CEA47" message_details
+'

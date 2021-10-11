@@ -1,8 +1,10 @@
 #ifndef GIT_CHAT_PARSE_OPTIONS_H
 #define GIT_CHAT_PARSE_OPTIONS_H
 
-#include <stddef.h>
 #include <stdarg.h>
+#include <stddef.h>
+
+#include "str-array.h"
 
 /**
  * parse-options api

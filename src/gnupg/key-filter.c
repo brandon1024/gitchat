@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "gnupg/gpg-common.h"
 
@@ -61,4 +62,16 @@ int filter_gpg_secret_keys(gpgme_key_t key, void *data)
 	(void) data;
 
 	return !key->secret;
+}
+
+int filter_gpg_keys_by_fingerprint(gpgme_key_t key, void *data)
+{
+	struct str_array *fingerprints = (struct str_array *) data;
+
+	for (size_t fpr_index = 0; fpr_index < fingerprints->len; fpr_index++) {
+		if (!strcmp(key->fpr, str_array_get(fingerprints, fpr_index)))
+			return 1;
+	}
+
+	return 0;
 }

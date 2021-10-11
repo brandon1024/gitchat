@@ -7,6 +7,11 @@
 #include "run-command.h"
 #include "git/graph-traversal.h"
 #include "gnupg/gpg-common.h"
+#include "gnupg/key-trust.h"
+#include "gnupg/encryption.h"
+#include "gnupg/decryption.h"
+#include "gnupg/key-filter.h"
+#include "gnupg/key-manager.h"
 #include "working-tree.h"
 #include "fs-utils.h"
 #include "parse-options.h"
@@ -259,6 +264,23 @@ static int filter_gpg_keylist_by_recipients(gpgme_key_t key, void *data)
 }
 
 /**
+ * Key list filter predicate that is identical to the
+ * `filter_gpg_keys_by_fingerprint` but logs a message at INFO level indicating
+ * that the key was filtered because the fingerprint didn't exist in the trusted
+ * keys list.
+ * */
+static int filter_gpg_keys_by_fingerprint_verbose(gpgme_key_t key, void *data)
+{
+	if (!filter_gpg_keys_by_fingerprint(key, data)) {
+		LOG_INFO("recipient with fingerprint '%s' filtered by the trust keys list",
+				key->fpr);
+		return 0;
+	}
+
+	return 1;
+}
+
+/**
  * Encrypt a plaintext message from a string buffer into destination buffer, in
  * ASCII-armor format.
  *
@@ -281,8 +303,8 @@ static int encrypt_message_asym(struct gc_gpgme_ctx *ctx, struct str_array *reci
 	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_unusable_keys, NULL);
 	key_count -= filter_gpg_keys_by_predicate(&gpg_keys, filter_gpg_secret_keys, NULL);
 
-	// if explicit recipients given, filter keys that are not to be recipients
 	if (recipients->len) {
+		// if explicit recipients given, filter keys that are not to be recipients
 		key_count -= filter_gpg_keys_by_predicate(&gpg_keys,
 				filter_gpg_keylist_by_recipients, recipients);
 
@@ -294,6 +316,16 @@ static int encrypt_message_asym(struct gc_gpgme_ctx *ctx, struct str_array *reci
 			return -1;
 		}
 	}
+
+	// filter by trusted keys
+	struct str_array trust_list;
+	str_array_init(&trust_list);
+
+	if (read_trust_list(&trust_list) >= 0)
+		key_count -= filter_gpg_keys_by_predicate(&gpg_keys,
+				filter_gpg_keys_by_fingerprint_verbose, (void *) &trust_list);
+
+	str_array_release(&trust_list);
 
 	if (key_count)
 		asymmetric_encrypt_plaintext_message(ctx, message_in, ciphertext_result, &gpg_keys);

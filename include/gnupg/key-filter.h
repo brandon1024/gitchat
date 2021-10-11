@@ -32,4 +32,10 @@ int filter_gpg_unusable_keys(gpgme_key_t key, void *data);
  * */
 int filter_gpg_secret_keys(gpgme_key_t key, void *data);
 
+/**
+ * Predefined filter function used to filter keys by fingerprints. The void pointer
+ * `data` is treated as a pointer to a str_array of fingerprints.
+ * */
+int filter_gpg_keys_by_fingerprint(gpgme_key_t key, void *data);
+
 #endif //GIT_CHAT_KEY_FILTER_H

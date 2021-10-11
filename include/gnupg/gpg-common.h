@@ -4,6 +4,7 @@
 #include <gpgme.h>
 
 #include "strbuf.h"
+#include "utils.h"
 
 struct gc_gpgme_ctx {
 	struct gpgme_context *gpgme_ctx;
@@ -20,12 +21,6 @@ struct gpg_key_list_node {
 	struct gpg_key_list_node *next;
 	struct gpg_key_list_node *prev;
 };
-
-#include "key-manager.h"
-#include "key-filter.h"
-#include "encryption.h"
-#include "decryption.h"
-#include "utils.h"
 
 /**
  * Retrieve a statically-allocated string representing the version of the gpgme

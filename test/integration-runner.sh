@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function show_help () {
+show_help () {
 	cat <<EOS
 This script is the integration test runner for all integration tests.
 
@@ -156,6 +156,8 @@ if [[ ! -d "${TEST_RUNNER_PATH}/integration" ]]; then
 	exit 1
 fi
 
+export PATH="${TEST_RUNNER_PATH}/integration/bin:${PATH}"
+
 if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	# When running integration tests under valgrind memcheck, we wrap the git-chat
 	# executable in valgrind.sh, which accepts the same arguments as git-chat.
@@ -176,8 +178,6 @@ if [[ -n "${TEST_VALGRIND+x}" ]]; then
 	fi
 
 	ln -s "${TEST_RUNNER_PATH}/integration/bin/valgrind.sh" "${TEST_RUNNER_PATH}/integration/bin/git-chat"
-
-	export PATH="${TEST_RUNNER_PATH}/integration/bin:${PATH}"
 elif [[ -n "${TEST_GIT_CHAT_INSTALLED+x}" ]]; then
 	export PATH="${TEST_GIT_CHAT_INSTALLED}:${PATH}"
 fi
@@ -226,6 +226,8 @@ export GIT_CEILING_DIRECTORIES="$(dirname "$TEST_TRASH_DIR")"
 
 # Trick git into using an alternate gitconfig for tests
 export GIT_CONFIG=${TEST_RESOURCES_DIR}/.gitconfig
+export GIT_CONFIG_GLOBAL=${GIT_CONFIG}
+export GIT_CONFIG_SYSTEM=${GIT_CONFIG}
 export GIT_CONFIG_NOSYSTEM=1
 
 export GIT_AUTHOR_NAME="Test User"

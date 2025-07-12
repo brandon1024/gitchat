@@ -28,11 +28,11 @@ fi
 
 cd "${TEST_TRASH_DIR}" || exit 1
 
-function fail_test () {
+fail_test () {
 	printf "  ${COLOR_RED}not ok $ASSERT_TEST_NUMBER - ${1}${COLOR_RESET}\n" 1>&2
 }
 
-function pass_test () {
+pass_test () {
 	printf "  ${COLOR_GREEN}ok $ASSERT_TEST_NUMBER - ${1}${COLOR_RESET}\n" 1>&2
 }
 
@@ -40,7 +40,7 @@ function pass_test () {
 # zero exit status.
 # usage: assert_success <message> [<test setup>] <script>
 #
-function assert_success () {
+assert_success () {
 	if [[ ${#} -eq 2 ]]; then
 		if [[ -n "${TEST_DEBUG+x}" || -n "${TEST_VERBOSE+x}" ]]; then
 			(eval "$2")
@@ -76,12 +76,12 @@ function assert_success () {
 	exit ${ASSERT_FAILED}
 }
 
-function reset_trash_dir () {
+reset_trash_dir () {
 	rm -rf -- ..?* .[!.]* *
 	return 0
 }
 
-function setup_test_gpg () {
+setup_test_gpg () {
 	rm -rf "${TEST_TRASH_DIR}/.gpg_tmp"
 	mkdir -m 700 "${TEST_TRASH_DIR}/.gpg_tmp"
 	export GNUPGHOME="${TEST_TRASH_DIR}/.gpg_tmp"

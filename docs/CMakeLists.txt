@@ -22,6 +22,6 @@ foreach(SECTION 1 2 3 4 5 6 7 8)
 		get_filename_component(FILENAME ${FILE} NAME)
 		configure_file(${FILE} ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME})
 
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME} DESTINATION share/man/man${SECTION})
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME} DESTINATION ${CMAKE_INSTALL_MANDIR}/man${SECTION})
 	endforeach()
 endforeach()

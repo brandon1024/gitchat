@@ -106,6 +106,6 @@ assert_success 'existence of a .trusted-keys file should filter recipients' '
 	git show -s --format="%B" HEAD >commit_msg &&
 	echo password | gpg2 --pinentry-mode=loopback --passphrase-fd 0 --batch --decrypt commit_msg >out &&
 	grep "hello world" out &&
-	gpg2 --list-only --list-packets <commit_msg 2>message_details &&
+	gpg2 --list-only --list-packets <commit_msg >message_details 2>&1 &&
 	grep "C5E184648F6CEA47" message_details
 '
